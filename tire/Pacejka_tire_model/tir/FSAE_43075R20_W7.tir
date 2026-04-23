@@ -61,7 +61,7 @@ $--------------------------------------------------------------scaling
 [SCALING_COEFFICIENTS]
 LFZO = 1.0
 LCX = 1.0
-LMUX = 0.56
+LMUX = 0.7
 LEX = 1.0
 LKX = 1.0
 LHX = 1.0
