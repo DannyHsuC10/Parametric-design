@@ -31,7 +31,7 @@ IA = 0.0
 # 固定最佳胎壓 (上一章分析結果)
 pressure = tire_info.Tire_Pressure
 
-IA_list = [-4.5,-3,-2,0,2,3,4.5]
+IA_list = [-4.5,-3,-1.5,0,1.5,3,4.5]
 
 colors = [
     "red",

@@ -196,8 +196,8 @@ def plot_vehicle_friction_circle(Fz_per_tire=800, alpha_lim=10, kappa_lim=1, res
     # 順便把所有計算點以極淡的灰色點點點畫出來，方便你檢查邊界是否完美貼合
     ax3.scatter(points[:, 0], points[:, 1], s=1, color='gray', alpha=0.3, label='Calculated Points')
     
-    ax3.set_xlabel('Total Longitudinal accele $a_x$ [N]', fontsize=11)
-    ax3.set_ylabel('Total Lateral accele $a_y$ [N]', fontsize=11)
+    ax3.set_xlabel('Total Longitudinal accele $a_x$ [g]', fontsize=11)
+    ax3.set_ylabel('Total Lateral accele $a_y$ [g]', fontsize=11)
     ax3.set_title(f'Vehicle Friction Limit Box\n(Total Fz = {Fz_per_tire*4} N)', fontsize=13)
     ax3.grid(True, linestyle=':', alpha=0.6)
     ax3.axis('equal')
