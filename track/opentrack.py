@@ -12,13 +12,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import TextIO
 from track_data import track_data
+from json_data import file_data
 import numpy as np
 from openpyxl import load_workbook
 
-
+# 設定物件
 base_dir = Path(__file__).resolve().parent
 track_info = track_data()
+
 track_info.load_json(base_dir/"track.json")
+tire_info = file_data(base_dir/"tire.json")# 導入摩擦係數使用
+
+max_speed = 110/3.6
+radius_limit = 100.0
 
 @dataclass
 class Segment:
@@ -52,7 +58,8 @@ class Tee:
 class OutputPaths:
     npz: Path
     images: list[Path]
-    top_radius_distribution: list[dict[str, float | int | str]]
+    top_radius_distribution_length: list[dict[str, float | int | str]]
+    top_radius_distribution_time: list[dict[str, float | int | str]]
 
 
 def read_workbook(path: Path) -> tuple[dict[str, str], list[Segment], dict[str, np.ndarray]]:
@@ -157,7 +164,7 @@ def reconstruct_geometry(segments: list[Segment], ds: float) -> dict[str, np.nda
     }
 
 
-def gaussian_smooth(values: np.ndarray, window: int = 7) -> np.ndarray:
+def gaussian_smooth(values: np.ndarray, window: int = 40) -> np.ndarray:
     # Edge padding keeps the output length identical to the input length.
     radius = window // 2
     sigma = max(window / 6.0, np.finfo(float).eps)
@@ -202,7 +209,7 @@ def build_track(segments: list[Segment], tables: dict[str, np.ndarray], ds: floa
     track = reconstruct_geometry(segments, ds)
     raw = track["kappa_raw"]
     # Apex detection is based on smoothed curvature, not the raw stepped curvature.
-    kappa = gaussian_smooth(raw, 7)
+    kappa = gaussian_smooth(raw, 40)
     prominence = float(np.percentile(np.abs(kappa), 70) * 0.20)
     distance = max(1, round(8.0 / ds))
     left = find_peaks(kappa, prominence, distance)
@@ -246,7 +253,11 @@ def ascii_map(track: dict[str, np.ndarray], width: int = 66) -> str:
                      for row in range(yy.max() + 1))
 
 
-def save_pngs(track: dict[str, np.ndarray], output_dir: Path, stem: str) -> tuple[list[Path], list[dict[str, float | int | str]]]:
+def save_pngs(
+    track: dict[str, np.ndarray],
+    output_dir: Path,
+    stem: str,
+) -> tuple[list[Path], list[dict[str, float | int | str]], list[dict[str, float | int | str]]]:
     # Keep Matplotlib cache inside the output folder to avoid user-profile permission issues.
     cache_dir = output_dir / ".matplotlib-cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -328,42 +339,94 @@ def save_pngs(track: dict[str, np.ndarray], output_dir: Path, stem: str) -> tupl
     ax.legend(loc="best")
     save_current(fig, "radius")
 
-    # Radius length distribution: each point contributes its local dx to a 1 m radius bin.
+    # FFT spectrum of smoothed curvature over distance.
+    ds_fft = float(np.mean(track["dx"])) if len(track["dx"]) else 1.0
+    fft_val = np.fft.fft(curvature)
+    freq = np.fft.fftfreq(len(curvature), d=ds_fft)
+    amp = np.abs(fft_val)
+    positive_freq_mask = freq > 0
+    positive_freq = freq[positive_freq_mask]
+    positive_amp = amp[positive_freq_mask]
+
     fig, ax = plt.subplots(figsize=(12, 5), constrained_layout=True)
-    radius_limit = 100.0
+    freq_limit = 0.5
+    fft_plot_mask = positive_freq <= freq_limit
+    ax.plot(positive_freq[fft_plot_mask], positive_amp[fft_plot_mask], color="#1f77b4", linewidth=1.2)
+    ax.set_xlim(0.0, freq_limit)
+    ax.set_title("Curvature Spectrum (FFT)")
+    ax.set_xlabel("Spatial Frequency [1/m]")
+    ax.set_ylabel("Amplitude")
+    ax.grid(True, alpha=0.3)
+    save_current(fig, "curvature_fft_frequency")
+
+    fig, ax = plt.subplots(figsize=(12, 5), constrained_layout=True)
+    wavelength = 1.0 / positive_freq
+    order = np.argsort(wavelength)
+    ax.plot(wavelength[order], positive_amp[order], color="#1f77b4", linewidth=1.2)
+    ax.set_xscale("log")
+    ax.set_title("Track Curvature Spectrum")
+    ax.set_xlabel("Spatial Wavelength [m]")
+    ax.set_ylabel("Amplitude")
+    ax.grid(True, which="both", alpha=0.3)
+    save_current(fig, "curvature_fft_wavelength")
+
+    # Radius time distribution: each point contributes dx / v to a 1 m radius bin.
+    fig, ax = plt.subplots(figsize=(12, 5), constrained_layout=True)
     finite_radius_mask = np.isfinite(radius) & (radius <= radius_limit)
     finite_radius = radius[finite_radius_mask]
     finite_dx = track["dx"][finite_radius_mask]
+    muy = float(tire_info.mu_y_RL)
+    corner_speed = np.sqrt(np.maximum(muy * finite_radius, 0.0))
+    limited_speed = np.minimum(corner_speed, max_speed)
+    finite_dt = np.divide(
+        finite_dx,
+        limited_speed,
+        out=np.full_like(finite_dx, np.nan, dtype=float),
+        where=limited_speed > 1e-9,
+    )
+    valid_time_mask = np.isfinite(finite_dt)
     bins = np.arange(0.0, radius_limit + 1.0, 1.0)
-    length_by_radius, edges = np.histogram(finite_radius, bins=bins, weights=finite_dx)
+    length_by_radius, _ = np.histogram(finite_radius, bins=bins, weights=finite_dx)
+    time_by_radius, edges = np.histogram(finite_radius[valid_time_mask], bins=bins, weights=finite_dt[valid_time_mask])
     centers = (edges[:-1] + edges[1:]) / 2.0
     widths = np.diff(edges)
-    nonzero_bins = np.flatnonzero(length_by_radius > 0.0)
-    top_indices = nonzero_bins[np.argsort(length_by_radius[nonzero_bins])[-5:]][::-1]
-    top_index_set = set(top_indices.tolist())
-    bar_colors = ["#d62728" if index in top_index_set else "#1f77b4" for index in range(len(length_by_radius))]
-    ax.bar(centers, length_by_radius, width=widths, align="center", color=bar_colors, linewidth=0.3)
-    top_radius_distribution = [
+    nonzero_time_bins = np.flatnonzero(time_by_radius > 0.0)
+    top_time_indices = nonzero_time_bins[np.argsort(time_by_radius[nonzero_time_bins])[-5:]][::-1]
+    nonzero_length_bins = np.flatnonzero(length_by_radius > 0.0)
+    top_length_indices = nonzero_length_bins[np.argsort(length_by_radius[nonzero_length_bins])[-5:]][::-1]
+    top_index_set = set(top_time_indices.tolist())
+    bar_colors = ["#d62728" if index in top_index_set else "#1f77b4" for index in range(len(time_by_radius))]
+    ax.bar(centers, time_by_radius, width=widths, align="center", color=bar_colors, linewidth=0.3)
+    top_radius_distribution_time = [
+        {
+            "rank": rank,
+            "radius_range_m": f"{edges[index]:.0f}-{edges[index + 1]:.0f}",
+            "radius_center_m": float(centers[index]),
+            "accumulated_time_s": float(time_by_radius[index]),
+        }
+        for rank, index in enumerate(top_time_indices, start=1)
+    ]
+    top_radius_distribution_length = [
         {
             "rank": rank,
             "radius_range_m": f"{edges[index]:.0f}-{edges[index + 1]:.0f}",
             "radius_center_m": float(centers[index]),
             "accumulated_length_m": float(length_by_radius[index]),
         }
-        for rank, index in enumerate(top_indices, start=1)
+        for rank, index in enumerate(top_length_indices, start=1)
     ]
-    ax.set_title("Radius Length Distribution (0-100 m)")
+    ax.set_title("Radius Time Distribution (0-100 m)")
     ax.set_xlabel("Radius [m]")
-    ax.set_ylabel("Accumulated length [m]")
+    ax.set_ylabel("Accumulated time [s]")
     ax.grid(True, axis="y", alpha=0.3)
     ax.legend(
         handles=[
-            plt.Rectangle((0, 0), 1, 1, color="#d62728", label="Top 5 radius bins"),
+            plt.Rectangle((0, 0), 1, 1, color="#d62728", label="Top 5 time bins"),
             plt.Rectangle((0, 0), 1, 1, color="#1f77b4", label="Other radius bins"),
         ],
         loc="best",
     )
-    save_current(fig, "radius_length_distribution")
+    save_current(fig, "radius_time_distribution")
 
     # Remaining plots are section data expanded onto the generated distance vector.
     scalar_plots = [
@@ -388,7 +451,7 @@ def save_pngs(track: dict[str, np.ndarray], output_dir: Path, stem: str) -> tupl
         plt.close("all")  # Avoid memory growth when running batch jobs.
     for fig in figures:
         plt.close(fig)
-    return image_paths, top_radius_distribution
+    return image_paths, top_radius_distribution_length, top_radius_distribution_time
 
 def run(input_path: Path, output_dir: Path, mesh_size: float) -> OutputPaths:
     info, segments, tables = read_workbook(input_path)
@@ -426,7 +489,7 @@ def run(input_path: Path, output_dir: Path, mesh_size: float) -> OutputPaths:
         npz_path = output_dir / f"{stem}.npz"
         info_arrays = {f"info_{key}": np.asarray(value) for key, value in info.items()}
         np.savez_compressed(npz_path, **track, **info_arrays)
-        image_paths, top_radius_distribution = save_pngs(track, output_dir, stem)
+        image_paths, top_radius_distribution_length, top_radius_distribution_time = save_pngs(track, output_dir, stem)
         track_info.Track_length = float(track["x"][-1])
         track_info.Average_radius = average_radius
         track_info.Name = info["name"]
@@ -435,20 +498,26 @@ def run(input_path: Path, output_dir: Path, mesh_size: float) -> OutputPaths:
         track_info.Mesh_size = float(mesh_size)
         track_info.Apex_count = int(len(track["apex_index"]))
         track_info.Minimum_radius = min_radius
-        track_info.Top5_radius_distribution = top_radius_distribution
+        track_info.Top5_radius_distribution_length = top_radius_distribution_length
+        track_info.Top5_radius_distribution_time = top_radius_distribution_time
         track_info.save_json(base_dir / "track.json")
         print("Updated track.json with open track")
         print(f"\nNumPy track saved: {npz_path}")
         print("Visualizations saved:")
         for image_path in image_paths:
             print(f"  {image_path}")
-    return OutputPaths(npz=npz_path, images=image_paths, top_radius_distribution=top_radius_distribution)
+    return OutputPaths(
+        npz=npz_path,
+        images=image_paths,
+        top_radius_distribution_length=top_radius_distribution_length,
+        top_radius_distribution_time=top_radius_distribution_time,
+    )
 
 
 
 parser = argparse.ArgumentParser(description="Convert an OpenTRACK Excel map to NumPy NPZ data.")
 parser.add_argument("input", nargs="?", type=Path, default=Path(__file__).with_name("input_map.xlsx"))
-parser.add_argument("--mesh-size", type=float, default=0.5, help="Maximum point spacing in metres (default: 0.5)")
+parser.add_argument("--mesh-size", type=float, default=0.1, help="Maximum point spacing in metres (default: 0.5)")
 parser.add_argument("--output", type=Path, default=Path(__file__).with_name("OpenTRACK Tracks"))
 args = parser.parse_args()
 if args.mesh_size <= 0:

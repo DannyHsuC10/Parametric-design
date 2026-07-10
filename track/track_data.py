@@ -20,14 +20,20 @@ class track_data:
         self.Mesh_size = None
         self.Apex_count = None
         self.Minimum_radius = None
-        self.Top5_radius_distribution = [
+        self.Top5_radius_distribution_length = [
             {"rank": 1, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
             {"rank": 2, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
             {"rank": 3, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
             {"rank": 4, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
             {"rank": 5, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
         ]
-
+        self.Top5_radius_distribution_time = [
+            {"rank": 1, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
+            {"rank": 2, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
+            {"rank": 3, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
+            {"rank": 4, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
+            {"rank": 5, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
+        ]
     def save_json(self, filename="track_data.json"):# 存檔
         """Save all attributes to a JSON file."""
         with open(filename, "w", encoding="utf-8") as f:

@@ -8,13 +8,13 @@ Type:          endurance
 Configuration: Closed
 Direction:     Forward
 Mirror:        Off
-Generated:     2026-07-10T20:39:11
+Generated:     2026-07-10T23:51:58
 ==================================================================
-Track points:  2458
+Track points:  12133
 Track length:  1209.309 m
-Mesh size:     0.5 m (maximum target spacing)
+Mesh size:     0.1 m (maximum target spacing)
 Apex count:    73
-Minimum radius:1.809 m
+Minimum radius:1.830 m
 
 Map:
                                                        ooooooooo
@@ -47,7 +47,9 @@ NumPy track saved: D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK T
 Visualizations saved:
   D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_xy_map.png
   D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_radius.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_radius_length_distribution.png
+  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_curvature_fft_frequency.png
+  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_curvature_fft_wavelength.png
+  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_radius_time_distribution.png
   D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_elevation.png
   D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_inclination.png
   D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_banking.png
