@@ -1,0 +1,76 @@
+{
+    "track_path": "input_map.xlsx",
+    "show_plt": false,
+    "Track_length": 1214.4410246708171,
+    "Average_radius": 17.813341372117804,
+    "Name": "fsae_A_2025_track.dxf",
+    "Country": "Australia",
+    "Track_points": 12186,
+    "Mesh_size": 0.1,
+    "Apex_count": 73,
+    "track_Minimum_radius": 2.5239165495285265,
+    "Top5_radius_distribution_length": [
+        {
+            "rank": 1,
+            "radius_range_m": "5-6",
+            "radius_center_m": 5.5,
+            "accumulated_length_m": 104.62250402662036
+        },
+        {
+            "rank": 2,
+            "radius_range_m": "7-8",
+            "radius_center_m": 7.5,
+            "accumulated_length_m": 85.17410810785367
+        },
+        {
+            "rank": 3,
+            "radius_range_m": "4-5",
+            "radius_center_m": 4.5,
+            "accumulated_length_m": 73.4735548230365
+        },
+        {
+            "rank": 4,
+            "radius_range_m": "15-16",
+            "radius_center_m": 15.5,
+            "accumulated_length_m": 61.963471480623525
+        },
+        {
+            "rank": 5,
+            "radius_range_m": "3-4",
+            "radius_center_m": 3.5,
+            "accumulated_length_m": 56.36038364187846
+        }
+    ],
+    "Top5_radius_distribution_time": [
+        {
+            "rank": 1,
+            "radius_range_m": "5-6",
+            "radius_center_m": 5.5,
+            "accumulated_time_s": 33.31394854990363
+        },
+        {
+            "rank": 2,
+            "radius_range_m": "4-5",
+            "radius_center_m": 4.5,
+            "accumulated_time_s": 26.2081073207219
+        },
+        {
+            "rank": 3,
+            "radius_range_m": "7-8",
+            "radius_center_m": 7.5,
+            "accumulated_time_s": 23.597976593839846
+        },
+        {
+            "rank": 4,
+            "radius_range_m": "3-4",
+            "radius_center_m": 3.5,
+            "accumulated_time_s": 22.60317737470635
+        },
+        {
+            "rank": 5,
+            "radius_range_m": "2-3",
+            "radius_center_m": 2.5,
+            "accumulated_time_s": 18.93840226212408
+        }
+    ]
+}

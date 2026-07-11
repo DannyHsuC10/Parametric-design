@@ -1,35 +1,35 @@
 OpenTRACK Python
 ==================================================================
-Input:         D:\Danny\DH3868\Parametric-design\track\trackdata\input_map.xlsx
-Name:          FSAE_A_24
+Input:         D:\Danny\DH3868\Parametric-design\track\input_map.xlsx
+Name:          fsae_A_2025_track.dxf
 City:          none
 Country:       Australia
 Type:          endurance
 Configuration: Closed
 Direction:     Forward
 Mirror:        Off
-Generated:     2026-07-10T23:51:58
+Generated:     2026-07-11T17:29:04
 ==================================================================
-Track points:  12133
-Track length:  1209.309 m
+Track points:  12186
+Track length:  1214.441 m
 Mesh size:     0.1 m (maximum target spacing)
 Apex count:    73
-Minimum radius:1.830 m
+Minimum radius:2.524 m
 
 Map:
                                                        ooooooooo
-                                                    oooooo     ooo
+                                                   ooooooo     ooo
                                              ooooooo             oo
                                          ooooo                    o
                                       oooo                        o
                                  oooooo                         ooo
-                          oooooooo                           oooo
-                         oo oo                            oooo
-                     ooooo                             oooo
-            oooooooooo                               ooo
-         ooooo                       oooooooo     oooo
-    oooooo oo                     ooo       ooooooo
-  ooo                          oooo
+                          oo ooooo                           oooo
+                         ooooo                            oooo
+                    oooooo                             oooo
+            ooooooooo                                ooo
+         ooooo                      ooooooooo     oooo
+     ooooo oo                     ooo       ooooooo
+ooooo                          oooo
 oooo                         ooo
   ooo                     oooo
     oo                  ooo
@@ -39,18 +39,19 @@ oooo                         ooo
      oo       ooo
     oo    ooooo
   ooo  oooo
-  ooooooo
-Saved track data to D:\Danny\DH3868\Parametric-design\track\trackdata\track.json
+  oooooo
+Saved track data to D:\Danny\DH3868\Parametric-design\track\track.json
 Updated track.json with open track
 
-NumPy track saved: D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK.npz
+NumPy track saved: D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK.npz
 Visualizations saved:
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_xy_map.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_radius.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_curvature_fft_frequency.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_curvature_fft_wavelength.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_radius_time_distribution.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_elevation.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_inclination.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_banking.png
-  D:\Danny\DH3868\Parametric-design\track\trackdata\OpenTRACK Tracks\OpenTRACK_grip_factor.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_xy_map.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_radius.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_curvature_fft_frequency.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_curvature_fft_wavelength.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_radius_time_distribution.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_radius_length_distribution.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_elevation.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_inclination.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_banking.png
+  D:\Danny\DH3868\Parametric-design\track\OpenTRACK Tracks\OpenTRACK_grip_factor.png

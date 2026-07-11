@@ -10,21 +10,21 @@ class file_data:
     def __init__(self,path):# 設定
         self.load_json(path)
 
-    def save_json(self, filename="track_data.json"):# 存檔
+    def save_json(self, filename):# 存檔
         """Save all attributes to a JSON file."""
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(self.__dict__, f, indent=4)
-        print(f"Saved track data to {filename}")
+        print(f"Saved data to {filename}")
 
-    def load_json(self, filename="track_data.json"):# 載入
+    def load_json(self, filename):# 載入
         """Load attributes from a JSON file."""
         with open(filename, "r", encoding="utf-8") as f:
             self.__dict__.update(json.load(f))
 
     def print_data(self):# 印出資料
-        """Print all track data."""
+        """Print all data."""
         print("=" * 50)
-        print("track Data")
+        print("Data")
         print("=" * 50)
         for key, value in self.__dict__.items():
             print(f"{key:25s}: {value}")

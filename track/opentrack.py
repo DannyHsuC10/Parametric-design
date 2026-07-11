@@ -428,6 +428,22 @@ def save_pngs(
     )
     save_current(fig, "radius_time_distribution")
 
+    fig, ax = plt.subplots(figsize=(12, 5), constrained_layout=True)
+    bar_colors = ["#d62728" if index in set(top_length_indices.tolist()) else "#1f77b4" for index in range(len(length_by_radius))]
+    ax.bar(centers, length_by_radius, width=widths, align="center", color=bar_colors, linewidth=0.3)
+    ax.set_title("Radius Length Distribution (0-100 m)")
+    ax.set_xlabel("Radius [m]")
+    ax.set_ylabel("Accumulated length [m]")
+    ax.grid(True, axis="y", alpha=0.3)
+    ax.legend(
+        handles=[
+            plt.Rectangle((0, 0), 1, 1, color="#d62728", label="Top 5 length bins"),
+            plt.Rectangle((0, 0), 1, 1, color="#1f77b4", label="Other radius bins"),
+        ],
+        loc="best",
+    )
+    save_current(fig, "radius_length_distribution")
+
     # Remaining plots are section data expanded onto the generated distance vector.
     scalar_plots = [
         ("elevation", "Elevation", track["x"], track["Z"], "Distance [m]", "Elevation [m]"),
@@ -497,7 +513,7 @@ def run(input_path: Path, output_dir: Path, mesh_size: float) -> OutputPaths:
         track_info.Track_points = int(track["n"])
         track_info.Mesh_size = float(mesh_size)
         track_info.Apex_count = int(len(track["apex_index"]))
-        track_info.Minimum_radius = min_radius
+        track_info.track_Minimum_radius = min_radius
         track_info.Top5_radius_distribution_length = top_radius_distribution_length
         track_info.Top5_radius_distribution_time = top_radius_distribution_time
         track_info.save_json(base_dir / "track.json")

@@ -390,7 +390,7 @@ def excel_data(segments, filename ,workbook):
 
     wb.save(filename)
     print(f"main info exported to: {filename}")
-
+"""
 def excel_export_summary(segments,filename, workbook,):
     ws = workbook.create_sheet(title="GeometrySummary")#同個檔案中的新表單
 
@@ -433,16 +433,97 @@ def excel_export_summary(segments,filename, workbook,):
             ]
         ws.append(row)
     print(f"GeometrySummary info exported to: {filename}")
+"""
+def load_template_workbook(template_filename):
+    if template_filename is None:
+        return None
+    template_path = Path(template_filename)
+    if template_path.exists():
+        return openpyxl.load_workbook(template_path)
+    return None
 
-def export_all_to_excel(segments, filename):
-    wb = Workbook()
-    excel_data(segments, filename, wb)  # 傳入已存在的 wb
-    excel_export_summary(segments,filename, wb)
+
+def remove_empty_default_sheet(wb):
+    if len(wb.sheetnames) == 1 and wb.active.title == "Sheet":
+        sheet = wb.active
+        if sheet.max_row == 1 and sheet.max_column == 1 and sheet["A1"].value is None:
+            wb.remove(sheet)
+
+
+def excel_data(segments, wb, sheet_name="Shape"):
+    if sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        wb.remove(ws)
+    ws = wb.create_sheet(sheet_name)
+
+    headers = [
+        "section", "Type", "Start_X", "Start_Y", "End_X", "End_Y",
+        "Center_X", "Center_Y", "Radius", "Start_Angle (deg)", "End_Angle (deg)",
+        "length", "Direction"
+    ]
+    ws.append(headers)
+
+    for i, seg in enumerate(segments):
+        if seg.type == 'LINE':
+            length = ((seg.start[0]-seg.end[0])**2+(seg.start[1]-seg.end[1])**2)**0.5
+            row = [
+                i + 1,
+                "LINE",
+                seg.start[0], seg.start[1],
+                seg.end[0], seg.end[1],
+                "", "", "", "", "", length,
+                ""
+            ]
+        elif seg.type == 'ARC':
+            sa = seg.start_angle
+            ea = seg.end_angle
+            ma = seg.mid_angle
+            clockwise = ea < ma and ma < sa or ma > ea and ma > sa and sa < ea
+            direction = "Clockwise" if clockwise else "Counterclockwise"
+            if clockwise:
+                theta = abs((sa-ea) % (2 * math.pi))
+            else:
+                theta = abs((ea-sa) % (2 * math.pi))
+            arc_length = seg.radius * theta
+            row = [
+                i + 1,
+                "ARC",
+                seg.start[0], seg.start[1],
+                seg.end[0], seg.end[1],
+                seg.center[0], seg.center[1],
+                seg.radius,
+                math.degrees(sa),
+                math.degrees(ea),
+                arc_length,
+                direction
+            ]
+        ws.append(row)
+
+    return wb
+
+
+def ensure_info_name(wb, dxf_name):
+    if "Info" not in wb.sheetnames:
+        wb.create_sheet("Info")
+    ws = wb["Info"]
+    ws.cell(row=1, column=1, value="Name")
+    ws.cell(row=1, column=2, value=dxf_name)
+
+
+def export_all_to_excel(segments, filename, template_filename=None, dxf_name=None):
+    wb = load_template_workbook(template_filename)
+    if wb is None:
+        wb = Workbook()
+    remove_empty_default_sheet(wb)
+
+    ensure_info_name(wb, dxf_name)
+    excel_data(segments, wb, sheet_name="Shape")
+
     wb.save(filename)
     print(f"All data exported to {filename}")
 
 #=====================================(執行)
-def run_all_read_DXF(DXF_filename,excel_filename):#完整執行
+def run_all_read_DXF(DXF_filename, excel_filename=None, template_filename=None):#完整執行
     file_search(DXF_filename)#找檔案
     doc = ezdxf.readfile(DXF_filename)
     msp = doc.modelspace()
@@ -456,11 +537,9 @@ def run_all_read_DXF(DXF_filename,excel_filename):#完整執行
     print("sort segments:", len(sorted_segments))#線段排序
     draw_segments(sorted_segments)#二次確認資料是否有遺失，並且標記起始點
     start = int(input("start at : "))
-    #start = 47
     setedstart_sorted_segments = rotate_segments(sorted_segments.copy(), start)#旋轉賽道到正確的起點
     print("Redefine the starting point")
 
-    #Track_Route(setedstart_sorted_segments,100)#路線模擬
     print("checking direction")#
     direction = input("reset direction(Y/N):")
     if direction=="Y":
@@ -473,10 +552,23 @@ def run_all_read_DXF(DXF_filename,excel_filename):#完整執行
     
     size_scale(setedstart_sorted_segments,0.1)#縮放真實賽道比例
     print_segment_info(setedstart_sorted_segments)#打印所有資料
-    export_all_to_excel(setedstart_sorted_segments,excel_filename)#資料存檔
-    return (setedstart_sorted_segments)
 
-if __name__ == "__main__":
-    DXF_filename = current_dir / "Track_Layout_2.dxf"
-    excel_filename = current_dir / "Track_Layout_2.xlsx"
-    run_all_read_DXF(DXF_filename,excel_filename)
+    if excel_filename is None:
+        excel_filename = current_dir / "input_map.xlsx"
+    if template_filename is None:
+        template_filename = current_dir / "output_lapsim" / "input_map_tmp.xlsx"
+
+    export_all_to_excel(
+        setedstart_sorted_segments,
+        excel_filename,
+        template_filename=template_filename,
+        dxf_name=Path(DXF_filename).name,
+    )
+    return setedstart_sorted_segments
+
+
+# 執行
+# ============================================================
+
+DXF_filename = current_dir / "fsae_A_2025_track.dxf"
+run_all_read_DXF(DXF_filename)

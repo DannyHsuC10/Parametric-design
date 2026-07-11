@@ -13,6 +13,7 @@ class tire_data:
         self.tir_path = "tire.tir"
         self.show_plt = False # 是否繪圖形
         self.Free_Radius = 203.2# 輪胎半徑 (mm)
+        self.tire_width = 7.5*25.4# 輪胎寬度 (mm)
         self.rim_width = 7*25.4# 輪圈寬度 (mm)
         self.rim_outer_width = 2*25.4# 外輪圈寬度 (mm)
         self.rim_inner_width = self.rim_width-self.rim_outer_width# 內輪圈寬度 (mm)

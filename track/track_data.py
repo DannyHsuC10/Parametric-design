@@ -19,7 +19,7 @@ class track_data:
         self.Track_points = None
         self.Mesh_size = None
         self.Apex_count = None
-        self.Minimum_radius = None
+        self.track_Minimum_radius = None
         self.Top5_radius_distribution_length = [
             {"rank": 1, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
             {"rank": 2, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
