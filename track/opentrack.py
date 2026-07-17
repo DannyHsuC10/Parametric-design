@@ -164,7 +164,7 @@ def reconstruct_geometry(segments: list[Segment], ds: float) -> dict[str, np.nda
     }
 
 
-def gaussian_smooth(values: np.ndarray, window: int = 40) -> np.ndarray:
+def gaussian_smooth(values: np.ndarray, window: int = 80) -> np.ndarray:
     # Edge padding keeps the output length identical to the input length.
     radius = window // 2
     sigma = max(window / 6.0, np.finfo(float).eps)
@@ -209,7 +209,7 @@ def build_track(segments: list[Segment], tables: dict[str, np.ndarray], ds: floa
     track = reconstruct_geometry(segments, ds)
     raw = track["kappa_raw"]
     # Apex detection is based on smoothed curvature, not the raw stepped curvature.
-    kappa = gaussian_smooth(raw, 40)
+    kappa = gaussian_smooth(raw)
     prominence = float(np.percentile(np.abs(kappa), 70) * 0.20)
     distance = max(1, round(8.0 / ds))
     left = find_peaks(kappa, prominence, distance)
@@ -251,6 +251,24 @@ def ascii_map(track: dict[str, np.ndarray], width: int = 66) -> str:
     points = set(zip(xx.tolist(), yy.tolist()))
     return "\n".join("".join("o" if (col, row) in points else " " for col in range(xx.max() + 1)).rstrip()
                      for row in range(yy.max() + 1))
+
+
+def build_ranked_radius_distribution(
+    values: np.ndarray,
+    edges: np.ndarray,
+    centers: np.ndarray,
+    metric_key: str,
+) -> list[dict[str, float | int | str]]:
+    ranked_indices = np.argsort(-values, kind="stable")
+    return [
+        {
+            "rank": rank,
+            "radius_range_m": f"{edges[index]:.0f}-{edges[index + 1]:.0f}",
+            "radius_center_m": float(centers[index]),
+            metric_key: float(values[index]),
+        }
+        for rank, index in enumerate(ranked_indices, start=1)
+    ]
 
 
 def save_pngs(
@@ -390,31 +408,23 @@ def save_pngs(
     time_by_radius, edges = np.histogram(finite_radius[valid_time_mask], bins=bins, weights=finite_dt[valid_time_mask])
     centers = (edges[:-1] + edges[1:]) / 2.0
     widths = np.diff(edges)
-    nonzero_time_bins = np.flatnonzero(time_by_radius > 0.0)
-    top_time_indices = nonzero_time_bins[np.argsort(time_by_radius[nonzero_time_bins])[-5:]][::-1]
-    nonzero_length_bins = np.flatnonzero(length_by_radius > 0.0)
-    top_length_indices = nonzero_length_bins[np.argsort(length_by_radius[nonzero_length_bins])[-5:]][::-1]
+    top_time_indices = np.argsort(-time_by_radius, kind="stable")[:5]
+    top_length_indices = np.argsort(-length_by_radius, kind="stable")[:5]
     top_index_set = set(top_time_indices.tolist())
     bar_colors = ["#d62728" if index in top_index_set else "#1f77b4" for index in range(len(time_by_radius))]
     ax.bar(centers, time_by_radius, width=widths, align="center", color=bar_colors, linewidth=0.3)
-    top_radius_distribution_time = [
-        {
-            "rank": rank,
-            "radius_range_m": f"{edges[index]:.0f}-{edges[index + 1]:.0f}",
-            "radius_center_m": float(centers[index]),
-            "accumulated_time_s": float(time_by_radius[index]),
-        }
-        for rank, index in enumerate(top_time_indices, start=1)
-    ]
-    top_radius_distribution_length = [
-        {
-            "rank": rank,
-            "radius_range_m": f"{edges[index]:.0f}-{edges[index + 1]:.0f}",
-            "radius_center_m": float(centers[index]),
-            "accumulated_length_m": float(length_by_radius[index]),
-        }
-        for rank, index in enumerate(top_length_indices, start=1)
-    ]
+    top_radius_distribution_time = build_ranked_radius_distribution(
+        time_by_radius,
+        edges,
+        centers,
+        "accumulated_time_s",
+    )
+    top_radius_distribution_length = build_ranked_radius_distribution(
+        length_by_radius,
+        edges,
+        centers,
+        "accumulated_length_m",
+    )
     ax.set_title("Radius Time Distribution (0-100 m)")
     ax.set_xlabel("Radius [m]")
     ax.set_ylabel("Accumulated time [s]")
@@ -514,8 +524,8 @@ def run(input_path: Path, output_dir: Path, mesh_size: float) -> OutputPaths:
         track_info.Mesh_size = float(mesh_size)
         track_info.Apex_count = int(len(track["apex_index"]))
         track_info.track_Minimum_radius = min_radius
-        track_info.Top5_radius_distribution_length = top_radius_distribution_length
-        track_info.Top5_radius_distribution_time = top_radius_distribution_time
+        track_info.Radius_distribution_length = top_radius_distribution_length
+        track_info.Radius_distribution_time = top_radius_distribution_time
         track_info.save_json(base_dir / "track.json")
         print("Updated track.json with open track")
         print(f"\nNumPy track saved: {npz_path}")

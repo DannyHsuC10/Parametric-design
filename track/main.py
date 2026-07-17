@@ -12,6 +12,7 @@ tire_info = file_data(current_dir/"tire.json")# 導入摩擦係數使用
 
 # 地圖建立
 # import DXF_to_lapdata # 創建圖資
-import opentrack # 賽道分析與數據建立
+# import opentrack # 賽道分析與數據建立
+import score_weight # 彎道權重排序
 
 print("finich !!!")

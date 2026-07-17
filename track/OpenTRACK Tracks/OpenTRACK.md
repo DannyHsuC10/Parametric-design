@@ -31,6 +31,13 @@
 
 此圖顯示各半徑區間的累積距離分布，可用於衡量賽道在不同曲率強度下的長度比例。
 
+## 半徑分數分佈
+
+![OpenTRACK_radius_score_weight](OpenTRACK_radius_score_weight.png)
+
+
+此圖使用賽式積分當作權重進行排序，去分析不同曲率在賽事過程中的重要程度
+
 ## Elevation
 
 ![Elevation](OpenTRACK_elevation.png)

@@ -99,7 +99,7 @@ plt.figure(figsize=(6,4))
 
 plt.plot(
     FZ_range,
-    np.rad2deg(SA_peak),
+    abs(SA_peak),
     linewidth=2
 )
 

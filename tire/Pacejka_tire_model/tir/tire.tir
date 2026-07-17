@@ -24,8 +24,8 @@ RIM_WIDTH = 0.1778
 ASPECT_RATIO = 0.536
 $-------------------------------------------------operating conditions
 [OPERATING_CONDITIONS]
-INFLPRES = 82319.0
-NOMPRES = 82319.0
+INFLPRES = 68948.0
+NOMPRES = 68948.0
 $--------------------------------------------------------------inertia
 [INERTIA]
 MASS = 3.6

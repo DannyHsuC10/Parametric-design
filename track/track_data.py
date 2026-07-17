@@ -9,6 +9,12 @@ current_dir = Path(__file__).resolve().parent
 
 class track_data:
     def __init__(self):
+        # 積分全權重
+        self.Skidpad_score = 75
+        self.Autocross_score = 100
+        self.Endurance_score = 250
+        self.total_score = self.Skidpad_score+self.Autocross_score+self.Endurance_score
+        self.Skidpad_r = 9.125
         # track
         self.track_path = "input_map.xlsx"
         self.show_plt = False # 是否繪圖形
@@ -20,20 +26,10 @@ class track_data:
         self.Mesh_size = None
         self.Apex_count = None
         self.track_Minimum_radius = None
-        self.Top5_radius_distribution_length = [
-            {"rank": 1, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
-            {"rank": 2, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
-            {"rank": 3, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
-            {"rank": 4, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
-            {"rank": 5, "radius_range_m": None, "radius_center_m": None, "accumulated_length_m": None},
-        ]
-        self.Top5_radius_distribution_time = [
-            {"rank": 1, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
-            {"rank": 2, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
-            {"rank": 3, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
-            {"rank": 4, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
-            {"rank": 5, "radius_range_m": None, "radius_center_m": None, "accumulated_time_s": None},
-        ]
+        self.top_5_score_rate = None
+        self.Radius_distribution_length = []
+        self.Radius_distribution_time = []
+        self.Radius_distribution_score = []
     def save_json(self, filename="track_data.json"):# 存檔
         """Save all attributes to a JSON file."""
         with open(filename, "w", encoding="utf-8") as f:
@@ -71,4 +67,4 @@ track = track_data()
 track.load_json(current_dir / "track.json")
 
 print(track)
-track.print_data()
+#track.print_data()

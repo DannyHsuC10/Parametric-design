@@ -1,14 +1,24 @@
 {
+    "show_plt": false,
     "max_SW_angle": 120,
-    "L": 1.53,
+    "frontwheel_axle": 0.7498400000000001,
+    "rearwheel_axle": -0.78015,
+    "h_cog": 0.3016451511,
+    "L": 1.5299900000000002,
+    "CG_rate": [
+        0.5099052934986502,
+        0.4900947065013497
+    ],
     "r_cone": 0.16122034611053285,
     "Driving_error": 0.2,
     "track_width": 10,
-    "gap_cones": 8,
+    "gap_cones": 7,
     "offset_list": [
         0.01,
         0.16666666666666666,
         0.3333333333333333
     ],
-    "r_min": null
+    "m": 321,
+    "track_front": 1.28,
+    "track_rear": 1.24
 }

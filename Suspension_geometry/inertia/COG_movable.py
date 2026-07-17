@@ -1,12 +1,21 @@
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
+from geometry_data import geometry_data
 
-frontwheel_track = 1300/1000 # m
+geometry = geometry_data()
+
+base_dir = Path(__file__).parent.parent
+
+geometry.load_json(base_dir/"geometry.json")
+
+# 參數設定=====================================
+
+frontwheel_track = 1280/1000 # m
 rearwheel_track = 1250/1000 # m
 
-frontwheel_axle = 0.763333771 # 重心與前軸距離 (m)
-rearwheel_axle = -0.762276229 # 重心與後軸距離 (m)
+frontwheel_axle = geometry.frontwheel_axle # 重心與前軸距離 (m)
+rearwheel_axle = geometry.rearwheel_axle # 重心與後軸距離 (m)
 # ==================================================
 # Read Excel
 # ==================================================
@@ -297,17 +306,20 @@ def plot_side_view(sprung_mass_df, unsprung_front_df=None, unsprung_rear_df=None
 # ==================================================
 # Example
 # ==================================================
-if __name__ == "__main__":
 
-    current_dir = Path(__file__).parent
 
-    sprung_mass_df, sprung_mass = read_mass_file(current_dir / "Center_of_gravity_LP03_sprung.xlsx")
-    unsprung_front_df, unsprung_front_mass = read_mass_file(current_dir / "Center_of_gravity_LP03_unsprungfront.xlsx")
-    unsprung_rear_df, unsprung_rear_mass = read_mass_file(current_dir / "Center_of_gravity_LP03_unsprungrear.xlsx")
+current_dir = Path(__file__).parent
 
-    first = calc_first_moment(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
-    second = calc_second_moment(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
+sprung_mass_df, sprung_mass = read_mass_file(current_dir / "Center_of_gravity_LP03_sprung.xlsx")
+print("sprung_mass",sprung_mass)
+unsprung_front_df, unsprung_front_mass = read_mass_file(current_dir / "Center_of_gravity_LP03_unsprungfront.xlsx")
+print("unsprung_rear_mass",unsprung_front_mass)
+unsprung_rear_df, unsprung_rear_mass = read_mass_file(current_dir / "Center_of_gravity_LP03_unsprungrear.xlsx")
+print("unsprung_rear_mass",unsprung_rear_mass)
 
-    plot_3d_distribution(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
-    plot_top_view(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
-    plot_side_view(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
+first = calc_first_moment(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
+second = calc_second_moment(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
+
+plot_3d_distribution(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
+plot_top_view(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
+plot_side_view(sprung_mass_df, unsprung_front_df, unsprung_rear_df)
