@@ -1,6 +1,6 @@
 {
     "tir_path": "tire.tir",
-    "show_plt": false,
+    "show_plt": true,
     "Free_Radius": 203.2,
     "tire_width": 190.5,
     "rim_width": 177.79999999999998,
@@ -8,12 +8,12 @@
     "rim_inner_width": 126.99999999999999,
     "tire_mass": 5.435,
     "tire_moment_inertia": 0.1508,
-    "Tire_Pressure": 68947.57293168,
+    "Tire_Pressure": 55158.058345344,
     "Vertical_stiffness": 99.16994499999998,
-    "mu_y_RL": 1.7000807377199687,
-    "mu_x_RL": 1.4487109675646856,
-    "mu_x_max": 1.5188795980319307,
-    "mu_y_max": 1.8340584290786182,
+    "mu_y_RL": 1.81526957993174,
+    "mu_x_RL": 1.2159798050316335,
+    "mu_x_max": 1.2820803306235373,
+    "mu_y_max": 1.9799058701614005,
     "camber": 0,
     "toe": 0
 }
