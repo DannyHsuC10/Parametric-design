@@ -21,7 +21,8 @@ print("==================================================")
 current_dir = Path(__file__).resolve().parent
 # 建立相對路徑 (往上一層 -> data -> 檔名)
 data_path = "B2356run4_processedK.csv"
-
+#W8 : 458.2
+#W7 : 566.6854 
 K0 = 566.6854*0.175
 print("官方資料:", K0, "N/mm")
 

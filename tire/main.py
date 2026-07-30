@@ -10,11 +10,11 @@ import tire_data
 
 # tir >> pressure & camber
 #from Tire_camber_pressure import Tire_pressure # 建立輪胎壓力
-from Tire_camber_pressure import Tire_camber # 建立輪胎傾角
+#from Tire_camber_pressure import Tire_camber # 建立輪胎傾角
 
 # tir+pressure+camber >> mu
 from coefficient_of_friction import mu # 摩擦係數評估
-#from coefficient_of_friction import Fx_mu # 建立摩擦係數
+from coefficient_of_friction import Fx_mu # 建立摩擦係數
 #from coefficient_of_friction import Fy_mu # 建立摩擦係數
 
 print("finich !!!")
