@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FSE 歷史成績分析</title>
+    <link rel="stylesheet" href="styles.css?v=20261002-event-country-teams">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Formula Student Electric Results</p>
+          <h1 id="page-title">FSE 歷史成績分析</h1>
+          <p class="note">讀取 FSG_data_statistics/raw_data/fse_historical_results.csv，依車隊、賽事與年份檢視排名與各項目分數。</p>
+          <nav class="page-links" aria-label="資料工具">
+            <a href="index.html">車輛資料</a>
+            <a href="fse_results.html" aria-current="page">FSE 成績</a>
+            <a href="vehicle_distribution.html">參數分布</a>
+          </nav>
+        </div>
+        <label class="file-picker">
+          <input id="csvFile" type="file" accept=".csv,text/csv">
+          匯入 CSV
+        </label>
+      </section>
+
+      <section class="controls results-controls" aria-label="成績圖表控制">
+        <label>
+          <span>分析欄位</span>
+          <select id="metricSelect"></select>
+        </label>
+        <label>
+          <span>賽事</span>
+          <select id="eventSelect"></select>
+        </label>
+        <label>
+          <span>車隊搜尋</span>
+          <input id="teamSearch" type="search" placeholder="輸入車隊名稱">
+        </label>
+        <label>
+          <span>起始年份</span>
+          <input id="yearFrom" type="number" inputmode="numeric" placeholder="全部">
+        </label>
+        <label>
+          <span>結束年份</span>
+          <input id="yearTo" type="number" inputmode="numeric" placeholder="全部">
+        </label>
+        <label>
+          <span>顯示數量</span>
+          <select id="teamLimit">
+            <option value="all">全部車隊</option>
+            <option value="5">前 5 車隊</option>
+            <option value="10" selected>前 10 車隊</option>
+            <option value="15">前 15 車隊</option>
+            <option value="25">前 25 車隊</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="dashboard">
+        <aside class="panel">
+          <div class="panel-head">
+            <h2>車隊</h2>
+            <button id="selectAll" type="button">全選</button>
+            <button id="clearAll" type="button">清除</button>
+          </div>
+          <div id="teamList" class="team-list"></div>
+        </aside>
+
+        <section class="chart-area">
+          <div class="stats" id="stats"></div>
+          <div class="canvas-wrap">
+            <canvas id="chart" width="1100" height="560" aria-label="FSE 歷史成績折線圖"></canvas>
+            <div id="tooltip" class="tooltip" hidden></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="table-panel">
+        <div class="panel-head">
+          <h2>目前圖表資料</h2>
+          <button id="downloadFiltered" type="button">下載篩選資料</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>車隊</th>
+                <th>日期</th>
+                <th>賽事</th>
+                <th id="valueHeader">數值</th>
+                <th>Teams</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="fse_results.js?v=20261002-event-country"></script>
+  </body>
+</html>

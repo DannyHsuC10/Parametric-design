@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FSG 車輛參數常態分布分析</title>
+    <link rel="stylesheet" href="styles.css?v=20261002-event-country-teams">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Rank Weighted Vehicle Statistics</p>
+          <h1 id="page-title">車輛參數常態分布分析</h1>
+          <p class="note">讀取 FSG_data_statistics/computed_statistics/fsg_results_vehicle_year_intersection.csv，同車隊同年先合併成一筆年度樣本，再用年度最佳名次與年度新近度加權。</p>
+          <nav class="page-links" aria-label="資料工具">
+            <a href="index.html">車輛資料</a>
+            <a href="fse_results.html">FSE 成績</a>
+            <a href="vehicle_distribution.html" aria-current="page">參數分布</a>
+          </nav>
+        </div>
+        <label class="file-picker">
+          <input id="csvFile" type="file" accept=".csv,text/csv">
+          匯入交集 CSV
+        </label>
+      </section>
+
+      <section class="controls distribution-controls" aria-label="分布圖控制">
+        <label>
+          <span>車輛參數</span>
+          <select id="parameterSelect"></select>
+        </label>
+        <label>
+          <span>賽事</span>
+          <select id="eventSelect"></select>
+        </label>
+        <label>
+          <span>起始年份</span>
+          <input id="yearFrom" type="number" inputmode="numeric" placeholder="全部">
+        </label>
+        <label>
+          <span>結束年份</span>
+          <input id="yearTo" type="number" inputmode="numeric" placeholder="全部">
+        </label>
+        <label>
+          <span>排名權重</span>
+          <select id="weightMode">
+            <option value="inverse_rank" selected>1 / rank</option>
+            <option value="inverse_sqrt_rank">1 / sqrt(rank)</option>
+            <option value="equal">不加權</option>
+          </select>
+        </label>
+        <label>
+          <span>年度權重</span>
+          <select id="yearWeightMode">
+            <option value="recency_inverse_age" selected>越新越高</option>
+            <option value="recency_exp_5">5 年半衰期</option>
+            <option value="equal">不加權</option>
+          </select>
+        </label>
+        <label class="distribution-filter-toggle">
+          <input id="filterTenInchElectric" type="checkbox">
+          <span>僅統計 10 吋輪胎電動車</span>
+        </label>
+      </section>
+
+      <section class="chart-area distribution-area">
+        <div class="stats" id="stats"></div>
+        <section class="counted-teams-panel" aria-labelledby="counted-teams-title">
+          <h2 id="counted-teams-title">納入統計車隊</h2>
+          <div id="countedTeams" class="counted-teams"></div>
+        </section>
+        <div class="canvas-wrap distribution-canvas-wrap">
+          <canvas id="chart" width="1200" height="620" aria-label="車輛參數直方圖與常態分布曲線"></canvas>
+        </div>
+      </section>
+
+      <section class="table-panel">
+        <div class="panel-head">
+          <h2>所有車輛參數統計</h2>
+          <button id="downloadStats" type="button">下載統計 CSV</button>
+        </div>
+        <div class="table-wrap stats-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>參數</th>
+                <th>單位</th>
+                <th>樣本</th>
+                <th>未加權平均</th>
+                <th>加權平均</th>
+                <th>平均差異</th>
+                <th>未加權 1σ</th>
+                <th>加權 1σ</th>
+                <th>加權建議範圍</th>
+                <th>觀測範圍</th>
+              </tr>
+            </thead>
+            <tbody id="statsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="vehicle_distribution.js?v=20261002-year-weight"></script>
+  </body>
+</html>

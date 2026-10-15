@@ -1,0 +1,16 @@
+[project]
+name = "parametric-design"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "bs4>=0.0.2",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pandas>=3.0.6",
+    "path>=17.1.1",
+    "pdfplumber>=0.11.10",
+    "requests>=2.34.2",
+    "scipy>=1.18.1",
+]

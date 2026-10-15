@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FSG EV 車輛資料分析</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Formula Student Germany EV</p>
+          <h1 id="page-title">車輛歷史數據分析</h1>
+          <p class="note">以車隊為折線分組，橫軸使用 CSV 中的 year 欄位並依年份排序。</p>
+          <nav class="page-links" aria-label="資料工具">
+            <a href="index.html" aria-current="page">車輛資料</a>
+            <a href="fse_results.html">FSE 成績</a>
+            <a href="vehicle_distribution.html">參數分布</a>
+          </nav>
+        </div>
+        <label class="file-picker">
+          <input id="csvFile" type="file" accept=".csv,text/csv">
+          匯入 CSV
+        </label>
+      </section>
+
+      <section class="controls" aria-label="圖表控制">
+        <label>
+          <span>分析欄位</span>
+          <select id="metricSelect"></select>
+        </label>
+        <label>
+          <span>車隊搜尋</span>
+          <input id="teamSearch" type="search" placeholder="輸入車隊名稱">
+        </label>
+        <label>
+          <span>顯示數量</span>
+          <select id="teamLimit">
+            <option value="all">全部車隊</option>
+            <option value="5">前 5 車隊</option>
+            <option value="10" selected>前 10 車隊</option>
+            <option value="15">前 15 車隊</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="dashboard">
+        <aside class="panel">
+          <div class="panel-head">
+            <h2>車隊</h2>
+            <button id="selectAll" type="button">全選</button>
+            <button id="clearAll" type="button">清除</button>
+          </div>
+          <fieldset class="vehicle-filters">
+            <legend>車輛條件</legend>
+            <label>
+              <input id="filterElectric" type="checkbox">
+              <span>電車組別</span>
+            </label>
+            <label>
+              <input id="filterHoosier" type="checkbox">
+              <span>輪胎含 Hoosier</span>
+            </label>
+            <label>
+              <input id="filterTenInch" type="checkbox">
+              <span>10 吋框/胎</span>
+            </label>
+          </fieldset>
+          <div id="teamList" class="team-list"></div>
+        </aside>
+
+        <section class="chart-area">
+          <div class="stats" id="stats"></div>
+          <div class="canvas-wrap">
+            <canvas id="chart" width="1100" height="560" aria-label="車輛數據折線圖"></canvas>
+            <div id="tooltip" class="tooltip" hidden></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="table-panel">
+        <div class="panel-head">
+          <h2>目前圖表資料</h2>
+          <button id="downloadFiltered" type="button">下載篩選資料</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>車隊</th>
+                <th>年份</th>
+                <th id="valueHeader">數值</th>
+                <th>原始欄位內容</th>
+              </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js?v=20261002"></script>
+  </body>
+</html>
