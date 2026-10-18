@@ -1,0 +1,10 @@
+﻿name,number
+xi,0
+xf,6
+num_points,100
+n,50
+num_points_sin,100
+num_points_cos,100
+num_points_tan,500
+max_sin,0.9999876930296089
+max_tan,130.37427697778799
