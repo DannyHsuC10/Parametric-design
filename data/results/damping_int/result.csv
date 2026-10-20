@@ -1,0 +1,12 @@
+﻿category,name,number
+輸入量,simulation_ms_total_kg,260.0
+輸入量,Ks,55477.73886943472
+輸入量,Kt,80000.0
+輸入量,MR,1.0
+輸入量,damping_rate_best_ratio,0.7
+導出量,damping_int_ride_stiffness_N_per_m,32759.766634665088
+導出量,damping_int_coefficient_Ns_per_m,2042.9376567228699
+導出量,damping_int_ratio_used,0.7
+導出量,damping_int_equilibrium_m,-0.019464424368800724
+導出量,damping_int_final_displacement_m,-0.019464424368800727
+導出量,damping_int_peak_abs_displacement_m,0.1

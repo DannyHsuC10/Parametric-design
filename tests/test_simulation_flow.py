@@ -62,8 +62,10 @@ class SimulationFlowTests(unittest.TestCase):
         related = {(first, second) for first, second in edges if first in new_graph_ids or second in new_graph_ids}
         self.assertEqual(related, {
             (graph_ids["tire_stiffness"], graph_ids[NEW_IDS[1]]),
+            (graph_ids[NEW_IDS[1]], graph_ids["critical_damping_analysis"]),
             (graph_ids[NEW_IDS[1]], graph_ids[NEW_IDS[0]]),
             (graph_ids[NEW_IDS[0]], graph_ids[NEW_IDS[2]]),
+            (graph_ids[NEW_IDS[2]], graph_ids["damping_ode"]),
         })
 
     def test_all_flow_parameters_resolve_in_execution_order(self):

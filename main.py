@@ -196,6 +196,7 @@ class MainWindow(QWidget):
                 flow_row = row["flow_row"].strip() or "main"
                 branch_from = row["branch_from"].strip()
                 merge_from = row["merge_from"]
+                merge_sources = [source.strip() for source in merge_from.split("|") if source.strip()]
                 if not re.fullmatch(r"[A-Za-z0-9_-]+", node_id):
                     raise ValueError(f"無效的節點名稱：{node_id}")
                 if flow_row not in {"main", "branch", "secondary", "tertiary", "merge"}:
@@ -204,9 +205,10 @@ class MainWindow(QWidget):
                     raise ValueError(f"分支節點 {node_id} 的來源不存在或順序錯誤：{branch_from}")
                 if flow_row == "branch" and not branch_from:
                     raise ValueError(f"分支節點 {node_id} 必須設定 branch_from")
-                if merge_from and merge_from not in node_ids:
-                    raise ValueError(f"匯合節點 {node_id} 的第二個來源不存在或順序錯誤：{merge_from}")
-                if flow_row == "merge" and (not branch_from or not merge_from):
+                for source in merge_sources:
+                    if source not in node_ids:
+                        raise ValueError(f"匯合節點 {node_id} 的來源不存在或順序錯誤：{source}")
+                if flow_row == "merge" and (not branch_from or not merge_sources):
                     raise ValueError(f"匯合節點 {node_id} 必須設定 branch_from 與 merge_from")
                 if node_id in node_ids:
                     raise ValueError(f"節點名稱重複：{node_id}")
@@ -220,7 +222,7 @@ class MainWindow(QWidget):
                 row["analysis_id"] = analysis_id
                 row["flow_row"] = flow_row
                 row["branch_from"] = branch_from
-                row["merge_from"] = merge_from
+                row["merge_from"] = "|".join(merge_sources)
             return rows
         except (KeyError, ValueError) as error:
             QMessageBox.critical(self, "流程設定錯誤", str(error))
@@ -233,7 +235,7 @@ class MainWindow(QWidget):
         }
         lines = ["graph TD"]
         main_rows = [row for row in self.flow if row["flow_row"] == "main"]
-        branch_groups = {}
+        branch_rows = [row for row in self.flow if row["flow_row"] == "branch"]
         secondary_rows = [row for row in self.flow if row["flow_row"] == "secondary"]
         tertiary_rows = [row for row in self.flow if row["flow_row"] == "tertiary"]
         merge_rows = [row for row in self.flow if row["flow_row"] == "merge"]
@@ -242,20 +244,16 @@ class MainWindow(QWidget):
             for first, second in zip(rows, rows[1:]):
                 lines.append(f"    {graph_ids[first['node_id']]} --> {graph_ids[second['node_id']]}")
 
-        for row in self.flow:
-            if row["flow_row"] == "branch":
-                branch_groups.setdefault(row["branch_from"], []).append(row)
-
         connect_chain(main_rows)
-        for parent_id, rows in branch_groups.items():
-            lines.append(f"    {graph_ids[parent_id]} --> {graph_ids[rows[0]['node_id']]}")
-            connect_chain(rows)
+        for row in branch_rows:
+            lines.append(f"    {graph_ids[row['branch_from']]} --> {graph_ids[row['node_id']]}")
         connect_chain(secondary_rows)
         connect_chain(tertiary_rows)
         for row in merge_rows:
             merge_id = graph_ids[row["node_id"]]
-            lines.append(f"    {graph_ids[row['branch_from']]} --> {merge_id}")
-            lines.append(f"    {graph_ids[row['merge_from']]} --> {merge_id}")
+            sources = [row["branch_from"]] + (row.get("merge_from") or "").split("|")
+            for source in dict.fromkeys(source.strip() for source in sources if source.strip()):
+                lines.append(f"    {graph_ids[source]} --> {merge_id}")
 
         for row in self.flow:
             graph_id = graph_ids[row["node_id"]]

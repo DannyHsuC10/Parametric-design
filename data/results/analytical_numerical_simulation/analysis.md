@@ -4,7 +4,7 @@
 
 比較無阻尼單自由度彈簧質量系統的解析解與顯式 Euler 數值解，並顯示絕對位移誤差及逐點相對誤差。
 
-本分析接在 `Time_sensitivity` 後面，後續為 `ode_spring`。完整分支順序為 `Tire stiffness → Time_sensitivity → Analytical_Numerical_Simulation → ode_spring`。
+本分析直接接在 `Time_sensitivity` 後面，後續依序為 `ode_spring → damping_ode → quarter_suspension → Damped_oscillation_analysis`。`damping_ode` 同時連接 `damping_rate` 以取得最佳候選阻尼比；最後的 `Damped_oscillation_analysis` 同時連接 `quarter_suspension_int`。
 
 ## 輸入與質量定義
 

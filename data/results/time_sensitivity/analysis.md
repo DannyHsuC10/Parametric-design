@@ -4,7 +4,7 @@
 
 對同一個無阻尼單自由度模型掃描 Euler 時間步長，比較位移、總能量及能量誤差。流程由 `Tire stiffness` 分支至本分析，剛度直接使用該分析輸出的 `Ks`，單位 N/m；`Ks` 自動傳入，不提供輸入框。
 
-後續流程依序為 `Analytical_Numerical_Simulation → ode_spring`。
+後續分成 `Critical_Damping_Analysis → damping_rate` 與 `Analytical_Numerical_Simulation → ode_spring` 兩路。`damping_rate` 一路接 `damping_int → quarter_suspension_int`，另一路與 `ode_spring` 匯合到 `damping_ode → quarter_suspension`。兩個 quarter suspension 分析最後匯合至 `Damped_oscillation_analysis`。
 
 唯一可輸入的參數為 `simulation_ms_total_kg`，表示四輪簧上總質量，預設 260 kg。實際分析使用四分之一簧上質量：
 

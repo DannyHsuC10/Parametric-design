@@ -2,7 +2,7 @@
 
 ## 分析目的與質量來源
 
-以 RK45 求解無阻尼二自由度四分之一車模型，觀察簧上／簧下位移與總能量守恆。本分析接在 `Analytical_Numerical_Simulation` 後面，是 `Tire stiffness → Time_sensitivity → Analytical_Numerical_Simulation → ode_spring` 分支的最後一步，使用相同的簧上總質量設定。
+以 RK45 求解無阻尼二自由度四分之一車模型，觀察簧上／簧下位移與總能量守恆。本分析接在 `Analytical_Numerical_Simulation` 後面，並與 `damping_rate` 匯合至 `damping_ode`，後續依序為 `quarter_suspension → Damped_oscillation_analysis`，使用相同的簧上總質量設定。
 
 ## Python 固定設定
 

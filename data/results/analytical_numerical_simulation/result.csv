@@ -1,8 +1,10 @@
 ﻿category,name,number
 輸入量,simulation_ms_total_kg,260.0
+輸入量,Ks,55477.73886943472
 導出量,simulation_corner_mass_kg,65.0
-導出量,simulation_natural_frequency_Hz,2.9643994664471234
-導出量,simulation_euler_max_abs_error_m,0.00042606432307176756
-導出量,simulation_euler_rms_error_m,0.00017647552068334252
-導出量,simulation_euler_max_relative_error_percent,21.450120436534384
-導出量,simulation_euler_final_energy_error_percent,1.7497471729949285
+導出量,simulation_euler_stiffness_used_N_per_m,55477.73886943472
+導出量,simulation_natural_frequency_Hz,4.649677477670093
+導出量,simulation_euler_max_abs_error_m,0.0010667276996074587
+導出量,simulation_euler_rms_error_m,0.00043908842495994367
+導出量,simulation_euler_max_relative_error_percent,484.31818429133244
+導出量,simulation_euler_final_energy_error_percent,4.359886001805125
