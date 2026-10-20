@@ -14,7 +14,7 @@ HIDDEN_PARAMETERS = {
     "frequency_pitch_stiffness_used_N_per_m",
 }
 OUTPUTS = {
-    "Ks": "Target spring stiffness for Frequency_mass (N/m)",
+    "Ks": "Spring stiffness supplied to Time_sensitivity, Analytical_Numerical_Simulation and ode_spring (N/m)",
     "Ks_roll_N_per_m": "Spring stiffness for selected roll stiffness (N/m)",
     "Ks_pitch_N_per_m": "Spring stiffness for selected pitch stiffness (N/m)",
 }

@@ -23,3 +23,5 @@ mu_w,1.7,N
 target_lap_time_s,5,N
 A_air,2,N
 F_ref_ratio,1.0,Y
+simulation_ms_total_kg,260,Y
+simulation_mu_kg,15,Y

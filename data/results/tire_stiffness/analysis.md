@@ -2,7 +2,7 @@
 
 ## 分析目的
 
-依據前序 `Frequency_Stiffness` 選出的俯仰與側傾剛度，以及輪胎剛度與 motion ratio，估算彈簧剛度。所選 `Ks` 會傳給下一步 `Frequency_mass`。
+依據前序 `Frequency_Stiffness` 選出的俯仰與側傾剛度，以及輪胎剛度與 motion ratio，估算彈簧剛度。所選 `Ks` 會自動提供給下游分支 `Time_sensitivity → Analytical_Numerical_Simulation → ode_spring`，三個分析均以此作為懸吊彈簧剛度；主流程的 `Frequency_mass` 則使用 `Ks_roll_N_per_m` 與 `Ks_pitch_N_per_m`。
 
 ## 計算方式
 

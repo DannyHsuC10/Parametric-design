@@ -1,0 +1,7 @@
+﻿category,name,number
+輸入量,simulation_ms_total_kg,260.0
+輸入量,simulation_mu_kg,15.0
+導出量,simulation_rk45_initial_energy_J,38.29687500000001
+導出量,simulation_rk45_max_energy_error_percent,0.2957680301357038
+導出量,simulation_rk45_max_sprung_displacement_m,0.0021806473418564632
+導出量,simulation_rk45_max_unsprung_displacement_m,0.025022751294519384
