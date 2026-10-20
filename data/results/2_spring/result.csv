@@ -1,0 +1,7 @@
+﻿category,name,number
+輸入量,Ks_pitch_N_per_m,140872.29401066582
+輸入量,Ks_scale_target_frequency,0.34363485680391365
+導出量,K_heave_main_N_per_m,140872.29401066582
+導出量,K_tender_required_N_per_m,73752.59195556046
+導出量,tender_to_heave_stiffness_ratio,0.5235422087325167
+導出量,K_series_target_N_per_m,48408.63057999397

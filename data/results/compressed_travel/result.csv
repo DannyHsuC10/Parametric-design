@@ -1,0 +1,12 @@
+﻿category,name,number
+輸入量,ms,260.0
+輸入量,ax,2.0
+輸入量,ay,2.0
+輸入量,sus_travel,0.025
+輸入量,h_cog,0.3
+輸入量,L,1.53
+輸入量,t,1.25
+導出量,pitch_stiffness_target_N_per_m,40009.411764705874
+導出量,roll_stiffness_target_N_per_m,48971.52
+導出量,pitch_angle_target_deg,1.871744965288753
+導出量,roll_angle_target_deg,2.2906100426385296

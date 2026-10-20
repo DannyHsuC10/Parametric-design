@@ -1,0 +1,9 @@
+﻿category,name,number
+輸入量,ms,260.0
+輸入量,mu,15.0
+輸入量,mu_w,1.7
+輸入量,skidpad_target_downforce_N,658.1593215673681
+輸入量,skidpad_target_lap_time_s,5.0
+導出量,downforce_target_max_lateral_acceleration_g,3.0538481141692153
+導出量,downforce_target_actual_lateral_acceleration_m_per_s2,20.173471395826645
+導出量,downforce_target_actual_lateral_acceleration_g,2.0564191025307488

@@ -1,0 +1,8 @@
+﻿category,name,number
+輸入量,MR,1.0
+輸入量,Kt,80000.0
+輸入量,frequency_roll_stiffness_used_N_per_m,56117.228246810024
+輸入量,frequency_pitch_stiffness_used_N_per_m,74914.06650061143
+導出量,Ks,55477.73886943472
+導出量,Ks_roll_N_per_m,86431.62256800188
+導出量,Ks_pitch_N_per_m,140872.29401066582

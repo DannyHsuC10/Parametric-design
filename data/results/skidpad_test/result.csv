@@ -1,0 +1,10 @@
+﻿category,name,number
+輸入量,ms,260.0
+輸入量,mu,15.0
+輸入量,mu_w,1.7
+輸入量,target_lap_time_s,5.0
+導出量,F_ref,658.1593215673681
+導出量,v_ref,41.28052746816988
+導出量,skidpad_target_lap_time_s,5.0
+導出量,skidpad_target_downforce_N,658.1593215673681
+導出量,skidpad_target_required_mu,2.0564191025307483

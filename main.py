@@ -1,13 +1,16 @@
 import csv
 import io
+import json
 import re
 import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-from PySide6.QtCore import QTimer, Qt, Signal
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QTimer, QSize, Qt, Signal
+from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
+from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -18,18 +21,18 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QScrollArea,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
-    QTextBrowser,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
 from analysis_data import load_analysis_parameters, parse_analysis_parameters
+from document_theme import document_colors
 from markdown_renderer import render_markdown
+from markdown_view import MarkdownView
 from plugin_loader import scan_analysis
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -53,39 +56,19 @@ class RedirectText(io.StringIO):
         pass
 
 
-class FlowNodeButton(QPushButton):
-    singleClicked = Signal()
-    doubleClicked = Signal()
+class FlowDiagramPage(QWebEnginePage):
+    flowNodeRequested = Signal(str, bool)
 
-    def __init__(self, text):
-        super().__init__(text)
-        self._suppress_click = False
-        self._single_click_timer = QTimer(self)
-        self._single_click_timer.setSingleShot(True)
-        self._single_click_timer.setInterval(250)
-        self._single_click_timer.timeout.connect(self.singleClicked.emit)
-        self._suppress_reset_timer = QTimer(self)
-        self._suppress_reset_timer.setSingleShot(True)
-        self._suppress_reset_timer.setInterval(400)
-        self._suppress_reset_timer.timeout.connect(self.clear_click_suppression)
-        self.clicked.connect(self.schedule_single_click)
-
-    def schedule_single_click(self):
-        if self._suppress_click:
-            self._suppress_click = False
-            self._suppress_reset_timer.stop()
-            return
-        self._single_click_timer.start()
-
-    def mouseDoubleClickEvent(self, event):
-        self._single_click_timer.stop()
-        self._suppress_click = True
-        self._suppress_reset_timer.start()
-        self.doubleClicked.emit()
-        event.accept()
-
-    def clear_click_suppression(self):
-        self._suppress_click = False
+    def acceptNavigationRequest(self, url, navigation_type, is_main_frame):
+        if url.scheme() == "flow-node":
+            node_id = url.path().strip("/")
+            is_double_click = url.host() == "double"
+            QTimer.singleShot(
+                0,
+                lambda: self.flowNodeRequested.emit(node_id, is_double_click),
+            )
+            return False
+        return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
 
 
 class ScalableImageLabel(QLabel):
@@ -101,10 +84,18 @@ class ScalableImageLabel(QLabel):
 
     def update_pixmap(self):
         if not self.original_pixmap.isNull():
-            self.setPixmap(self.original_pixmap.scaled(
-                self.size(), Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            ))
+            ratio = self.devicePixelRatioF()
+            physical_size = QSize(
+                round(self.width() * ratio),
+                round(self.height() * ratio),
+            )
+            scaled = self.original_pixmap.scaled(
+                physical_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            scaled.setDevicePixelRatio(ratio)
+            self.setPixmap(scaled)
         else:
             self.setText("找不到結果圖表")
 
@@ -127,7 +118,6 @@ class MainWindow(QWidget):
         self.output_names = {name for plugin in self.plugins for name in plugin.outputs}
         self.output_values = {}
         self.parameter_edits = {}
-        self.result_buttons = {}
         self.active_node_id = None
         self.plot = None
 
@@ -136,16 +126,20 @@ class MainWindow(QWidget):
         self.csv_label.setWordWrap(True)
         self.database_button = QPushButton("檢視目前變量")
         self.run_button = QPushButton("Run 全流程")
+        self.run_selected_button = QPushButton("單獨執行所選分析")
+        self.run_selected_button.setEnabled(False)
         self.status_label = QLabel("選擇 CSV 後按 Run，依流程順序執行分析。")
 
-        self.flow_widget = QWidget()
-        self.flow_layout = QHBoxLayout(self.flow_widget)
-        self.flow_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.flow_view = QWebEngineView()
+        self.flow_view.setMinimumHeight(210)
+        self.flow_page = FlowDiagramPage(self.flow_view)
+        self.flow_page.setBackgroundColor(QColor(document_colors()["background"]))
+        self.flow_view.setPage(self.flow_page)
+        self.flow_view.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.JavascriptEnabled, True
+        )
+        self.flow_page.flowNodeRequested.connect(self.handle_flow_node_request)
         self.build_flow_buttons()
-        self.flow_scroll = QScrollArea()
-        self.flow_scroll.setWidgetResizable(True)
-        self.flow_scroll.setWidget(self.flow_widget)
-        self.flow_scroll.setMinimumHeight(150)
 
         self.parameter_form = QFormLayout()
         self.parameter_panel = QWidget()
@@ -159,11 +153,12 @@ class MainWindow(QWidget):
         controls.addWidget(self.database_button)
         controls.addWidget(self.csv_label, 1)
         controls.addWidget(self.run_button)
+        controls.addWidget(self.run_selected_button)
 
         layout = QVBoxLayout(self)
         layout.addLayout(controls)
-        layout.addWidget(QLabel("分析流程（單擊節點設定參數；雙擊節點查看最近一次已儲存結果）"))
-        layout.addWidget(self.flow_scroll, 2)
+        layout.addWidget(QLabel("單擊節點設定參數；雙擊查看結果；也可單獨執行所選分析（必要時會先跑前置分析）"))
+        layout.addWidget(self.flow_view, 2)
         layout.addWidget(self.status_label)
         layout.addWidget(self.parameter_title)
         layout.addWidget(self.parameter_panel)
@@ -172,6 +167,7 @@ class MainWindow(QWidget):
         self.csv_button.clicked.connect(self.select_csv)
         self.database_button.clicked.connect(self.show_database)
         self.run_button.clicked.connect(self.run_flow)
+        self.run_selected_button.clicked.connect(self.run_selected_analysis)
 
         self.load_csv(DEFAULT_CSV)
         QTimer.singleShot(0, self.select_csv)
@@ -192,10 +188,26 @@ class MainWindow(QWidget):
             rows.sort(key=lambda row: int(row["order"]))
             node_ids = set()
             for row in rows:
+                row.setdefault("flow_row", "main")
+                row.setdefault("branch_from", "")
+                row["merge_from"] = (row.get("merge_from") or "").strip()
                 node_id = row["node_id"].strip()
                 analysis_id = row["analysis_id"].strip()
+                flow_row = row["flow_row"].strip() or "main"
+                branch_from = row["branch_from"].strip()
+                merge_from = row["merge_from"]
                 if not re.fullmatch(r"[A-Za-z0-9_-]+", node_id):
                     raise ValueError(f"無效的節點名稱：{node_id}")
+                if flow_row not in {"main", "branch", "secondary", "tertiary", "merge"}:
+                    raise ValueError(f"無效的流程列名稱：{flow_row}")
+                if branch_from and branch_from not in node_ids:
+                    raise ValueError(f"分支節點 {node_id} 的來源不存在或順序錯誤：{branch_from}")
+                if flow_row == "branch" and not branch_from:
+                    raise ValueError(f"分支節點 {node_id} 必須設定 branch_from")
+                if merge_from and merge_from not in node_ids:
+                    raise ValueError(f"匯合節點 {node_id} 的第二個來源不存在或順序錯誤：{merge_from}")
+                if flow_row == "merge" and (not branch_from or not merge_from):
+                    raise ValueError(f"匯合節點 {node_id} 必須設定 branch_from 與 merge_from")
                 if node_id in node_ids:
                     raise ValueError(f"節點名稱重複：{node_id}")
                 if analysis_id not in self.plugins_by_id:
@@ -206,30 +218,92 @@ class MainWindow(QWidget):
                 row["node_id"] = node_id
                 row["title"] = row["title"].strip()
                 row["analysis_id"] = analysis_id
+                row["flow_row"] = flow_row
+                row["branch_from"] = branch_from
+                row["merge_from"] = merge_from
             return rows
         except (KeyError, ValueError) as error:
             QMessageBox.critical(self, "流程設定錯誤", str(error))
             return []
 
     def build_flow_buttons(self):
-        for index, row in enumerate(self.flow):
-            button = FlowNodeButton(row["title"])
-            button.setMinimumSize(140, 72)
-            button.setToolTip("單擊：設定參數；雙擊：開啟最近一次已儲存結果")
-            button.singleClicked.connect(
-                lambda node=row["node_id"]: self.show_node_parameters(node)
-            )
-            button.doubleClicked.connect(
-                lambda node=row["node_id"]: self.show_result(node)
-            )
-            self.result_buttons[row["node_id"]] = button
-            self.flow_layout.addWidget(button)
-            if index < len(self.flow) - 1:
-                arrow = QLabel("→")
-                arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                arrow.setStyleSheet("font-size: 28px; color: #647184;")
-                self.flow_layout.addWidget(arrow)
-        self.flow_layout.addStretch(1)
+        graph_ids = {
+            row["node_id"]: f"flow_node_{index}"
+            for index, row in enumerate(self.flow)
+        }
+        lines = ["graph TD"]
+        main_rows = [row for row in self.flow if row["flow_row"] == "main"]
+        branch_groups = {}
+        secondary_rows = [row for row in self.flow if row["flow_row"] == "secondary"]
+        tertiary_rows = [row for row in self.flow if row["flow_row"] == "tertiary"]
+        merge_rows = [row for row in self.flow if row["flow_row"] == "merge"]
+
+        def connect_chain(rows):
+            for first, second in zip(rows, rows[1:]):
+                lines.append(f"    {graph_ids[first['node_id']]} --> {graph_ids[second['node_id']]}")
+
+        for row in self.flow:
+            if row["flow_row"] == "branch":
+                branch_groups.setdefault(row["branch_from"], []).append(row)
+
+        connect_chain(main_rows)
+        for parent_id, rows in branch_groups.items():
+            lines.append(f"    {graph_ids[parent_id]} --> {graph_ids[rows[0]['node_id']]}")
+            connect_chain(rows)
+        connect_chain(secondary_rows)
+        connect_chain(tertiary_rows)
+        for row in merge_rows:
+            merge_id = graph_ids[row["node_id"]]
+            lines.append(f"    {graph_ids[row['branch_from']]} --> {merge_id}")
+            lines.append(f"    {graph_ids[row['merge_from']]} --> {merge_id}")
+
+        for row in self.flow:
+            graph_id = graph_ids[row["node_id"]]
+            title = row["title"].replace('"', "&quot;")
+            lines.append(f'    {graph_id}["{title}"]')
+
+        diagram_markdown = "```mermaid\n" + "\n".join(lines) + "\n```"
+        rendered_html = render_markdown(diagram_markdown)
+        click_map = {
+            row["title"]: row["node_id"]
+            for row in self.flow
+        }
+        click_map_json = json.dumps(click_map, ensure_ascii=True).replace("</", "<\\/")
+        click_script = f"""<script>
+(() => {{
+  const titleToId = {click_map_json};
+  let clickTimer = null;
+  function findNode(event) {{
+    const group = event.target.closest('g.node');
+    if (!group) return null;
+    const title = (group.textContent || '').replace(/\\s+/g, ' ').trim();
+    return titleToId[title] || null;
+  }}
+  function request(nodeId, kind) {{
+    window.location.href = 'flow-node://' + kind + '/' + encodeURIComponent(nodeId);
+  }}
+  document.addEventListener('click', event => {{
+    const nodeId = findNode(event);
+    if (!nodeId) return;
+    clearTimeout(clickTimer);
+    clickTimer = setTimeout(() => request(nodeId, 'single'), 260);
+  }});
+  document.addEventListener('dblclick', event => {{
+    const nodeId = findNode(event);
+    if (!nodeId) return;
+    clearTimeout(clickTimer);
+    request(nodeId, 'double');
+  }});
+}})();
+</script>"""
+        rendered_html = rendered_html.replace("</body>", click_script + "</body>")
+        self.flow_view.setHtml(rendered_html)
+
+    def handle_flow_node_request(self, node_id, is_double_click):
+        if is_double_click:
+            self.show_result(node_id)
+        else:
+            self.show_node_parameters(node_id)
 
     def load_csv(self, path):
         try:
@@ -257,6 +331,8 @@ class MainWindow(QWidget):
         if plugin is None:
             return
         for name in plugin.parameters:
+            if name in plugin.hidden_parameters:
+                continue
             edit = QLineEdit(self.parameter_values.get(name, ""))
             edit.textChanged.connect(lambda value, key=name: self.update_parameter(key, value))
             self.parameter_form.addRow(name, edit)
@@ -267,6 +343,7 @@ class MainWindow(QWidget):
         if row is None:
             return
         self.active_node_id = node_id
+        self.run_selected_button.setEnabled(True)
         plugin = self.plugins_by_id[row["analysis_id"]]
         self.parameter_title.setText(f"{row['title']} 輸入參數")
         self.build_parameter_fields(plugin)
@@ -301,9 +378,6 @@ class MainWindow(QWidget):
             self.add_variable_row(table, "導出量", name, value)
 
         layout.addWidget(table)
-        close_button = QPushButton("關閉")
-        close_button.clicked.connect(dialog.accept)
-        layout.addWidget(close_button)
         dialog.exec()
 
     @staticmethod
@@ -318,9 +392,25 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "沒有分析流程", "請檢查 data/analysis_flow.csv")
             return
 
+        try:
+            available_parameters = set(self.parameter_values)
+            for row in self.flow:
+                plugin = self.plugins_by_id[row["analysis_id"]]
+                missing = set(plugin.parameters) - available_parameters
+                if missing:
+                    raise ValueError(
+                        f"{row['title']} 缺少參數：{', '.join(sorted(missing))}"
+                    )
+                available_parameters.update(plugin.outputs)
+        except ValueError as error:
+            self.status_label.setText(f"參數尚未完成：{error}")
+            QMessageBox.warning(self, "參數錯誤", str(error))
+            return
+
         self.console.clear()
         self.status_label.setText("流程執行中…")
         self.run_button.setEnabled(False)
+        self.run_selected_button.setEnabled(False)
         old_stdout = sys.stdout
         sys.stdout = RedirectText(self.console)
         try:
@@ -346,11 +436,104 @@ class MainWindow(QWidget):
         finally:
             sys.stdout = old_stdout
             self.run_button.setEnabled(True)
+            self.run_selected_button.setEnabled(self.active_node_id is not None)
+
+    def _required_analysis_rows(self, selected_node_id):
+        selected_row = next(
+            (row for row in self.flow if row["node_id"] == selected_node_id),
+            None,
+        )
+        if selected_row is None:
+            raise ValueError("找不到所選分析節點")
+
+        producer_by_output = {}
+        for row in self.flow:
+            plugin = self.plugins_by_id[row["analysis_id"]]
+            for output_name in plugin.outputs:
+                producer_by_output[output_name] = row
+
+        required_node_ids = set()
+        visiting = set()
+
+        def include_dependencies(row):
+            node_id = row["node_id"]
+            if node_id in required_node_ids:
+                return
+            if node_id in visiting:
+                raise ValueError(f"分析依賴形成循環：{node_id}")
+            visiting.add(node_id)
+            plugin = self.plugins_by_id[row["analysis_id"]]
+            for parameter_name in plugin.parameters:
+                current_value = self.parameter_values.get(parameter_name)
+                if current_value is not None and str(current_value).strip():
+                    continue
+                producer_row = producer_by_output.get(parameter_name)
+                if producer_row is None:
+                    raise ValueError(f"{row['title']} 缺少輸入參數：{parameter_name}")
+                include_dependencies(producer_row)
+            visiting.remove(node_id)
+            required_node_ids.add(node_id)
+
+        include_dependencies(selected_row)
+        return [row for row in self.flow if row["node_id"] in required_node_ids]
+
+    def run_selected_analysis(self):
+        if not self.active_node_id:
+            QMessageBox.information(self, "尚未選擇分析", "請先單擊流程圖中的分析節點。")
+            return
+
+        try:
+            selected_rows = self._required_analysis_rows(self.active_node_id)
+        except ValueError as error:
+            self.status_label.setText(f"無法執行所選分析：{error}")
+            QMessageBox.warning(self, "分析參數錯誤", str(error))
+            return
+
+        selected_row = next(
+            row for row in self.flow if row["node_id"] == self.active_node_id
+        )
+        self.console.clear()
+        self.status_label.setText(f"執行所選分析：{selected_row['title']}…")
+        self.run_button.setEnabled(False)
+        self.run_selected_button.setEnabled(False)
+        old_stdout = sys.stdout
+        sys.stdout = RedirectText(self.console)
+        try:
+            for position, row in enumerate(selected_rows, start=1):
+                plugin = self.plugins_by_id[row["analysis_id"]]
+                parameters = parse_analysis_parameters(
+                    self.parameter_values,
+                    plugin.parameters,
+                )
+                if row["node_id"] == self.active_node_id:
+                    print(f"[{position}/{len(selected_rows)}] 所選分析：{row['title']}")
+                else:
+                    print(f"[{position}/{len(selected_rows)}] 必要前置分析：{row['title']}")
+                result = plugin.run(parameters)
+                if isinstance(result, tuple) and len(result) == 2:
+                    figure, outputs = result
+                else:
+                    figure, outputs = result, {}
+                self.save_result(row, parameters, outputs, figure)
+                for name, value in outputs.items():
+                    self.output_values[name] = value
+                    self.parameter_values[name] = str(value)
+                plt.close(figure)
+            self.status_label.setText(
+                f"完成：{selected_row['title']} 分析結果已儲存。"
+            )
+        except Exception as error:
+            self.status_label.setText(f"所選分析執行失敗：{error}")
+            QMessageBox.critical(self, "分析執行失敗", str(error))
+        finally:
+            sys.stdout = old_stdout
+            self.run_button.setEnabled(True)
+            self.run_selected_button.setEnabled(self.active_node_id is not None)
 
     def save_result(self, row, parameters, outputs, figure):
         result_dir = RESULTS_DIR / row["node_id"]
         result_dir.mkdir(parents=True, exist_ok=True)
-        figure.savefig(result_dir / "plot.png", dpi=140, bbox_inches="tight")
+        figure.savefig(result_dir / "plot.png", dpi=300, bbox_inches="tight")
         with (result_dir / "result.csv").open("w", newline="", encoding="utf-8-sig") as result_file:
             writer = csv.writer(result_file)
             writer.writerow(["category", "name", "number"])
@@ -385,20 +568,20 @@ class MainWindow(QWidget):
                 self.add_variable_row(table, record["category"], record["name"], record["number"])
         left_layout.addWidget(table, 2)
 
-        markdown_view = QTextBrowser()
+        markdown_view = MarkdownView()
         markdown_path = result_dir / "analysis.md"
         if markdown_path.exists():
-            markdown_view.setHtml(render_markdown(markdown_path.read_text(encoding="utf-8")))
+            markdown_html = render_markdown(markdown_path.read_text(encoding="utf-8"))
         else:
-            markdown_view.setHtml(render_markdown(f"# {node_id}\n\n尚未建立此分析的 Markdown 說明文件。"))
+            markdown_html = render_markdown(
+                f"# {node_id}\n\n尚未建立此分析的 Markdown 說明文件。"
+            )
+        markdown_view.setHtml(markdown_html)
         splitter.addWidget(left_panel)
         splitter.addWidget(markdown_view)
         splitter.setSizes([620, 620])
         layout.addWidget(splitter, 1)
 
-        close_button = QPushButton("關閉")
-        close_button.clicked.connect(dialog.accept)
-        layout.addWidget(close_button)
         dialog.exec()
 
     def closeEvent(self, event):
@@ -415,7 +598,8 @@ class MainWindow(QWidget):
         event.accept()
 
 
-app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
-app.exec()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    app.exec()

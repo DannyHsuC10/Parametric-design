@@ -1,4 +1,14 @@
-order,node_id,title,analysis_id
-1,sin,sin,sine
-2,cos,cos,cosine
-3,tan,tan,tangent
+order,node_id,title,analysis_id,flow_row,branch_from,merge_from
+1,compressed_travel,Compressed travel,compressed_travel,main,,
+2,aero_stiffness,Aero stiffness,aero_stiffness,main,,
+3,frequency_stiffness,Frequency vs stiffness,frequency_stiffness,main,,
+4,tire_ring_mode,Tire_Ring_Mode,tire_ring_mode,branch,frequency_stiffness,
+5,psd,PSD,psd,branch,frequency_stiffness,
+6,tire_stiffness,Tire stiffness,tire_stiffness,main,,
+7,frequency_mass,Frequency vs mass,frequency_mass,main,,
+8,overall_rigidity,Overall Rigidity,overall_rigidity,branch,frequency_mass,
+9,2_spring,2_spring,two_spring,main,,
+10,skidpad_test,skidpad_test,skidpad_test,secondary,,
+11,donwforce_target,Donwforce_Target,donwforce_target,secondary,,
+12,aero_cl_cd,Aero CL CD,aero_cl_cd,secondary,,
+13,tender,tender,tender,merge,2_spring,aero_cl_cd

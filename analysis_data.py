@@ -1,11 +1,11 @@
-"""Load shared parameters from an analysis CSV file."""
+"""Load shared parameters from the analysis CSV file."""
 
 import csv
 from pathlib import Path
 
 
 def load_analysis_parameters(csv_path):
-    """Read named numeric parameters from a name,number CSV."""
+    """Read named parameters from a name,number CSV."""
     path = Path(csv_path)
     with path.open("r", newline="", encoding="utf-8-sig") as csv_file:
         reader = csv.DictReader(csv_file)
@@ -29,8 +29,16 @@ def parse_analysis_parameters(values, parameter_types):
     for name, parameter_type in parameter_types.items():
         if name not in values:
             raise ValueError(f"CSV is missing required parameter: {name}")
+        if parameter_type == "str":
+            parsed[name] = str(values[name]).strip()
+            if not parsed[name]:
+                raise ValueError(f"Parameter {name} must not be empty")
+            continue
         try:
-            parsed[name] = int(values[name]) if parameter_type == "int" else float(values[name])
+            if parameter_type == "int":
+                parsed[name] = int(values[name])
+            else:
+                parsed[name] = float(values[name])
         except (TypeError, ValueError) as error:
             raise ValueError(f"Parameter {name} must be a valid {parameter_type}") from error
 

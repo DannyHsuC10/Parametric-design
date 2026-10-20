@@ -1,0 +1,15 @@
+﻿category,name,number
+輸入量,ms,260.0
+輸入量,mu,15.0
+輸入量,Ks_roll_N_per_m,86431.62256800188
+輸入量,Ks_pitch_N_per_m,140872.29401066582
+輸入量,Kt,80000.0
+輸入量,MR,1.0
+輸入量,N,5.0
+導出量,m_total_vehicle_kg,320.0
+導出量,unsprung_mass_ratio_target_percent,18.75
+導出量,frequency_sprung_target_Hz,3.5983021496390952
+導出量,frequency_unsprung_target_Hz,15.200531876637012
+導出量,target_natural_frequency_Hz,3.0401063753274022
+導出量,Ks_required_target_frequency_N_per_m,48408.63057999397
+導出量,Ks_scale_target_frequency,0.34363485680391365

@@ -26,6 +26,7 @@ class AnalysisPlugin:
             ""
         )
         self.parameters = getattr(module, "PARAMETERS", {})
+        self.hidden_parameters = set(getattr(module, "HIDDEN_PARAMETERS", ()))
         self.outputs = getattr(module, "OUTPUTS", {})
 
 
