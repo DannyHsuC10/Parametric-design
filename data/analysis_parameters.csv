@@ -7,11 +7,11 @@ anti_geometry_ratio,0,Y
 h_cog,0.3,N
 L,1.53,N
 t,1.25,Y
-target_pitch_angle_deg,1.5,Y
+target_pitch_angle_deg,1,Y
 target_roll_angle_deg,2,Y
 mu,15,N
 MR,1,N
-N,5,N
+N,4.8,N
 Kt,80000,N
 R_tire,0.2,N
 youngs_modulus_tire,8000000,N
