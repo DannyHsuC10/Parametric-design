@@ -224,6 +224,8 @@ class MainWindow(QWidget):
         self.run_selected_button.clicked.connect(self.run_selected_analysis)
 
         self.load_csv(DEFAULT_CSV)
+        # Open the source node's editable geometry inputs immediately.
+        self.show_node_parameters("cog_movable")
         QTimer.singleShot(0, self.select_csv)
 
     def load_flow(self, path=FLOW_CSV):
@@ -298,8 +300,12 @@ class MainWindow(QWidget):
         merge_rows = [row for row in flow if row["flow_row"] == "merge"]
 
         def connect_chain(rows):
-            for first, second in zip(rows, rows[1:]):
-                lines.append(f"    {graph_ids[first['node_id']]} --> {graph_ids[second['node_id']]}")
+            previous = None
+            for row in rows:
+                source = row["branch_from"] or (previous["node_id"] if previous else None)
+                if source in graph_ids:
+                    lines.append(f"    {graph_ids[source]} --> {graph_ids[row['node_id']]}")
+                previous = row
 
         connect_chain(main_rows)
         for row in branch_rows:
@@ -325,6 +331,9 @@ class MainWindow(QWidget):
                 lines.append(f'    {graph_id}["{title}"]')
             if group:
                 lines.append("    end")
+
+        lines.append("    classDef flowNode fill:#f1f1f1,stroke:#b8b8b8,color:#222222")
+        lines.append("    class " + ",".join(graph_ids.values()) + " flowNode")
 
         diagram_markdown = "```mermaid\n" + "\n".join(lines) + "\n```"
         rendered_html = render_markdown(diagram_markdown)
@@ -387,10 +396,10 @@ class MainWindow(QWidget):
             for plugin in self.plugins
             for name, value in plugin.parameter_defaults.items()
         }
-        self.parameter_values = defaults | parameters
-        self.output_values = {
-            name: value for name, value in parameters.items() if name in self.output_names
-        }
+        # Saved outputs are snapshots. Always rebuild them from their source inputs.
+        self.parameter_values = {name: value for name, value in (defaults | parameters).items()
+                                 if name not in self.output_names}
+        self.output_values = {}
         self.csv_label.setText(str(self.csv_path))
         if self.active_node_id:
             self.show_node_parameters(self.active_node_id)
@@ -405,11 +414,26 @@ class MainWindow(QWidget):
         if plugin is None:
             return
         for name in plugin.parameters:
-            if name in plugin.hidden_parameters:
+            if name in plugin.hidden_parameters or name in {
+                "ms", "mu", "mu_front", "mu_rear", "L", "hl_front_weight_ratio",
+                "hl_sprung_roll_inertia_kg_m2",
+            }:
                 continue
             edit = QLineEdit(self.parameter_values.get(name, ""))
-            edit.textChanged.connect(lambda value, key=name: self.update_parameter(key, value))
-            self.parameter_form.addRow(name, edit)
+            if name in self.output_names:
+                edit.setReadOnly(True)
+                edit.setPlaceholderText("由前置分析計算")
+                edit.setToolTip("修改來源資料後重新執行，會自動更新此導出量。")
+            else:
+                edit.textChanged.connect(lambda value, key=name: self.update_parameter(key, value))
+            labels = {
+                "h_cog": "重心高度 h_cog（m）",
+                "cog_front_axle_x_m": "前軸輪心 x（m）",
+                "cog_rear_axle_x_m": "後軸輪心 x（m）",
+            }
+            self.parameter_form.addRow(labels.get(name, name), edit)
+            if name in {"cog_front_axle_x_m", "cog_rear_axle_x_m"}:
+                edit.setToolTip("手動輸入輪胎中心位置，座標基準為 Excel 原點；不使用 Excel 零件重心 dx。")
             self.parameter_edits[name] = edit
 
     def show_node_parameters(self, node_id):
@@ -519,11 +543,10 @@ class MainWindow(QWidget):
             for parameter_name in plugin.parameters:
                 current_value = self.parameter_values.get(parameter_name)
                 producer_row = producer_by_output.get(parameter_name)
-                if current_value is not None and str(current_value).strip():
-                    continue
-                if producer_row is None:
+                if producer_row is not None:
+                    include_dependencies(producer_row)
+                elif current_value is None or not str(current_value).strip():
                     raise ValueError(f"{row['title']} 缺少輸入參數：{parameter_name}")
-                include_dependencies(producer_row)
             visiting.remove(node_id)
             required_node_ids.add(node_id)
 
@@ -612,6 +635,8 @@ class MainWindow(QWidget):
         self.run_selected_button.setEnabled(self.active_node_id is not None)
         self.csv_button.setEnabled(True)
         self.parameter_scroll.setEnabled(True)
+        if self.active_node_id:
+            self.show_node_parameters(self.active_node_id)
         if runner.error:
             self.status_label.setText(f"分析中止：{runner.error}")
         else:

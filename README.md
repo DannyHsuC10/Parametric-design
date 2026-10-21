@@ -6,7 +6,16 @@
 
 - [共用振動與阻尼模型：計算方程式、座標與求解方法](analysis/suspension_dynamics/README.md)
 
-所有分析共用 `ms`（全車簧上質量，kg）與 `mu`（單輪簧下質量，kg）。四分之一車模型在計算時使用 `ms / 4`；輸入框與 CSV 只保留一組質量設定。舊 CSV 的 `simulation_ms_total_kg`、`simulation_mu_kg` 會自動轉為 `ms`、`mu`；兩種名稱同時存在時，以 `ms`、`mu` 為準。
+流程以 `COG_movable` 為資料起點，從 `data/input_data/Center_of_gravity_LP03_*.xlsx` 的簧上、前簧下、後簧下元件資料計算質量、重心與慣量，分出 `CG`、`Compressed travel`、`FWL 四輪載重包絡` 三條箭頭。`CG` 保留原 45°／60° 傾斜幾何比較。
+
+所有分析共用導出量 `ms`（全車簧上質量，kg）與 `mu`（四輪平均單輪簧下質量，kg）。四分之一車模型使用 `ms / 4`；Heave／Roll 前後軸則使用各自的 `mu_front`、`mu_rear`。`hl_sprung_roll_inertia_kg_m2` 由簧上元件繞簧上重心計算；`hl_front_weight_ratio` 由全車重心與前後軸位置計算，簧上承載另用 `hl_sprung_front_weight_ratio`。
+
+重心離地高度 `h_cog` 由使用者直接輸入，單位 m，預設 0.3 m。在 `COG_movable` 節點的「重心高度 h_cog（m）」設定後，所有下游分析共用同一值，不會加上 Excel 的 z 偏移。Excel 座標描述元件重心；前、後輪中心 x 座標需在 `COG_movable` 節點手動輸入，均以同一 Excel 原點為基準。軸距 `L` 由手動輸入的兩軸中心座標相減，前軸配重與載荷分析也使用這些座標。預設值 0.765 m、−0.765 m 是沿用原 CSV 1.53 m 軸距設定的可編輯初始值。慣量為元件集中質量近似，未含元件自身慣量。
+
+- [重心、慣性、座標、單位與質量傳遞說明](data/results/cog_movable/analysis.md)
+- [CG 傾斜幾何比較](data/results/cg/analysis.md)
+
+各節點不顯示簧上／簧下質量、軸距 `L`、全車前軸重量比 `hl_front_weight_ratio`、簧上側傾慣量 `hl_sprung_roll_inertia_kg_m2` 的輸入框；這些值由來源資料與手動輪心座標計算，仍供下游分析使用。三份 Excel 檔案路徑固定在 `analysis/COG_movable.py`，不放在參數 CSV 中；其他質量、配重與慣量導出量可在結果表或「檢視目前變量」查閱。選跑下游節點也會重讀 Excel 並重算必要前置分析。載入 CSV 時忽略已存導出量，避免舊數值蓋過來源資料；手動 `h_cog` 會保留。舊質量名稱 `simulation_ms_total_kg`、`simulation_mu_kg` 仍可由參數解析工具正規化為 `ms`、`mu`。
 
 各分析結果的每張圖最多顯示四個子圖；圖片選單可切換主要結果與其他內容分組。`Time_sensitivity`、`damping_rate`、`PSD` 與 `tender` 已拆成多張圖，保留所有原有分析內容。
 
@@ -33,7 +42,7 @@ Print out 的 `[開啟結果]` 訊息會分別顯示雙擊事件等待、圖片�
 .venv/Scripts/python.exe -X utf8 -m analysis.hl_damping
 ```
 
-新增四輪載重與輪胎力流程：`FWL → solver_compar → sus_load → max_load`。在同一份 `data/analysis_flow.csv` 以 `flow_row=tertiary` 建立分離的「輪載與輪胎力分析」群組，與原流程之間沒有箭頭，顯示在同一張流程圖中。使用既有的「Run 全流程」與「單獨執行所選分析」操作，缺少剛性輸出時會補算必要的前置分析。
+四輪載重與輪胎力流程為 `COG_movable → FWL → solver_compar → sus_load → max_load`。在同一份 `data/analysis_flow.csv` 以 `flow_row=tertiary` 建立「輪載與輪胎力分析」群組，並以 `branch_from=cog_movable` 連到共用的重心資料起點。使用既有的「Run 全流程」與「單獨執行所選分析」操作，後者會重算必要資料與剛性前置分析。
 
 - [分離流程圖、CSV 設定與模型分析](analysis/wheel_load/README.md)
 - [輪載分析結果報告](data/results/wheel_load/index.html)

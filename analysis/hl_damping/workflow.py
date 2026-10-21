@@ -149,7 +149,7 @@ def _roll_response(vehicle, state, systems):
     return tables
 
 
-def simulate_lateral(vehicle, roll, curves):
+def simulate_lateral(vehicle, roll, curves, duration_s=2.0):
     """3DOF ODE with the fitted, piecewise roll dampers, driven by a lateral step."""
     arms = np.array([vehicle.front.motion_ratio.roll * vehicle.front.track_m,
                      vehicle.rear.motion_ratio.roll * vehicle.rear.track_m])
@@ -165,8 +165,10 @@ def simulate_lateral(vehicle, roll, curves):
         damping = np.array([sum(moments), -moments[0], -moments[1]])
         return np.r_[rates, inverse_mass @ (force - roll.stiffness_matrix @ angles - damping)]
 
-    time = np.linspace(0, 2, 900)
-    solution = solve_ivp(rhs, (0, 2), np.zeros(6), t_eval=time, rtol=1e-7, atol=1e-9)
+    if not np.isfinite(duration_s) or duration_s <= 0:
+        raise ValueError("duration_s 必須為正的有限數值")
+    time = np.linspace(0, duration_s, max(2, int(np.ceil(duration_s * 450))))
+    solution = solve_ivp(rhs, (0, duration_s), np.zeros(6), t_eval=time, rtol=1e-7, atol=1e-9)
     if not solution.success:
         raise ValueError(f"Roll ODE integration failed: {solution.message}")
     table = pd.DataFrame({"time_s": time, "sprung_roll_deg": np.rad2deg(solution.y[0]),

@@ -214,7 +214,7 @@ def main():
     values = {name: str(value) for plugin in plugins.values() for name, value in plugin.parameter_defaults.items()}
     values.update(load_analysis_parameters(args.csv))
     with redirect_stdout(StringIO()):
-        for stage in ("compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness"):
+        for stage in ("cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness"):
             plugin = plugins[stage]
             result = normalize_result(plugin.run(parse_analysis_parameters(values, plugin.parameters)))
             try:

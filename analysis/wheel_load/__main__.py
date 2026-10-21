@@ -20,14 +20,14 @@ def main():
     plugins = {plugin.plugin_id: plugin for plugin in scan_analysis()}
     defaults = {name: str(value) for plugin in plugins.values() for name, value in plugin.parameter_defaults.items()}
     values = defaults | load_analysis_parameters(args.csv)
-    prerequisites = ("compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness")
+    prerequisites = ("cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness")
     for stage in (*prerequisites, *STAGES):
         print(f"開始：{stage}", flush=True)
         plugin = plugins["fwl" if stage == "FWL" else stage]
         parameters = parse_analysis_parameters(values, plugin.parameters)
         result = normalize_result(plugin.run(parameters))
         try:
-            if stage in STAGES:
+            if stage in STAGES or stage == "cog_movable":
                 save_analysis_result(args.output, stage, parameters, result)
             values.update({name: str(value) for name, value in result.outputs.items()})
         finally:

@@ -40,14 +40,14 @@ class HLDampingTests(unittest.TestCase):
         cls.plugins = {plugin.plugin_id: plugin for plugin in scan_analysis()}
         cls.results = {}
         with redirect_stdout(StringIO()):
-            for stage in ("compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES):
+            for stage in ("cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES):
                 plugin = cls.plugins[stage]
                 parameters = parse_analysis_parameters(cls.values, plugin.parameters)
                 result = normalize_result(plugin.run(parameters))
                 cls.values.update({key: str(value) for key, value in result.outputs.items()})
                 if stage in STAGES:
                     cls.results[stage] = result
-                plt.close(result.figure)
+                result.close()
         parameters = parse_analysis_parameters(cls.values, cls.plugins["hl_ode"].parameters)
         cls.models = build_models(parameters)
         with (ROOT / "data" / "analysis_flow.csv").open(encoding="utf-8-sig", newline="") as stream:
@@ -87,12 +87,17 @@ class HLDampingTests(unittest.TestCase):
         window = SimpleNamespace(flow=self.flow, plugins_by_id=self.plugins, parameter_values=inputs)
         rows = MainWindow._required_analysis_rows(window, "hl_ode")
         self.assertEqual({row["node_id"] for row in rows}, {
-            "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES})
+            "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES})
 
     def test_mass_and_heave_stiffness_conventions(self):
         vehicle, heave, *_ = self.models
-        self.assertEqual(vehicle.mass_kg, 320)
-        self.assertEqual(vehicle.front.sprung_mass_axis_kg + vehicle.rear.sprung_mass_axis_kg, 260)
+        self.assertAlmostEqual(vehicle.mass_kg, 318.15)
+        self.assertAlmostEqual(vehicle.front.sprung_mass_axis_kg + vehicle.rear.sprung_mass_axis_kg, 260.55)
+        self.assertAlmostEqual(vehicle.front.unsprung_mass_per_wheel_kg, 14.5)
+        self.assertAlmostEqual(vehicle.rear.unsprung_mass_per_wheel_kg, 14.3)
+        for axle in (vehicle.front, vehicle.rear):
+            self.assertAlmostEqual(axle.sprung_mass_axis_kg + axle.unsprung_mass_axis_kg,
+                                   vehicle.mass_kg * axle.weight_ratio)
         for axle, result in ((vehicle.front, heave.front), (vehicle.rear, heave.rear)):
             self.assertLess(result.ride_rate_n_per_m, result.wheel_rate_n_per_m)
             self.assertLess(result.ride_rate_n_per_m, 2 * vehicle.tire_vertical_rate_n_per_m)
@@ -165,7 +170,9 @@ class HLDampingTests(unittest.TestCase):
                                        transfer / heave.rear.ride_rate_n_per_m, delta=2e-6)
                 self.assertAlmostEqual((table.front_tire_fz_n + table.rear_tire_fz_n).iloc[-1],
                                        vehicle.weight_n / 2, delta=0.1)
-        lateral = tables["ode_cornering_physical.csv"]
+        # A changed mass/inertia can outlive the default 2 s display window.
+        # Check steady equilibrium with an explicitly longer integration.
+        lateral = simulate_lateral(vehicle, roll, self.models[6]._roll_physical_curves(), duration_s=20)
         self.assertAlmostEqual(lateral.sprung_roll_deg.iloc[-1],
                                roll.roll_gradient_deg_per_g * vehicle.analysis.roll_step_ay_g, delta=0.002)
         total_fz = lateral.filter(like="_fz_n").sum(axis=1)

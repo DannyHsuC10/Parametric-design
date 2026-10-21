@@ -40,11 +40,13 @@ class WheelLoadTests(unittest.TestCase):
         cls.inputs = load_analysis_parameters(ROOT / "data" / "analysis_parameters.csv")
         cls.values = dict(cls.inputs, wl_grid_points="9")
         with redirect_stdout(StringIO()):
-            for stage in ("compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness"):
+            for stage in ("cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness"):
                 plugin = cls.plugins[stage]
-                figure, outputs = plugin.run(parse_analysis_parameters(cls.values, plugin.parameters))
+                from analysis_result import normalize_result
+                result = normalize_result(plugin.run(parse_analysis_parameters(cls.values, plugin.parameters)))
+                figure, outputs = result
                 cls.values.update({name: str(value) for name, value in outputs.items()})
-                plt.close(figure)
+                result.close()
         with (ROOT / "data" / "analysis_flow.csv").open(encoding="utf-8-sig", newline="") as stream:
             cls.flow = list(csv.DictReader(stream))
 
@@ -116,6 +118,8 @@ class WheelLoadTests(unittest.TestCase):
                 self.assertGreaterEqual(np.min(loads), -1e-9)
                 np.testing.assert_allclose(car.matrix @ loads, car.target(ax, ay), atol=1e-9)
 
+    @unittest.skipUnless(all((ROOT / "new" / name).is_file() for name in ("FWL_solver.py", "sus_load.py")),
+                         "Optional original wheel-load source fixtures are absent from this checkout")
     def test_original_cg_lsm_match_after_lateral_coordinate_conversion(self):
         originals = original_functions(ROOT)
         car = Vehicle(320, .3, 1.53, 1.25, 1.25, .43)
@@ -129,7 +133,8 @@ class WheelLoadTests(unittest.TestCase):
     def test_main_and_independent_diagrams_have_the_same_four_node_chain(self):
         independent = [row for row in self.flow if row["flow_row"] == "tertiary"]
         self.assertEqual([row["node_id"] for row in independent], list(STAGES))
-        self.assertTrue(all(not row["branch_from"] and not row["merge_from"] for row in independent))
+        self.assertEqual(independent[0]["branch_from"], "cog_movable")
+        self.assertTrue(all(not row["branch_from"] and not row["merge_from"] for row in independent[1:]))
         for flow in (self.flow, independent):
             captures = []
             window = SimpleNamespace(flow=flow, flow_view=SimpleNamespace(setHtml=captures.append))
@@ -140,7 +145,8 @@ class WheelLoadTests(unittest.TestCase):
                 self.assertIn(f"{graph_ids[first]} --> {graph_ids[second]}", source)
             wheel_ids = {graph_ids[stage] for stage in STAGES}
             edges = re.findall(r"(flow_node_\d+) --> (flow_node_\d+)", source)
-            self.assertFalse(any((first in wheel_ids) != (second in wheel_ids) for first, second in edges))
+            external = {(first, second) for first, second in edges if (first in wheel_ids) != (second in wheel_ids)}
+            self.assertEqual(external, {(graph_ids["cog_movable"], graph_ids["FWL"])} if flow is self.flow else set())
             for title in TITLES:
                 self.assertIn(title, source)
 
@@ -148,9 +154,10 @@ class WheelLoadTests(unittest.TestCase):
         window = SimpleNamespace(flow=self.flow, plugins_by_id=self.plugins, parameter_values=dict(self.inputs))
         rows = MainWindow._required_analysis_rows(window, "max_load")
         self.assertEqual([row["node_id"] for row in rows], [
-            "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
+            "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
         window.parameter_values = self.values
-        self.assertEqual([row["node_id"] for row in MainWindow._required_analysis_rows(window, "max_load")], list(STAGES))
+        self.assertEqual([row["node_id"] for row in MainWindow._required_analysis_rows(window, "max_load")], [
+            "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
 
     def test_one_flow_view_keeps_wheel_nodes_without_extra_tab_or_run_button(self):
         class FlowPlaceholder(QWidget):
@@ -181,7 +188,7 @@ class WheelLoadTests(unittest.TestCase):
                 window.run_selected_button.click()
                 rows = start.call_args.args[0]
                 self.assertEqual([row["node_id"] for row in rows], [
-                    "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
+                    "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
                 window.analysis_runner = object()
                 window.run_selected_button.click()
                 self.assertEqual(start.call_count, 1)
@@ -212,8 +219,11 @@ class WheelLoadTests(unittest.TestCase):
                         sweep = result.tables["null_space_sweep.csv"]
                         self.assertTrue(np.isfinite(sweep.alpha_min).all())
                         self.assertTrue(np.isfinite(sweep.alpha_max).all())
-                        self.assertAlmostEqual(sweep.alpha_min.iloc[0], -1)
-                        self.assertAlmostEqual(sweep.alpha_max.iloc[0], 1)
+                        from analysis.wheel_load.workflow import make_vehicle
+                        car = make_vehicle(parameters)
+                        lower, upper, _ = alpha_bounds(four_wheel_load_lsm(car, 0, 0), wheel_load_null_direction(car))
+                        self.assertAlmostEqual(sweep.alpha_min.iloc[0], lower)
+                        self.assertAlmostEqual(sweep.alpha_max.iloc[0], upper)
                         self.assertFalse(sweep.feasible.iloc[-1])
                         self.assertGreater(sweep.alpha_min.iloc[-1], sweep.alpha_max.iloc[-1])
                     if stage == "max_load":

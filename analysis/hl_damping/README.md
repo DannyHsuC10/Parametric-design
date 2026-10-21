@@ -40,14 +40,16 @@ graph TD
 .venv/Scripts/python.exe -X utf8 -m analysis.hl_damping
 ```
 
-可使用 `--csv <path>` 與 `--output <directory>` 指定參數及輸出位置。此命令自動重算取得彈簧剛度所需的四項前置分析，接著執行十個新節點；不修改其他舊節點的結果。
+可使用 `--csv <path>` 與 `--output <directory>` 指定參數及輸出位置。此命令先讀取 `COG_movable` 的 Excel 質量資料，再重算取得彈簧剛度所需的四項前置分析，接著執行十個節點，並匯出重心來源結果。
 
 ## 參數來源與模型設定
 
 | 來源 | 對應 |
 | --- | --- |
-| `ms` | 全車簧上質量；前後軸依 `hl_front_weight_ratio` 分配 |
-| `mu` | 每輪簧下質量；總質量為簧上質量加四輪簧下質量 |
+| `ms` | Excel 全車簧上質量；前後軸依 `hl_sprung_front_weight_ratio` 分配 |
+| `mu`、`mu_front`、`mu_rear` | Excel 平均單輪與前／後軸各自的單輪簧下質量；軸模型使用後兩者 |
+| `hl_front_weight_ratio` | 全車前軸重量比例，用於輪胎靜態載重；與簧上承載比例分開 |
+| `hl_sprung_roll_inertia_kg_m2` | 僅簧上元件繞簧上重心的集中質量 Ixx |
 | `Ks_pitch_N_per_m` | `Tire stiffness` 的 pitch 彈簧輸出，作為前軸 heave spring rate；後軸乘 `hl_rear_heave_spring_ratio` |
 | `Ks_roll_N_per_m` | `Tire stiffness` 的 roll 彈簧輸出，作為前軸 roll spring rate；後軸乘 `hl_rear_roll_spring_ratio` |
 | `MR` | 前後軸 heave 運動比；roll 及 independent 使用各自新增的運動比 |
@@ -58,7 +60,7 @@ graph TD
 | `hl_*_roll_*_zeta` | 前後軸低／高速 roll 目標阻尼比，以懸吊 roll 剛度分配加權後設定三個模態 |
 | `hl_knee_velocity_mm_s` | 阻尼器軸速度轉折點，預設 50 mm/s |
 
-新增的 `hl_*` 參數在 `data/analysis_parameters.csv` 中可調。舊 CSV 未提供新增參數時，程式使用 `parameters.py` 的預設值，並在節點輸入及輸出 CSV 中保留實際採用值。前軸重量比例 0.5、簧上 roll inertia 45 kg m²、roll center 高度及運動比為可修改的起始設定，須以實車資料校正。
+roll center 高度、運動比與阻尼設定等獨立輸入仍在 `data/analysis_parameters.csv` 中可調。質量、前軸重量比例與簧上 roll inertia 改由 `COG_movable` 導出，取消原本 0.5、45 kg m² 的替代預設值。更新質量與慣量後，2 秒顯示時間窗內可能尚未收斂；settling time 留空時應延長觀察，不能把時間窗終點當靜態平衡。
 
 `Damped_oscillation_analysis` 是流程上的延伸起點；新的 heave／roll 阻尼比由本套件分別設定，沒有把 quarter-car 掃描的最佳阻尼比直接當成三自由度 roll 模態的目標。前後軸 heave 是每軸一個解耦彈簧／阻尼器，輪胎為該軸兩輪並聯；independent 是每輪一組。
 

@@ -37,6 +37,9 @@ class SimulationFlowTests(unittest.TestCase):
         with (ROOT / "data" / "analysis_flow.csv").open(encoding="utf-8-sig", newline="") as file:
             cls.flow = list(csv.DictReader(file))
         cls.plugins = {plugin.plugin_id: plugin for plugin in scan_analysis()}
+        from analysis.COG_movable import calculate
+        _, _, mass_outputs = calculate(parse_analysis_parameters(cls.values, cls.plugins["cog_movable"].parameters))
+        cls.values.update({name: str(value) for name, value in mass_outputs.items()})
 
     def run_plugin(self, plugin_id, values):
         plugin = self.plugins[plugin_id]
@@ -88,12 +91,12 @@ class SimulationFlowTests(unittest.TestCase):
             required = MainWindow._required_analysis_rows(window, selected)
             required_ids = {row["node_id"] for row in required}
             self.assertEqual(required_ids, {
-                "compressed_travel", "aero_stiffness", "frequency_stiffness",
+                "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness",
                 "tire_stiffness", selected,
             })
 
     def test_shared_quarter_mass_and_result_plots(self):
-        values = dict(self.values, Ks="60000")
+        values = dict(self.values, ms="260", mu="15", Ks="60000")
         expected_axes = (3, 4, 3)
         for plugin_id, axis_count in zip(NEW_IDS, expected_axes):
             with patch.object(self.plugins[plugin_id].module, "SIMULATION_TIME_S", 0.2):
@@ -131,7 +134,7 @@ class SimulationFlowTests(unittest.TestCase):
         module = self.plugins["ode_spring"].module
         with patch.multiple(module, SIMULATION_TIME_S=0.25, OUTPUT_TIME_STEP_S=0.01,
                             RK45_RTOL=1e-9, RK45_ATOL=1e-12):
-            figure, outputs = self.run_plugin("ode_spring", dict(self.values, Ks="60000"))
+            figure, outputs = self.run_plugin("ode_spring", dict(self.values, ms="260", mu="15", Ks="60000"))
         try:
             ms, mu, ks, kt = 65, 15, 60000, 100000
             matrix = np.array([[0, 1, 0, 0], [-ks/ms, 0, ks/ms, 0],

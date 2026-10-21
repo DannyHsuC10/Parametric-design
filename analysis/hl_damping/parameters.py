@@ -1,11 +1,9 @@
 """Shared CSV inputs and the ten small analysis stages in five groups."""
 
 DEFAULTS = {
-    "hl_front_weight_ratio": 0.5,
     "hl_rear_track_m": 1.25,
     "hl_front_roll_center_m": 0.025,
     "hl_rear_roll_center_m": 0.05,
-    "hl_sprung_roll_inertia_kg_m2": 45.0,
     "hl_rear_heave_spring_ratio": 0.8,
     "hl_rear_roll_spring_ratio": 0.75,
     "hl_front_roll_motion_ratio": 0.7,
@@ -30,7 +28,8 @@ DEFAULTS = {
 }
 
 SHARED_PARAMETERS = dict.fromkeys((
-    "ms", "mu", "MR", "Kt", "L", "t", "h_cog",
+    "ms", "mu", "mu_front", "mu_rear", "MR", "Kt", "L", "t", "h_cog",
+    "hl_front_weight_ratio", "hl_sprung_front_weight_ratio", "hl_sprung_roll_inertia_kg_m2",
     "ax", "ay", "Ks_pitch_N_per_m", "Ks_roll_N_per_m", *DEFAULTS,
 ), "float")
 

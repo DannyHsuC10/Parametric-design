@@ -145,7 +145,7 @@ def make_vehicle(parameters) -> Vehicle:
         if not math.isfinite(value):
             raise ValueError(f"{name} 必須是有限數值")
     positive = (
-        "ms", "mu", "MR", "Kt", "L", "t",
+        "ms", "mu", "mu_front", "mu_rear", "MR", "Kt", "L", "t",
         "hl_rear_track_m", "hl_sprung_roll_inertia_kg_m2", "Ks_pitch_N_per_m",
         "Ks_roll_N_per_m", "hl_rear_heave_spring_ratio", "hl_rear_roll_spring_ratio",
         "hl_front_roll_motion_ratio", "hl_rear_roll_motion_ratio",
@@ -155,15 +155,18 @@ def make_vehicle(parameters) -> Vehicle:
     for name in positive:
         if p[name] <= 0:
             raise ValueError(f"{name} 必須大於零")
-    if not 0 < p["hl_front_weight_ratio"] < 1:
-        raise ValueError("hl_front_weight_ratio 必須介於 0 和 1 之間")
+    for name in ("hl_front_weight_ratio", "hl_sprung_front_weight_ratio"):
+        if not 0 < p[name] < 1:
+            raise ValueError(f"{name} 必須介於 0 和 1 之間")
     for name in p:
         if name.endswith("_zeta") or name in {"ax", "ay", "hl_acceleration_g", "hl_reference_case_g"}:
             if p[name] < 0:
                 raise ValueError(f"{name} 不可為負數")
 
     sprung = p["ms"]
-    unsprung = p["mu"]
+    unsprung = p["mu_front"] + p["mu_rear"]
+    if not math.isclose(2 * unsprung, 4 * p["mu"], rel_tol=1e-10):
+        raise ValueError("mu 必須等於 mu_front 與 mu_rear 的平均值")
     axles = []
     for name, weight_ratio, heave_scale, roll_scale, track in (
         ("front", p["hl_front_weight_ratio"], 1.0, 1.0, p["t"]),
@@ -173,8 +176,9 @@ def make_vehicle(parameters) -> Vehicle:
         axles.append(Axle(
             name=name, weight_ratio=weight_ratio, track_m=track,
             roll_center_height_m=p[f"hl_{name}_roll_center_m"],
-            sprung_mass_per_wheel_kg=sprung * weight_ratio / 2,
-            unsprung_mass_per_wheel_kg=unsprung,
+            sprung_mass_per_wheel_kg=sprung * (p["hl_sprung_front_weight_ratio"] if name == "front"
+                                              else 1 - p["hl_sprung_front_weight_ratio"]) / 2,
+            unsprung_mass_per_wheel_kg=p[f"mu_{name}"],
             motion_ratio=MotionRatio(p["MR"], p[f"hl_{name}_roll_motion_ratio"],
                                      p[f"hl_{name}_independent_motion_ratio"]),
             spring=SpringRate(p["Ks_pitch_N_per_m"] * heave_scale / 1000,
@@ -188,7 +192,7 @@ def make_vehicle(parameters) -> Vehicle:
                                                 p[f"hl_{name}_roll_high_zeta"]),
         ))
     return Vehicle(
-        mass_kg=sprung + 4 * unsprung, sprung_mass_kg=sprung,
+        mass_kg=sprung + 2 * unsprung, sprung_mass_kg=sprung,
         wheelbase_m=p["L"], cg_height_m=p["h_cog"],
         sprung_roll_inertia_kg_m2=p["hl_sprung_roll_inertia_kg_m2"],
         tire_vertical_rate_n_per_m=p["Kt"], gravity_mps2=9.80665,

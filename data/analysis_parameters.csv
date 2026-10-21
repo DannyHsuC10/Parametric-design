@@ -1,15 +1,11 @@
-name,number,Adjustable
-ms,260,N
+﻿name,number,Adjustable
 ax,2,N
 ay,2.2,N
 sus_travel,0.025,N
 anti_geometry_ratio,0,Y
-h_cog,0.3,N
-L,1.53,N
 t,1.25,Y
 target_pitch_angle_deg,1,Y
 target_roll_angle_deg,2,Y
-mu,15,N
 MR,1,N
 N,4.8,N
 Kt,80000,N
@@ -23,11 +19,9 @@ mu_w,1.7,N
 target_lap_time_s,5,N
 A_air,2,N
 F_ref_ratio,1.0,Y
-hl_front_weight_ratio,0.5,Y
 hl_rear_track_m,1.25,Y
 hl_front_roll_center_m,0.025,Y
 hl_rear_roll_center_m,0.05,Y
-hl_sprung_roll_inertia_kg_m2,45.0,Y
 hl_rear_heave_spring_ratio,0.8,Y
 hl_rear_roll_spring_ratio,0.75,Y
 hl_front_roll_motion_ratio,0.7,Y
@@ -53,3 +47,7 @@ wl_downforce_N,0.0,Y
 wl_aero_front_ratio,0.5,Y
 wl_mu_y,1.7,Y
 wl_grid_points,81,Y
+cog_front_axle_x_m,0.765,Y
+cog_rear_axle_x_m,-0.765,Y
+h_cog,0.3,Y
+cg_safety_factor,1.1,Y

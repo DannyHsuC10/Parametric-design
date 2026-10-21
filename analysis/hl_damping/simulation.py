@@ -57,13 +57,11 @@ class SimulationAnalysis(PlotCollector):
 
     def _calc_scenario(self, scenario: ScenarioSetting) -> dict[str, float | str]:
         front_static = (
-            self.vehicle.sprung_mass_kg
-            * self.vehicle.front.weight_ratio
+            self.vehicle.front.sprung_mass_axis_kg
             * self.vehicle.gravity_mps2
         )
         rear_static = (
-            self.vehicle.sprung_mass_kg
-            * self.vehicle.rear.weight_ratio
+            self.vehicle.rear.sprung_mass_axis_kg
             * self.vehicle.gravity_mps2
         )
         longitudinal_transfer = (
