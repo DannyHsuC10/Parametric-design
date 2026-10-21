@@ -31,7 +31,7 @@ RK45_ATOL = 0.000000001
 
 def main(parameters):
     ms, ks, damping, critical, ratio = system_settings(parameters, quarter_car=True)
-    mu, kt = parameters["simulation_mu_kg"], parameters["Kt"]
+    mu, kt = parameters["mu"], parameters["Kt"]
     times = np.linspace(0, SIMULATION_TIME_S, OUTPUT_SAMPLES)
     xs, vs, xu, vu = quarter_car_response(
         ms, mu, ks, kt, damping, times, INITIAL_STATE,

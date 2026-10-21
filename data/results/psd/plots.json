@@ -1,0 +1,14 @@
+[
+  {
+    "file": "plot.png",
+    "title": "主要結果｜激振頻譜與能量"
+  },
+  {
+    "file": "road_profile_fft.png",
+    "title": "路面剖面與 FFT"
+  },
+  {
+    "file": "vehicle_speed_distribution.png",
+    "title": "車速時序與分布"
+  }
+]

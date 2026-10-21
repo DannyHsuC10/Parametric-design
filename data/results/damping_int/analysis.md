@@ -6,7 +6,7 @@
 
 ## 參數來源
 
-- simulation_ms_total_kg：四輪簧上總質量，分析時除以 4。
+- ms：四輪簧上總質量，分析時除以 4。
 - Ks：自動讀取 Tire stiffness 的解出量，不提供輸入框。
 - Kt、MR：沿用參數 CSV 中的輪胎剛度與 motion ratio。
 - damping_rate_best_ratio：自動讀取 damping_rate 選出的最佳候選阻尼比，不提供輸入框，也不在 CSV 手動設定。

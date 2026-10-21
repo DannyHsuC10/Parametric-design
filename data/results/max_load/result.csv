@@ -1,0 +1,12 @@
+﻿category,name,number
+輸入量,wl_sus_load_FL_N,-697.6882069188098
+輸入量,wl_sus_load_FR_N,1036.2293833893982
+輸入量,wl_sus_load_RL_N,755.3120681700527
+輸入量,wl_sus_load_RR_N,2045.3467553593593
+輸入量,mu_w,1.7
+輸入量,wl_mu_y,1.7
+導出量,wl_max_load_max_Fz_N,2045.3467553593593
+導出量,wl_max_load_max_Fx_N,3477.0894841109107
+導出量,wl_max_load_max_Fy_N,3477.0894841109107
+導出量,wl_max_load_unloaded_count,1
+導出量,wl_max_load_contact_valid,0

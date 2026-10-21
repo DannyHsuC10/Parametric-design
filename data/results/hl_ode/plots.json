@@ -1,0 +1,38 @@
+[
+  {
+    "file": "plot.png",
+    "title": "主要結果"
+  },
+  {
+    "file": "roll_tire_fz_transient.png",
+    "title": "roll_tire_fz_transient"
+  },
+  {
+    "file": "ode_braking.png",
+    "title": "ode_braking"
+  },
+  {
+    "file": "nonlinear_braking_comparison.png",
+    "title": "nonlinear_braking_comparison"
+  },
+  {
+    "file": "ode_braking_tire_fz.png",
+    "title": "ode_braking_tire_fz"
+  },
+  {
+    "file": "ode_acceleration.png",
+    "title": "ode_acceleration"
+  },
+  {
+    "file": "nonlinear_acceleration_comparison.png",
+    "title": "nonlinear_acceleration_comparison"
+  },
+  {
+    "file": "fig_decoupled_longitudinal_accel_brake_ode45.png",
+    "title": "fig_decoupled_longitudinal_accel_brake_ode45"
+  },
+  {
+    "file": "ode_cornering_physical.png",
+    "title": "ode_cornering_physical"
+  }
+]

@@ -8,7 +8,7 @@ from oscillation_models import require_positive
 TITLE = "Critical_Damping_Analysis"
 PLUGIN_ID = "critical_damping_analysis"
 DESCRIPTION = "Natural frequency and reference critical damping versus stiffness, marking Tire stiffness Ks."
-PARAMETERS = {"simulation_ms_total_kg": "float", "Ks": "float"}
+PARAMETERS = {"ms": "float", "Ks": "float"}
 HIDDEN_PARAMETERS = {"Ks"}
 OUTPUTS = {
     "critical_damping_mass_used_kg": "Quarter sprung mass (kg)",
@@ -23,8 +23,8 @@ STIFFNESS_SAMPLES = 1000
 
 
 def main(parameters):
-    require_positive(parameters, "simulation_ms_total_kg", "Ks")
-    mass, selected = parameters["simulation_ms_total_kg"] / 4, parameters["Ks"]
+    require_positive(parameters, "ms", "Ks")
+    mass, selected = parameters["ms"] / 4, parameters["Ks"]
     stiffness = np.linspace(STIFFNESS_MIN_N_PER_M, STIFFNESS_MAX_N_PER_M, STIFFNESS_SAMPLES)
     frequency = np.sqrt(stiffness / mass) / (2 * np.pi)
     critical = 2 * np.sqrt(stiffness * mass)

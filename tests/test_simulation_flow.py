@@ -94,21 +94,25 @@ class SimulationFlowTests(unittest.TestCase):
 
     def test_shared_quarter_mass_and_result_plots(self):
         values = dict(self.values, Ks="60000")
-        expected_axes = (3, 12, 3)
+        expected_axes = (3, 4, 3)
         for plugin_id, axis_count in zip(NEW_IDS, expected_axes):
             with patch.object(self.plugins[plugin_id].module, "SIMULATION_TIME_S", 0.2):
-                figure, outputs = self.run_plugin(plugin_id, values)
+                result = self.run_plugin(plugin_id, values)
+                figure, outputs = result
             try:
                 self.assertEqual(len(figure.axes), axis_count)
                 self.assertTrue(all(np.isfinite(value) for value in outputs.values()))
                 self.assertEqual(set(outputs), set(self.plugins[plugin_id].outputs))
                 plugin = self.plugins[plugin_id]
                 self.assertEqual(set(plugin.parameters) - plugin.hidden_parameters,
-                                 {"simulation_ms_total_kg", "simulation_mu_kg"}
-                                 if plugin_id == "ode_spring" else {"simulation_ms_total_kg"})
+                                 {"ms", "mu"}
+                                 if plugin_id == "ode_spring" else {"ms"})
                 values.update({name: str(value) for name, value in outputs.items()})
             finally:
-                plt.close(figure)
+                if hasattr(result, "close"):
+                    result.close()
+                else:
+                    plt.close(figure)
         self.assertEqual(float(values["simulation_corner_mass_kg"]), 65)
         self.assertEqual(float(values["simulation_sensitivity_mass_used_kg"]), 65)
         self.assertEqual(float(values["simulation_sensitivity_stiffness_used_N_per_m"]), 60000)

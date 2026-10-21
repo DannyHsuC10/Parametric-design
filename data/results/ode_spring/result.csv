@@ -1,6 +1,6 @@
 ﻿category,name,number
-輸入量,simulation_ms_total_kg,260.0
-輸入量,simulation_mu_kg,15.0
+輸入量,ms,260.0
+輸入量,mu,15.0
 輸入量,Ks,55477.73886943472
 導出量,simulation_rk45_stiffness_used_N_per_m,55477.73886943472
 導出量,simulation_rk45_initial_energy_J,48.58679339669836

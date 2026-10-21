@@ -1,5 +1,5 @@
 ﻿category,name,number
-輸入量,simulation_ms_total_kg,260.0
+輸入量,ms,260.0
 輸入量,Ks,55477.73886943472
 導出量,simulation_sensitivity_mass_used_kg,65.0
 導出量,simulation_sensitivity_stiffness_used_N_per_m,55477.73886943472

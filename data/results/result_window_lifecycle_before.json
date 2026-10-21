@@ -1,0 +1,145 @@
+{
+  "initial_memory_mb": 93.99609375,
+  "openings": [
+    {
+      "node": "frequency_mass",
+      "opening": 1,
+      "image_scaling_s": 0.009355699934531003,
+      "image_scaling_calls": 2,
+      "show_and_paint_s": 0.019428000028710812,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 1.213954700040631,
+      "retained_dialogs": 1,
+      "memory_mb": 158.87109375
+    },
+    {
+      "node": "tire_stiffness",
+      "opening": 2,
+      "image_scaling_s": 0.0033440999686717987,
+      "image_scaling_calls": 2,
+      "show_and_paint_s": 0.008634599973447621,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 0.1720915000187233,
+      "retained_dialogs": 2,
+      "memory_mb": 178.6171875
+    },
+    {
+      "node": "solver_compar",
+      "opening": 3,
+      "image_scaling_s": 0.006592299963813275,
+      "image_scaling_calls": 3,
+      "show_and_paint_s": 0.02766279998468235,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 1.488271199981682,
+      "retained_dialogs": 3,
+      "memory_mb": 238.78125
+    },
+    {
+      "node": "frequency_mass",
+      "opening": 4,
+      "image_scaling_s": 0.002830499957781285,
+      "image_scaling_calls": 2,
+      "show_and_paint_s": 0.015356999996583909,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 0.12819199997466058,
+      "retained_dialogs": 4,
+      "memory_mb": 259.93359375
+    },
+    {
+      "node": "solver_compar",
+      "opening": 5,
+      "image_scaling_s": 0.008700900012627244,
+      "image_scaling_calls": 3,
+      "show_and_paint_s": 0.02215910004451871,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 0.3139735999866389,
+      "retained_dialogs": 5,
+      "memory_mb": 307.83203125
+    },
+    {
+      "node": "frequency_mass",
+      "opening": 6,
+      "image_scaling_s": 0.0025683999992907047,
+      "image_scaling_calls": 2,
+      "show_and_paint_s": 0.014219200005754828,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 0.08859050000319257,
+      "retained_dialogs": 6,
+      "memory_mb": 328.6640625
+    },
+    {
+      "node": "solver_compar",
+      "opening": 7,
+      "image_scaling_s": 0.00747480004793033,
+      "image_scaling_calls": 3,
+      "show_and_paint_s": 0.020841000019572675,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 0.23477969999657944,
+      "retained_dialogs": 7,
+      "memory_mb": 375.828125
+    },
+    {
+      "node": "frequency_mass",
+      "opening": 8,
+      "image_scaling_s": 0.0030905999592505395,
+      "image_scaling_calls": 2,
+      "show_and_paint_s": 0.016948500007856637,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 0.08992450003279373,
+      "retained_dialogs": 8,
+      "memory_mb": 396.07421875
+    },
+    {
+      "node": "solver_compar",
+      "opening": 9,
+      "image_scaling_s": 0.007798100064974278,
+      "image_scaling_calls": 3,
+      "show_and_paint_s": 0.020987900032196194,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 0.2967599999974482,
+      "retained_dialogs": 9,
+      "memory_mb": 443.6875
+    },
+    {
+      "node": "frequency_mass",
+      "opening": 10,
+      "image_scaling_s": 0.0029156000236980617,
+      "image_scaling_calls": 2,
+      "show_and_paint_s": 0.016696700011380017,
+      "dialog_size": [
+        1300,
+        800
+      ],
+      "total_s": 0.10221340000862256,
+      "retained_dialogs": 10,
+      "memory_mb": 464.28515625
+    }
+  ]
+}

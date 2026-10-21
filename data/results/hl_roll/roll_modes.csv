@@ -1,0 +1,4 @@
+﻿mode,natural_frequency_hz,target_zeta_low,target_zeta_high
+1,6.048981609736218,1.0,0.5
+2,19.310618827360955,1.0,0.5
+3,22.44258147223825,1.0,0.5

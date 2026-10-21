@@ -1,0 +1,14 @@
+[
+  {
+    "file": "plot.png",
+    "title": "主要結果"
+  },
+  {
+    "file": "shock_dyno_roll_physical.png",
+    "title": "shock_dyno_roll_physical"
+  },
+  {
+    "file": "shock_dyno_roll_solution_compare.png",
+    "title": "shock_dyno_roll_solution_compare"
+  }
+]

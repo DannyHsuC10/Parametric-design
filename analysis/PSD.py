@@ -16,6 +16,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from analysis_result import AnalysisResult
 
 
 def _load_velocity_trace(path):
@@ -115,8 +116,11 @@ def main(parameters):
         one_sided_amplitude[1:-1] *= 2
     fft_frequency = sampling_frequency * np.arange(len(one_sided_amplitude)) / len(road)
 
-    figure, axes = plt.subplots(3, 3, figsize=(16, 12))
-    axes = axes.ravel()
+    figure, excitation_axes = plt.subplots(3, 1, figsize=(10, 9))
+    road_figure, road_axes = plt.subplots(3, 1, figsize=(10, 9))
+    speed_figure, speed_axes = plt.subplots(3, 1, figsize=(10, 9))
+    axes = [road_axes[0], speed_axes[0], speed_axes[1], speed_axes[2],
+            excitation_axes[0], excitation_axes[1], excitation_axes[2], road_axes[1], road_axes[2]]
     axes[0].plot(distance, road)
     axes[0].set(xlabel="Distance (m)", ylabel="Road Height (m)", title="ISO Road Profile")
     axes[1].plot(time, speed, linewidth=1.5)
@@ -164,7 +168,11 @@ def main(parameters):
     )
     for axis in axes:
         axis.grid(True)
-    figure.tight_layout()
+    figure.suptitle("Speed-weighted excitation spectrum and energy")
+    road_figure.suptitle("ISO road profile and FFT")
+    speed_figure.suptitle("Vehicle speed trace and distributions")
+    for page in (figure, road_figure, speed_figure):
+        page.tight_layout()
 
     dominant_low = float(np.min(dominant_frequencies))
     dominant_high = float(np.max(dominant_frequencies))
@@ -177,4 +185,10 @@ def main(parameters):
         "peak_excitation_frequency_Hz": peak_frequency,
         "mean_speed_mps": mean_speed,
     }
-    return figure, outputs
+    return AnalysisResult(figure, outputs, figures={
+        "road_profile_fft.png": road_figure, "vehicle_speed_distribution.png": speed_figure,
+    }, figure_titles={
+        "plot.png": "主要結果｜激振頻譜與能量",
+        "road_profile_fft.png": "路面剖面與 FFT",
+        "vehicle_speed_distribution.png": "車速時序與分布",
+    })

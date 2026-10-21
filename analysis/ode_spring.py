@@ -4,8 +4,8 @@ TITLE = "ode_spring"
 DESCRIPTION = "Compute quarter-car free vibration with RK45 using Ks from Tire stiffness."
 PLUGIN_ID = "ode_spring"
 PARAMETERS = {
-    "simulation_ms_total_kg": "float",
-    "simulation_mu_kg": "float",
+    "ms": "float",
+    "mu": "float",
     "Ks": "float",
 }
 HIDDEN_PARAMETERS = {"Ks"}
@@ -34,9 +34,9 @@ from oscillation_models import energy_error_percent, require_positive, time_grid
 
 
 def main(parameters):
-    require_positive(parameters, "simulation_ms_total_kg", "simulation_mu_kg", "Ks")
-    sprung_mass = parameters["simulation_ms_total_kg"] / 4
-    unsprung_mass = parameters["simulation_mu_kg"]
+    require_positive(parameters, "ms", "mu", "Ks")
+    sprung_mass = parameters["ms"] / 4
+    unsprung_mass = parameters["mu"]
     spring_stiffness, tire_stiffness = parameters["Ks"], TIRE_STIFFNESS_N_PER_M
     times = time_grid(SIMULATION_TIME_S, OUTPUT_TIME_STEP_S)
 

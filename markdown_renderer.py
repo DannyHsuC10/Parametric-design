@@ -1,10 +1,13 @@
 """Render Markdown notes with local SVG equations and Mermaid diagrams."""
 
 import html
+import hashlib
 import json
 import re
 import xml.etree.ElementTree as ET
+from functools import lru_cache
 from io import BytesIO
+from pathlib import Path
 
 from matplotlib import rc_context
 from matplotlib.font_manager import FontProperties
@@ -16,6 +19,7 @@ from document_theme import document_colors
 INLINE_PATTERN = re.compile(r"(\$[^$\n]+\$|`[^`]+`|\*\*.+?\*\*)")
 ET.register_namespace("", "http://www.w3.org/2000/svg")
 ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+RENDERER_FINGERPRINT = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 
 def svg_display_size(svg_data):
@@ -32,6 +36,11 @@ def svg_display_size(svg_data):
 
 def _math_svg(formula, inline=False, color=None):
     """Render math locally into a scalable SVG so it does not rely on a CDN."""
+    return _cached_math_svg(formula, inline, color or document_colors()["foreground"])
+
+
+@lru_cache(maxsize=512)
+def _cached_math_svg(formula, inline, color):
     buffer = BytesIO()
     font_size = 12 if inline else 14
     normalized_formula = re.sub(r"\\ge(?![A-Za-z])", r"\\geq", formula)
@@ -62,6 +71,33 @@ def _math_svg(formula, inline=False, color=None):
     root.set("height", f"{height:.3f}px")
     root.set("aria-label", formula)
     return ET.tostring(root, encoding="unicode")
+
+
+def render_markdown_file(path, *, cache_info=None):
+    """Reuse a saved vector-HTML rendering until the source, theme or renderer changes."""
+    path = Path(path)
+    markdown_text = path.read_text(encoding="utf-8-sig")
+    key = json.dumps([RENDERER_FINGERPRINT, document_colors(), markdown_text], ensure_ascii=False, sort_keys=True)
+    signature = hashlib.sha256(key.encode("utf-8")).hexdigest()
+    marker = f"<!-- markdown-render:{signature} -->\n"
+    cache_path = path.with_suffix(".rendered.html")
+    try:
+        cached = cache_path.read_text(encoding="utf-8")
+        if cached.startswith(marker):
+            if cache_info is not None:
+                cache_info["cache_hit"] = True
+            return cached[len(marker):]
+    except (OSError, UnicodeError):
+        pass
+    if cache_info is not None:
+        cache_info["cache_hit"] = False
+    rendered = render_markdown(markdown_text)
+    try:
+        cache_path.write_text(marker+rendered, encoding="utf-8")
+    except OSError:
+        # A read-only notes folder can still be displayed normally.
+        pass
+    return rendered
 
 
 def _inline_markdown(text, math_color=None):
@@ -198,6 +234,8 @@ def render_markdown(markdown_text):
                 "arrowheadColor": "#ffffff",
                 "secondaryColor": colors["surface"],
                 "tertiaryColor": colors["background"],
+                "clusterBkg": "#555555",
+                "clusterBorder": "#858585",
                 "edgeLabelBackground": colors["background"],
                 "textColor": colors["foreground"],
             },
@@ -232,6 +270,9 @@ code { font-family: Consolas, monospace; color: FOREGROUND; background: SURFACE;
 .math-source { color: ERROR; }
 .mermaid { display: flex; justify-content: center; overflow-x: auto; }
 .mermaid .node { cursor: pointer; }
+.mermaid svg .cluster rect { fill: #555555 !important; stroke: #858585 !important; }
+.mermaid svg .cluster-label text, .mermaid svg .cluster-label span,
+.mermaid svg .cluster-label p { fill: #ffffff !important; color: #ffffff !important; }
 .mermaid svg .flowchart-link, .mermaid svg .edgePath .path { stroke: #ffffff !important; }
 .mermaid svg marker path, .mermaid svg .arrowheadPath {
     fill: #ffffff !important; stroke: #ffffff !important;

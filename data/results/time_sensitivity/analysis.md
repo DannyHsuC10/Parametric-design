@@ -6,7 +6,7 @@
 
 後續分成 `Critical_Damping_Analysis → damping_rate` 與 `Analytical_Numerical_Simulation → ode_spring` 兩路。`damping_rate` 一路接 `damping_int → quarter_suspension_int`，另一路與 `ode_spring` 匯合到 `damping_ode → quarter_suspension`。兩個 quarter suspension 分析最後匯合至 `Damped_oscillation_analysis`。
 
-唯一可輸入的參數為 `simulation_ms_total_kg`，表示四輪簧上總質量，預設 260 kg。實際分析使用四分之一簧上質量：
+唯一可輸入的參數為 `ms`，表示四輪簧上總質量，預設 260 kg。實際分析使用四分之一簧上質量：
 
 $$
 m=\frac{m_{s,total}}{4},\qquad k=K_s,\qquad \omega_n=\sqrt{\frac{K_s}{m}}
@@ -40,6 +40,6 @@ $$
 
 ## 圖表與輸出
 
-每一欄對應一個步長，三列分別顯示位移、能量及能量誤差，保留原本四組圖表的內容。圖表標題與列印資訊顯示實際使用的 `Ks`。輸出包含使用質量、使用剛度 `simulation_sensitivity_stiffness_used_N_per_m`、最細步長、最細／最粗步長的末時刻能量誤差，以及最細步長的最大位移誤差。
+圖片選單依內容分成「主要結果｜位移比較」、「總能量比較」與「能量誤差比較」，每張圖最多放四個步長的子圖，方便比較相同指標。若設定超過四個步長，各指標會再分頁。圖表標題與列印資訊顯示實際使用的 `Ks`。輸出包含使用質量、使用剛度 `simulation_sensitivity_stiffness_used_N_per_m`、最細步長、最細／最粗步長的末時刻能量誤差，以及最細步長的最大位移誤差。
 
 若初始位移與速度皆為零，系統保持平衡，能量誤差以零記錄。時間網格包含結束時刻；若結束時間不是步長的整數倍，最後一步使用剩餘時間。

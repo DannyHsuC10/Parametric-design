@@ -1,0 +1,54 @@
+[
+  {
+    "file": "plot.png",
+    "title": "主要結果"
+  },
+  {
+    "file": "roll_step_response.png",
+    "title": "roll_step_response"
+  },
+  {
+    "file": "roll_step_low_speed.png",
+    "title": "roll_step_low_speed"
+  },
+  {
+    "file": "roll_step_high_speed.png",
+    "title": "roll_step_high_speed"
+  },
+  {
+    "file": "roll_bode_modal.png",
+    "title": "roll_bode_modal"
+  },
+  {
+    "file": "roll_bode_low_speed.png",
+    "title": "roll_bode_low_speed"
+  },
+  {
+    "file": "roll_bode_high_speed.png",
+    "title": "roll_bode_high_speed"
+  },
+  {
+    "file": "roll_1dof_step.png",
+    "title": "roll_1dof_step"
+  },
+  {
+    "file": "fig3_13_roll_step_1dof.png",
+    "title": "fig3_13_roll_step_1dof"
+  },
+  {
+    "file": "roll_1dof_bode.png",
+    "title": "roll_1dof_bode"
+  },
+  {
+    "file": "fig3_14_roll_bode_1dof.png",
+    "title": "fig3_14_roll_bode_1dof"
+  },
+  {
+    "file": "roll_response_modal_physical_1dof.png",
+    "title": "roll_response_modal_physical_1dof"
+  },
+  {
+    "file": "roll_frequency_comparison.png",
+    "title": "roll_frequency_comparison"
+  }
+]

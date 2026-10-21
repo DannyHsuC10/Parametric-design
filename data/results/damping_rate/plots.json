@@ -1,0 +1,18 @@
+[
+  {
+    "file": "plot.png",
+    "title": "主要結果｜評分與最佳阻尼比"
+  },
+  {
+    "file": "damping_responses.png",
+    "title": "位移、速度與加速度響應"
+  },
+  {
+    "file": "damping_recovery_metrics.png",
+    "title": "過零、超越量與車高恢復指標"
+  },
+  {
+    "file": "damping_acceleration_energy_metrics.png",
+    "title": "加速度與耗能指標"
+  }
+]

@@ -31,7 +31,7 @@ ROAD_STEP_HEIGHT_M = 0.05
 
 def main(parameters):
     ms, ks, damping, _, ratio = system_settings(parameters, quarter_car=True)
-    mu, kt = parameters["simulation_mu_kg"], parameters["Kt"]
+    mu, kt = parameters["mu"], parameters["Kt"]
     times = time_grid(SIMULATION_TIME_S, TIME_STEP_S)
     zu = -(ms + mu) * GRAVITY_M_PER_S2 / kt
     zs = zu - ms * GRAVITY_M_PER_S2 / ks

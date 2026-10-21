@@ -6,8 +6,8 @@
 
 ## 參數來源
 
-- simulation_ms_total_kg：四輪簧上總質量，分析使用四分之一。
-- simulation_mu_kg：單輪簧下質量。
+- ms：四輪簧上總質量，分析使用四分之一。
+- mu：單輪簧下質量。
 - Ks：直接讀取 Tire stiffness 輸出的懸吊彈簧剛度，不提供輸入框。
 - Kt：CSV 中的輪胎剛度。
 - damping_rate_best_ratio：自動讀取 damping_rate 選出的最佳候選阻尼比，不提供輸入框，也不在 CSV 手動設定。結果中的 quarter_int_ratio_used 記錄實際使用的值。

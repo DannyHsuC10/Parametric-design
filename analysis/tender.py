@@ -27,6 +27,7 @@ OUTPUTS = {
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import root
+from analysis_result import AnalysisResult
 
 
 def main(parameters):
@@ -126,7 +127,7 @@ def main(parameters):
             max_compression = max(max_compression, response[0], response[1], 0.0)
             max_extension = max(max_extension, -response[0], -response[1], 0.0)
 
-    figure, axes = plt.subplots(3, 2, figsize=(12, 12))
+    figure, axes = plt.subplots(2, 2, figsize=(12, 8))
     response_fields = [
         (axes[0, 0], "front", "Front Suspension Stroke", "Front Stroke (mm)"),
         (axes[0, 1], "rear", "Rear Suspension Stroke", "Rear Stroke (mm)"),
@@ -182,7 +183,7 @@ def main(parameters):
             axis.legend(title="Applied F_ref")
         pitch_curves.append((successful_accelerations, pitch))
 
-    pitch_gradient_axis = axes[2, 0]
+    gradient_figure, pitch_gradient_axis = plt.subplots(figsize=(10, 6))
     for downforce_ratio, (accelerations, pitch) in zip(downforce_ratios, pitch_curves):
         if len(accelerations) < 2:
             continue
@@ -197,12 +198,14 @@ def main(parameters):
     pitch_gradient_axis.set_title("Pitch Gradient vs Braking Acceleration")
     pitch_gradient_axis.grid(True)
     pitch_gradient_axis.legend(title="Applied F_ref")
-    axes[2, 1].axis("off")
-    figure.suptitle(
+    title = (
         f"Tender response at anti = {anti_geometry_ratio:.0%}; "
         f"maximum applied downforce = {max_applied_downforce:.1f} N"
     )
+    figure.suptitle(title)
     figure.tight_layout(rect=[0, 0, 1, 0.96])
+    gradient_figure.suptitle(title)
+    gradient_figure.tight_layout()
 
     print(f"Vehicle mass: {mass:.2f} kg")
     print(f"Aero reference downforce F_ref: {reference_downforce:.2f} N")
@@ -219,7 +222,10 @@ def main(parameters):
         f"{nonconverged_point_count} nonconverged); {skipped_point_count} skipped "
         "because no finite solution was returned"
     )
-    return figure, {
+    return AnalysisResult(figure, {
         "max_compression_used_mm": float(max_compression),
         "max_extension_used_mm": float(max_extension),
-    }
+    }, figures={"tender_pitch_gradient.png": gradient_figure}, figure_titles={
+        "plot.png": "主要結果｜懸吊行程、Heave 與 Pitch",
+        "tender_pitch_gradient.png": "Pitch gradient 與煞車加速度",
+    })

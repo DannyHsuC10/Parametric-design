@@ -1,0 +1,4 @@
+﻿axle,spring_rate_n_per_m,wheel_rate_n_per_m,tire_roll_stiffness_n_m_per_rad,suspension_roll_stiffness_n_m_per_rad,actual_roll_stiffness_n_m_per_rad,roll_stiffness_distribution,roll_gradient_deg_per_g
+front,86431.62256800188,86431.62256800188,62500.0,135049.41026250293,42726.46590131862,0.5290484616169472,
+rear,64823.71692600141,64823.71692600141,61504.0,99672.94714541978,38034.50214068721,0.4709515383830528,
+total,,,,,80760.96804200583,1.0,0.5844146282775677

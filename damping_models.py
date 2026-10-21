@@ -7,15 +7,15 @@ from oscillation_models import require_positive
 
 
 SINGLE_DOF_PARAMETERS = {
-    "simulation_ms_total_kg": "float",
+    "ms": "float",
     "Ks": "float",
     "Kt": "float",
     "MR": "float",
     "damping_rate_best_ratio": "float",
 }
 QUARTER_CAR_PARAMETERS = {
-    "simulation_ms_total_kg": "float",
-    "simulation_mu_kg": "float",
+    "ms": "float",
+    "mu": "float",
     "Ks": "float",
     "Kt": "float",
     "damping_rate_best_ratio": "float",
@@ -24,11 +24,11 @@ QUARTER_CAR_PARAMETERS = {
 
 def system_settings(parameters, quarter_car=False, damping_ratio=None):
     """Use Ks for the two-mass model, or tire-corrected ride rate for SDOF."""
-    require_positive(parameters, "simulation_ms_total_kg", "Ks", "Kt")
-    mass = parameters["simulation_ms_total_kg"] / 4
+    require_positive(parameters, "ms", "Ks", "Kt")
+    mass = parameters["ms"] / 4
     stiffness = parameters["Ks"]
     if quarter_car:
-        require_positive(parameters, "simulation_mu_kg")
+        require_positive(parameters, "mu")
     else:
         require_positive(parameters, "MR")
         wheel_rate = stiffness * parameters["MR"] ** 2

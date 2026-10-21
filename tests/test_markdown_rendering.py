@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 from types import SimpleNamespace
 import unittest
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -17,7 +19,7 @@ from matplotlib import rc_context, rcParams
 
 from main import FlowDiagramPage, MainWindow
 from document_theme import document_colors
-from markdown_renderer import render_markdown
+from markdown_renderer import render_markdown, render_markdown_file
 from markdown_view import (
     MATH_ID_PROPERTY,
     MATH_OBJECT_TYPE,
@@ -112,6 +114,53 @@ class MarkdownRenderingTests(unittest.TestCase):
         self.app.processEvents()
         self.assertEqual(events, [("frequency_mass", True)])
 
+    def test_saved_notes_cache_skips_formula_rendering_and_tracks_edits_and_colors(self):
+        with TemporaryDirectory(dir=ROOT) as temporary:
+            path = Path(temporary) / "analysis.md"
+            path.write_text("# Notes\n\n$x^2$", encoding="utf-8")
+            info = {}
+            first = render_markdown_file(path, cache_info=info)
+            self.assertFalse(info["cache_hit"])
+            self.assertTrue(path.with_suffix(".rendered.html").is_file())
+            with patch("markdown_renderer.render_markdown", side_effect=AssertionError("Unexpected formula rendering")):
+                self.assertEqual(render_markdown_file(path, cache_info=info), first)
+                self.assertTrue(info["cache_hit"])
+            path.write_text("# Edited\n\n$x^3$", encoding="utf-8")
+            second = render_markdown_file(path)
+            self.assertNotEqual(first, second)
+            self.assertIn("Edited", second)
+            colors = document_colors() | {"foreground": "#aabbcc"}
+            with patch("markdown_renderer.document_colors", return_value=colors):
+                themed = render_markdown_file(path)
+                self.assertIn("fill: #aabbcc", themed)
+                self.assertNotEqual(second, themed)
+                with patch("markdown_renderer.render_markdown", side_effect=AssertionError("Unexpected formula rendering")):
+                    self.assertEqual(render_markdown_file(path), themed)
+
+    def test_prepared_notes_open_in_result_dialog_without_recompiling_formulas(self):
+        path = ROOT / "data" / "results" / "solver_compar" / "analysis.md"
+        render_markdown_file(path)
+        parent = QWidget()
+        with (patch("main.QDialog.exec", return_value=0),
+              patch("markdown_renderer.render_markdown", side_effect=AssertionError("Formula recompiled while opening"))):
+            MainWindow.show_result(parent, "solver_compar")
+        view = parent.findChild(MarkdownView)
+        self.assertIsNotNone(view)
+        self.assertGreater(self.assert_vector_formulas(view), 0)
+        parent.deleteLater()
+
+    def test_flow_request_carries_browser_event_wait_time(self):
+        events = []
+        page = SimpleNamespace(flowNodeRequested=SimpleNamespace(emit=lambda *args: events.append(args)))
+        with patch("main.time", return_value=1000):
+            accepted = FlowDiagramPage.acceptNavigationRequest(
+                page, QUrl("flow-node://double/frequency_mass?clicked_at=999700"), None, True)
+            self.assertFalse(accepted)
+            self.assertFalse(events)
+            self.app.processEvents()
+        self.assertEqual(events, [("frequency_mass", True)])
+        self.assertGreaterEqual(page.last_request_delay_ms, 300)
+
     def test_math_uses_latex_italic_without_changing_plot_defaults(self):
         with rc_context({"mathtext.default": "normal", "mathtext.fontset": "dejavusans"}):
             rendered = render_markdown("$x+1$")
@@ -192,9 +241,15 @@ class MarkdownRenderingTests(unittest.TestCase):
         parent.add_variable_row = MainWindow.add_variable_row
         errors = []
         inspected = []
+        awaiting_first_frame = []
 
         def inspect_dialog():
             dialog = parent.findChild(QDialog)
+            if (dialog is not None and not hasattr(parent, "_last_result_open_timings")
+                    and len(awaiting_first_frame) < 100):
+                awaiting_first_frame.append(True)
+                QTimer.singleShot(20, inspect_dialog)
+                return
             try:
                 self.assertIsNotNone(dialog)
                 view = dialog.findChild(MarkdownView)
@@ -203,6 +258,9 @@ class MarkdownRenderingTests(unittest.TestCase):
                 self.assertGreater(view.width(), 100)
                 self.assertIn("Frequency vs mass", view.toPlainText())
                 self.assertGreater(self.assert_vector_formulas(view), 0)
+                timings = parent._last_result_open_timings
+                self.assertEqual(timings["node_id"], "frequency_mass")
+                self.assertGreaterEqual(timings["first_frame_ms"], timings["prepare_ms"])
                 inspected.append(True)
             except BaseException as error:
                 errors.append(error)

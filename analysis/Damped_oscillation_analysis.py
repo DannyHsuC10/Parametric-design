@@ -40,7 +40,7 @@ for _ratio in DAMPING_RATIOS:
 
 def main(parameters):
     ms, ks, selected_damping, critical, selected_ratio = system_settings(parameters, quarter_car=True)
-    mu, kt = parameters["simulation_mu_kg"], parameters["Kt"]
+    mu, kt = parameters["mu"], parameters["Kt"]
     times = np.linspace(0, SIMULATION_TIME_S, OUTPUT_SAMPLES)
     static_load = (ms + mu) * GRAVITY_M_PER_S2
     figure, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)

@@ -4,7 +4,7 @@ TITLE = "Analytical_Numerical_Simulation"
 DESCRIPTION = "Compare analytical and explicit Euler responses using Ks from Tire stiffness."
 PLUGIN_ID = "analytical_numerical_simulation"
 PARAMETERS = {
-    "simulation_ms_total_kg": "float",
+    "ms": "float",
     "Ks": "float",
 }
 HIDDEN_PARAMETERS = {"Ks"}
@@ -38,8 +38,8 @@ from oscillation_models import (
 
 
 def main(parameters):
-    require_positive(parameters, "simulation_ms_total_kg", "Ks")
-    mass = parameters["simulation_ms_total_kg"] / 4
+    require_positive(parameters, "ms", "Ks")
+    mass = parameters["ms"] / 4
     stiffness = parameters["Ks"]
     times = time_grid(SIMULATION_TIME_S, TIME_STEP_S)
     x0, v0 = INITIAL_DISPLACEMENT_M, INITIAL_VELOCITY_M_PER_S

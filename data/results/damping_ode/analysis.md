@@ -6,7 +6,7 @@
 
 ## 參數與剛度來源
 
-簧上總質量使用 simulation_ms_total_kg，分析時除以 4；Ks 自動取自 Tire stiffness。原檔的 Kr 與 cr 改由以下關係計算：
+簧上總質量使用 ms，分析時除以 4；Ks 自動取自 Tire stiffness。原檔的 Kr 與 cr 改由以下關係計算：
 
 $$
 m=\frac{m_{s,total}}{4},\qquad K_w=K_sMR^2,\qquad K_r=\frac{K_wK_t}{K_w+K_t}

@@ -1,0 +1,74 @@
+[
+  {
+    "latex_to_html_s": 1.8448629999766126,
+    "formula_count": 66,
+    "native_document_s": 0.059053000004496425,
+    "node": "solver_compar",
+    "attempt": 1,
+    "total_prepare_s": 2.0669466000399552,
+    "image_table_other_s": 0.16303060005884618
+  },
+  {
+    "latex_to_html_s": 1.2048780000186525,
+    "formula_count": 66,
+    "native_document_s": 0.05944450001697987,
+    "node": "solver_compar",
+    "attempt": 2,
+    "total_prepare_s": 1.4079200000269338,
+    "image_table_other_s": 0.14359749999130145
+  },
+  {
+    "latex_to_html_s": 0.6747839999734424,
+    "formula_count": 31,
+    "native_document_s": 0.0401793000055477,
+    "node": "FWL",
+    "attempt": 1,
+    "total_prepare_s": 0.7954925000085495,
+    "image_table_other_s": 0.08052920002955943
+  },
+  {
+    "latex_to_html_s": 0.6069489999790676,
+    "formula_count": 31,
+    "native_document_s": 0.028225499961990863,
+    "node": "FWL",
+    "attempt": 2,
+    "total_prepare_s": 0.7272226000204682,
+    "image_table_other_s": 0.09204810007940978
+  },
+  {
+    "latex_to_html_s": 0.4513057000003755,
+    "formula_count": 14,
+    "native_document_s": 0.016436200006864965,
+    "node": "frequency_mass",
+    "attempt": 1,
+    "total_prepare_s": 0.5324718999909237,
+    "image_table_other_s": 0.06472999998368323
+  },
+  {
+    "latex_to_html_s": 0.41850969998631626,
+    "formula_count": 14,
+    "native_document_s": 0.024295700015500188,
+    "node": "frequency_mass",
+    "attempt": 2,
+    "total_prepare_s": 0.49844400002621114,
+    "image_table_other_s": 0.05563860002439469
+  },
+  {
+    "latex_to_html_s": 0.08879469998646528,
+    "formula_count": 3,
+    "native_document_s": 0.005973499966785312,
+    "node": "hl_ode",
+    "attempt": 1,
+    "total_prepare_s": 0.22201299999142066,
+    "image_table_other_s": 0.12724480003817007
+  },
+  {
+    "latex_to_html_s": 0.15423260000534356,
+    "formula_count": 3,
+    "native_document_s": 0.007017600000835955,
+    "node": "hl_ode",
+    "attempt": 2,
+    "total_prepare_s": 0.26529050001408905,
+    "image_table_other_s": 0.10404030000790954
+  }
+]

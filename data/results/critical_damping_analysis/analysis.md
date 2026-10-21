@@ -8,7 +8,7 @@
 
 ## 質量與剛度來源
 
-simulation_ms_total_kg 為四輪簧上總質量，分析時除以 4。原始檔的 param.m 改用這個共用質量設定。Ks 自動取自 Tire stiffness，標記在兩張曲線上，不提供輸入框。
+ms 為四輪簧上總質量，分析時除以 4。原始檔的 param.m 改用這個共用質量設定。Ks 自動取自 Tire stiffness，標記在兩張曲線上，不提供輸入框。
 
 $$
 m=\frac{m_{s,total}}{4},\qquad \omega_n=\sqrt{\frac{k}{m}},\qquad f_n=\frac{1}{2\pi}\sqrt{\frac{k}{m}}

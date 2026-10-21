@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from analysis_result import AnalysisResult
 
 from damping_models import SINGLE_DOF_PARAMETERS, checked_solution, system_settings
 from oscillation_models import oscillator_energy
@@ -92,11 +93,12 @@ def response_metrics(times, displacement, velocity, acceleration, mass, stiffnes
 def main(parameters):
     mass, stiffness, _, critical, _ = system_settings(parameters, damping_ratio=0.0)
     times = np.linspace(0, SIMULATION_TIME_S, OUTPUT_SAMPLES)
-    figure = plt.figure(figsize=(14, 22))
-    grid = figure.add_gridspec(7, 2, height_ratios=(1, 1, 1, 0.8, 0.8, 0.8, 1.3))
-    response_axes = [figure.add_subplot(grid[row, :]) for row in range(3)]
-    metric_axes = [figure.add_subplot(grid[row, column]) for row in range(3, 6) for column in range(2)]
-    score_axis = figure.add_subplot(grid[6, :])
+    response_figure, response_axes = plt.subplots(3, 1, figsize=(10, 9), sharex=True)
+    recovery_figure, recovery_axes = plt.subplots(3, 1, figsize=(10, 9))
+    acceleration_figure, acceleration_axes = plt.subplots(3, 1, figsize=(10, 9))
+    metric_axes = [recovery_axes[0], recovery_axes[1], acceleration_axes[0],
+                   acceleration_axes[1], recovery_axes[2], acceleration_axes[2]]
+    figure, score_axis = plt.subplots(figsize=(10, 6))
     metrics = []
     for ratio in DAMPING_RATIOS:
         damping = ratio * critical
@@ -137,7 +139,10 @@ def main(parameters):
                    title=f"Metric contributions | best tested zeta = {DAMPING_RATIOS[best]:.1f}")
     score_axis.legend(ncol=6)
     score_axis.grid(axis="y")
-    figure.tight_layout()
+    recovery_figure.suptitle("Zero crossing, overshoot and ride-height recovery")
+    acceleration_figure.suptitle("Acceleration and energy dissipation metrics")
+    for page in (figure, response_figure, recovery_figure, acceleration_figure):
+        page.tight_layout()
     outputs = {
         "damping_rate_ride_stiffness_N_per_m": float(stiffness),
         "damping_rate_critical_coefficient_Ns_per_m": float(critical),
@@ -153,4 +158,13 @@ def main(parameters):
         print(f"zeta = {ratio:.1f}: score = {scores[index]:.6g}, recovery = {item['ride_recovery_s']:.6g} s")
     print(f"Equivalent ride stiffness Kr: {stiffness:.6f} N/m; critical damping: {critical:.6f} N s/m")
     print(f"Best tested damping ratio: {DAMPING_RATIOS[best]:.1f}")
-    return figure, outputs
+    return AnalysisResult(figure, outputs, figures={
+        "damping_responses.png": response_figure,
+        "damping_recovery_metrics.png": recovery_figure,
+        "damping_acceleration_energy_metrics.png": acceleration_figure,
+    }, figure_titles={
+        "plot.png": "主要結果｜評分與最佳阻尼比",
+        "damping_responses.png": "位移、速度與加速度響應",
+        "damping_recovery_metrics.png": "過零、超越量與車高恢復指標",
+        "damping_acceleration_energy_metrics.png": "加速度與耗能指標",
+    })

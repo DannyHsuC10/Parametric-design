@@ -1,6 +1,7 @@
 import os
 import importlib
 from pathlib import Path
+from analysis_data import normalize_analysis_parameters
 
 PROJECT_DIR = Path(__file__).resolve().parent
 
@@ -26,13 +27,15 @@ class AnalysisPlugin:
             ""
         )
         self.parameters = getattr(module, "PARAMETERS", {})
+        self.parameter_defaults = getattr(module, "PARAMETER_DEFAULTS", {})
         self.hidden_parameters = set(getattr(module, "HIDDEN_PARAMETERS", ()))
         self.outputs = getattr(module, "OUTPUTS", {})
+        self.required_analyses = tuple(getattr(module, "REQUIRES", ()))
 
 
     def run(self, parameters):
 
-        return self.module.main(parameters)
+        return self.module.main(normalize_analysis_parameters(parameters))
 
 
 

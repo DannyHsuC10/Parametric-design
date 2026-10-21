@@ -6,7 +6,7 @@
 
 ## 參數來源
 
-簧上質量為 simulation_ms_total_kg 除以 4，單輪簧下質量為 simulation_mu_kg。懸吊彈簧剛度 Ks 自動取自 Tire stiffness，輪胎剛度取 CSV 的 Kt。阻尼比自動取自 damping_rate 的解出量 damping_rate_best_ratio；Ks 與最佳阻尼比均不提供輸入框，也不在 CSV 手動設定。結果中的 quarter_ode_ratio_used 記錄實際使用的值。
+簧上質量為 ms 除以 4，單輪簧下質量為 mu。懸吊彈簧剛度 Ks 自動取自 Tire stiffness，輪胎剛度取 CSV 的 Kt。阻尼比自動取自 damping_rate 的解出量 damping_rate_best_ratio；Ks 與最佳阻尼比均不提供輸入框，也不在 CSV 手動設定。結果中的 quarter_ode_ratio_used 記錄實際使用的值。
 
 $$
 c_{ref}=2\sqrt{m_sK_s},\qquad c_s=\zeta c_{ref}
