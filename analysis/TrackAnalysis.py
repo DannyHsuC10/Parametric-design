@@ -18,16 +18,17 @@ TITLE = "賽道分析"
 DESCRIPTION = "Reconstruct track geometry, analyze curvature and radius distributions, and weight event scores."
 PLUGIN_ID = "track_analysis"
 INPUT_MAP = Path(__file__).resolve().parents[1] / "data" / "input_data" / "input_map.xlsx"
-PARAMETER_DEFAULTS = {
+TRACK_SETTINGS = {
     "track_mesh_size_m": 0.1,
     "track_max_speed_kmh": 110.0,
     "track_radius_limit_m": 100.0,
-    "wl_mu_y": 1.7,
     "track_skidpad_score": 75.0,
     "track_autocross_score": 100.0,
     "track_endurance_score": 250.0,
 }
-PARAMETERS = {name: "float" for name in PARAMETER_DEFAULTS}
+PARAMETER_DEFAULTS = {"wl_mu_y": 1.7}
+PARAMETERS = {"wl_mu_y": "float"}
+HIDDEN_PARAMETERS = set(PARAMETERS)
 OUTPUTS = {
     "track_length_m": "Total centerline length (m)",
     "track_points": "Number of generated mesh points",
@@ -54,7 +55,7 @@ FIGURE_TITLES = {
 
 
 def main(parameters, *, input_path=None):
-    values = PARAMETER_DEFAULTS | parameters
+    values = PARAMETER_DEFAULTS | parameters | TRACK_SETTINGS
     mesh_size = values["track_mesh_size_m"]
     max_speed = values["track_max_speed_kmh"] / 3.6
     radius_limit = values["track_radius_limit_m"]

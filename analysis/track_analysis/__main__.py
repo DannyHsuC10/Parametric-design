@@ -10,12 +10,11 @@ def main():
 
     parser = argparse.ArgumentParser(description="Analyze an OpenTRACK Excel map.")
     parser.add_argument("input", nargs="?", type=Path, default=INPUT_MAP)
-    parser.add_argument("--mesh-size", type=float, default=PARAMETER_DEFAULTS["track_mesh_size_m"])
     parser.add_argument("--output", type=Path, default=INPUT_MAP.parents[1] / "results")
     args = parser.parse_args()
     import matplotlib
     matplotlib.use("Agg")
-    parameters = PARAMETER_DEFAULTS | {"track_mesh_size_m": args.mesh_size}
+    parameters = dict(PARAMETER_DEFAULTS)
     result = analyze(parameters, input_path=args.input)
     try:
         save_analysis_result(args.output, "track_analysis", parameters, result)

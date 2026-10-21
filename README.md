@@ -4,7 +4,7 @@
 
 流程最前方新增「輪胎模型（MF_tester）→ 最佳胎壓 → 最佳 camber → coefficient_of_friction 分析」，並由摩擦係數分支到賽道分析、Skidpad 圈速與下壓力、四輪載荷包絡（FWL）。MF_tester 輸出原 Figures 的全部 19 張圖；縱／橫向回歸摩擦係數會自動傳給後續分析。使用方式與公式見 [輪胎分析說明](analysis/tire_analysis/README.md)。
 
-賽道分析已由 `new/` 整合至 `analysis/track_analysis/`，使用 `data/input_data/input_map.xlsx`，並在流程圖連到「懸吊壓縮行程與輪端剛性」與「路面 PSD 與速度響應」。單擊「賽道分析」設定參數，執行後雙擊開啟十一張結果圖、半徑分布與分數權重。
+賽道分析已由 `new/` 整合至 `analysis/track_analysis/`，使用 `data/input_data/input_map.xlsx`，並在流程圖連到「懸吊壓縮行程與輪端剛性」與「路面 PSD 與速度響應」。賽道分析設定固定，不顯示輸入框；執行後雙擊開啟十一張結果圖、半徑分布與分數權重。
 
 - [賽道分析：流程、參數、模型與輸出](analysis/track_analysis/README.md)
 

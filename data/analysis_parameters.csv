@@ -48,12 +48,6 @@ cog_front_axle_x_m,0.765,Y
 cog_rear_axle_x_m,-0.765,Y
 h_cog,0.3,Y
 cg_safety_factor,1,Y
-track_mesh_size_m,0.1,Y
-track_max_speed_kmh,110,Y
-track_radius_limit_m,100,Y
-track_skidpad_score,75,Y
-track_autocross_score,100,Y
-track_endurance_score,250,Y
 vehicle_max_steering_angle_deg,30.0,Y
 bicycle_front_cornering_stiffness_N_per_rad,40000.0,Y
 bicycle_rear_cornering_stiffness_N_per_rad,40000.0,Y

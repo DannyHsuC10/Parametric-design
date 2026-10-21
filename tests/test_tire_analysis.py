@@ -67,7 +67,7 @@ class TireAnalysisTests(unittest.TestCase):
                 MainWindow.build_parameter_fields(window, plugin)
                 self.assertFalse(hidden_friction.intersection(window.parameter_edits), plugin.plugin_id)
                 self.assertNotIn("tire_tir_file", window.parameter_edits)
-                if plugin.plugin_id in STAGES:
+                if plugin.plugin_id in {*STAGES, "track_analysis"}:
                     self.assertFalse(window.parameter_edits, plugin.plugin_id)
             self.assertEqual(self.plugins["tire_camber"].parameters, {"tire_pressure_Pa": "float"})
             self.assertEqual(self.plugins["coefficient_of_friction"].parameters,

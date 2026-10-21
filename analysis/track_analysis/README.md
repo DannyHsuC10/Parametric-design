@@ -23,7 +23,7 @@ graph TD
     ackermann --> bicycle[Bicycle_Model]
 ```
 
-在流程圖單擊節點可調整網格大小、最高速度、統計半徑上限，以及三個賽事的分數。預設值沿用原程式：0.1 m、110 km/h、100 m，以及 75／100／250 分。橫向摩擦係數 `wl_mu_y` 由前置輪胎分析自動導入，不顯示輸入框。雙擊節點可開啟分析結果，圖片選單提供原有十張賽道圖與分數權重圖，共十一張。
+賽道分析不顯示輸入框。網格大小固定為 0.1 m、最高速度固定為 110 km/h、統計半徑上限固定為 100 m，三個賽事分數固定為 75／100／250 分；設定集中在 `TrackAnalysis.py` 的 `TRACK_SETTINGS`，不受 CSV 舊值影響。橫向摩擦係數 `wl_mu_y` 仍由前置輪胎分析自動導入。雙擊節點可開啟分析結果，圖片選單提供原有十張賽道圖與分數權重圖，共十一張。
 
 箭頭表達分析流程；下游計算沿用各自資料：Skidpad 使用 18.25 m 直徑與目標圈速，懸吊使用 `ax`／`ay`，PSD 使用 `data/input_data/vt_data.csv`。賽道半徑、曲率 FFT 與分數權重供選擇分析工況參考。
 
@@ -48,5 +48,5 @@ graph TD
 
 ```powershell
 .venv/Scripts/python.exe -X utf8 -m analysis.track_analysis
-.venv/Scripts/python.exe -X utf8 -m analysis.track_analysis data/input_data/input_map.xlsx --mesh-size 0.2 --output data/results
+.venv/Scripts/python.exe -X utf8 -m analysis.track_analysis data/input_data/input_map.xlsx --output data/results
 ```
