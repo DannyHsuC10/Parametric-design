@@ -246,8 +246,10 @@ class MainWindow(QWidget):
             for row in rows:
                 row.setdefault("flow_row", "main")
                 row.setdefault("branch_from", "")
+                row.setdefault("extra_from", "")
                 row["flow_group"] = (row.get("flow_group") or "").strip()
                 row["merge_from"] = (row.get("merge_from") or "").strip()
+                row["extra_from"] = (row.get("extra_from") or "").strip()
                 node_id = row["node_id"].strip()
                 analysis_id = row["analysis_id"].strip()
                 flow_row = row["flow_row"].strip() or "main"
@@ -280,6 +282,12 @@ class MainWindow(QWidget):
                 row["flow_row"] = flow_row
                 row["branch_from"] = branch_from
                 row["merge_from"] = "|".join(merge_sources)
+            for row in rows:
+                extra_sources = [source.strip() for source in row["extra_from"].split("|") if source.strip()]
+                for source in extra_sources:
+                    if source not in node_ids:
+                        raise ValueError(f"額外連線的來源不存在：{source}")
+                row["extra_from"] = "|".join(extra_sources)
             return rows
         except (KeyError, ValueError) as error:
             QMessageBox.critical(self, "流程設定錯誤", str(error))
@@ -317,6 +325,12 @@ class MainWindow(QWidget):
             sources = [row["branch_from"]] + (row.get("merge_from") or "").split("|")
             for source in dict.fromkeys(source.strip() for source in sources if source.strip()):
                 lines.append(f"    {graph_ids[source]} --> {merge_id}")
+        for row in flow:
+            target_id = graph_ids[row["node_id"]]
+            for source in (row.get("extra_from") or "").split("|"):
+                source = source.strip()
+                if source in graph_ids:
+                    lines.append(f"    {graph_ids[source]} --> {target_id}")
 
         groups = {}
         for row in flow:
@@ -331,6 +345,8 @@ class MainWindow(QWidget):
                 lines.append(f'    {graph_id}["{title}"]')
             if group:
                 lines.append("    end")
+                if group == "轉向分析":
+                    lines.append(f"    style flow_group_{index} fill:#f2f2f2,stroke:#444444,stroke-width:3px,color:#222222")
 
         lines.append("    classDef flowNode fill:#f1f1f1,stroke:#b8b8b8,color:#222222")
         lines.append("    class " + ",".join(graph_ids.values()) + " flowNode")
@@ -430,10 +446,18 @@ class MainWindow(QWidget):
                 "h_cog": "重心高度 h_cog（m）",
                 "cog_front_axle_x_m": "前軸輪心 x（m）",
                 "cog_rear_axle_x_m": "後軸輪心 x（m）",
+                "bicycle_front_cornering_stiffness_N_per_rad": "前軸側偏剛性 Cf（N/rad）",
+                "bicycle_rear_cornering_stiffness_N_per_rad": "後軸側偏剛性 Cr（N/rad）",
+                "bicycle_v_ref_kmh": "v_ref（km/h）",
+                "vehicle_max_steering_angle_deg": "車輛最大轉向角（deg）",
             }
             self.parameter_form.addRow(labels.get(name, name), edit)
             if name in {"cog_front_axle_x_m", "cog_rear_axle_x_m"}:
                 edit.setToolTip("手動輸入輪胎中心位置，座標基準為 Excel 原點；不使用 Excel 零件重心 dx。")
+            if name == "vehicle_max_steering_angle_deg":
+                edit.setToolTip("等效前輪轉角，非方向盤轉角；Turning_Radius 的標記角度也會用作 Bicycle_Model 的轉向階躍。須大於 0° 且小於 90°。")
+            if name == "bicycle_v_ref_kmh":
+                edit.setToolTip("Bicycle Model 的手動參考速度，須大於零；不會被 Skidpad 的計算速度覆蓋。")
             self.parameter_edits[name] = edit
 
     def show_node_parameters(self, node_id):

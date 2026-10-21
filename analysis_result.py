@@ -14,6 +14,7 @@ class AnalysisResult:
     figures: dict = field(default_factory=dict)
     tables: dict = field(default_factory=dict)
     figure_titles: dict = field(default_factory=dict)
+    artifacts: dict = field(default_factory=dict)
 
     def __iter__(self):
         yield self.figure
@@ -52,6 +53,11 @@ def save_analysis_result(results_dir, node_id, parameters, result):
     for filename, frame in result.tables.items():
         filename = filename if filename.endswith(".csv") else f"{filename}.csv"
         frame.to_csv(result_dir / filename, index=False, encoding="utf-8-sig")
+    for filename, content in result.artifacts.items():
+        if isinstance(content, bytes):
+            (result_dir / filename).write_bytes(content)
+        else:
+            (result_dir / filename).write_text(content, encoding="utf-8")
     if node_id.startswith("hl_"):
         from analysis.hl_damping.report import write_reports
         write_reports(results_dir)

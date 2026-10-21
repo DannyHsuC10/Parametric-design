@@ -2,6 +2,14 @@
 
 使用 CSV 參數與可點選的流程圖執行車輛動態分析。
 
+賽道分析已由 `new/` 整合至 `analysis/track_analysis/`，使用 `data/input_data/input_map.xlsx`，並在流程圖連到「Skidpad 圈速與下壓力」、「懸吊壓縮行程與輪端剛性」與「路面 PSD 與速度響應」。單擊「賽道分析」設定參數，執行後雙擊開啟十一張結果圖、半徑分布與分數權重。
+
+- [賽道分析：流程、參數、模型與輸出](analysis/track_analysis/README.md)
+
+流程為 `賽道分析 → speed_vs_R → Turning_Radius → ideal_ackemann → Bicycle_Model`；賽道分析仍連到 `Skidpad 圈速與下壓力`。四個新節點共用既有摩擦係數、幾何、質量與慣量；Bicycle 的 Cf／Cr 先使用各 40,000 N/rad 的可編輯示例值。
+
+- [彎速、轉向與 Bicycle Model：參數來源、公式與結果](analysis/cornering/README.md)
+
 共用的振動與阻尼模型集中在 `analysis/suspension_dynamics/`：`oscillation_models.py` 提供時間取樣、解析解、Euler 積分與能量計算；`damping_models.py` 提供阻尼參數換算與單自由度、四分之一車求解工具。各分析入口仍放在 `analysis/`，由既有流程載入。
 
 - [共用振動與阻尼模型：計算方程式、座標與求解方法](analysis/suspension_dynamics/README.md)
