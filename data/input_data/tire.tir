@@ -7,7 +7,7 @@ $----------------------------------------------------------------units
 LENGTH                   ='meter'
 FORCE                    ='newton'
 ANGLE                    ='radians'
-MASS = 4.5
+MASS = 3.6
 TIME                     ='second'
 $----------------------------------------------------------------model
 [MODEL]
@@ -18,10 +18,10 @@ VXLOW                    = 1                 $Lower boundary of slip calculation
 $-----------------------------------------------------------dimensions
 [DIMENSION]
 UNLOADED_RADIUS = 0.203
-WIDTH = 0.17526
+WIDTH = 0.1905
 RIM_RADIUS = 0.1270
-RIM_WIDTH = 0.1778
-ASPECT_RATIO = 0.536
+RIM_WIDTH = 0.203
+ASPECT_RATIO = 0.40
 $-------------------------------------------------operating conditions
 [OPERATING_CONDITIONS]
 INFLPRES = 68948.0
@@ -61,7 +61,7 @@ $--------------------------------------------------------------scaling
 [SCALING_COEFFICIENTS]
 LFZO = 1.0
 LCX = 1.0
-LMUX = 0.7  $Multiply by 0.7
+LMUX = 0.735  $Multiply by 0.7
 LEX = 1.0
 LKX = 1.0
 LHX = 1.0

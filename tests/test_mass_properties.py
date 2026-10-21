@@ -104,8 +104,10 @@ class MassPropertiesTests(unittest.TestCase):
                                "tire_stiffness", "overall_rigidity", "roll_center",
                                "roll_center_min_load_f", "roll_center_same_load_r", "hl_roll"])
         for selected in ("cg", "FWL"):
+            tire_prerequisites = (["tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction"]
+                                  if selected == "FWL" else [])
             self.assertEqual([r["node_id"] for r in MainWindow._required_analysis_rows(window, selected)],
-                             ["cog_movable", selected])
+                             [*tire_prerequisites, "cog_movable", selected])
 
     def test_derived_parameters_are_read_only_in_the_interface(self):
         app = QApplication.instance() or QApplication([])

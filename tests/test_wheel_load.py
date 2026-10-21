@@ -146,17 +146,23 @@ class WheelLoadTests(unittest.TestCase):
             wheel_ids = {graph_ids[stage] for stage in STAGES}
             edges = re.findall(r"(flow_node_\d+) --> (flow_node_\d+)", source)
             external = {(first, second) for first, second in edges if (first in wheel_ids) != (second in wheel_ids)}
-            self.assertEqual(external, {(graph_ids["cog_movable"], graph_ids["FWL"])} if flow is self.flow else set())
-            for title in TITLES:
+            expected_external = {(graph_ids[first], graph_ids[second]) for first, second in (
+                ("cog_movable", "FWL"), ("coefficient_of_friction", "FWL"),
+                ("max_load", "acc_load"), ("max_load", "brake_ratio"),
+            )} if flow is self.flow else set()
+            self.assertEqual(external, expected_external)
+            for title in ("四輪載荷包絡（FWL）", "輪載求解器與零空間比較", "懸吊剛性下的四輪載荷", "輪胎極限載荷"):
                 self.assertIn(title, source)
 
     def test_selected_wheel_node_resolves_missing_stiffness_and_four_stages(self):
         window = SimpleNamespace(flow=self.flow, plugins_by_id=self.plugins, parameter_values=dict(self.inputs))
         rows = MainWindow._required_analysis_rows(window, "max_load")
         self.assertEqual([row["node_id"] for row in rows], [
+            "tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction",
             "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
         window.parameter_values = self.values
         self.assertEqual([row["node_id"] for row in MainWindow._required_analysis_rows(window, "max_load")], [
+            "tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction",
             "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
 
     def test_one_flow_view_keeps_wheel_nodes_without_extra_tab_or_run_button(self):
@@ -179,15 +185,17 @@ class WheelLoadTests(unittest.TestCase):
             self.assertFalse(window.findChildren(QTabWidget))
             self.assertFalse(hasattr(window, "run_wheel_load_button"))
             self.assertIn("flow-node://", window.flow_view.source)
-            for title in TITLES:
+            for title in ("四輪載荷包絡（FWL）", "輪載求解器與零空間比較", "懸吊剛性下的四輪載荷", "輪胎極限載荷"):
                 self.assertIn(title, window.flow_view.source)
+            window.parameter_values = dict(self.inputs)
             window.handle_flow_node_request("max_load", False)
             self.assertEqual(window.active_node_id, "max_load")
-            self.assertEqual(set(window.parameter_edits), {"mu_w", "wl_mu_y"})
+            self.assertFalse(window.parameter_edits)
             with patch.object(window, "_start_analysis") as start:
                 window.run_selected_button.click()
                 rows = start.call_args.args[0]
                 self.assertEqual([row["node_id"] for row in rows], [
+                    "tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction",
                     "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
                 window.analysis_runner = object()
                 window.run_selected_button.click()

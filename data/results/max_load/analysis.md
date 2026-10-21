@@ -48,7 +48,7 @@ $$
 F_{z,i}^{raw}=N_i^{sus},\qquad F_{z,i}^{+}=\max(F_{z,i}^{raw},0)
 $$
 
-令 $\mu_x$ 對應既有 `mu_w`、$\mu_y$ 對應 `wl_mu_y`。各輪縱向、側向獨立力上限為：
+令 $\mu_x$ 對應 `mu_w`、$\mu_y$ 對應 `wl_mu_y`；兩者由前置 `coefficient_of_friction` 輪胎分析的回歸結果導出。各輪縱向、側向獨立力上限為：
 
 $$
 F_{x,i}^{lim}=\mu_xF_{z,i}^{+},\qquad F_{y,i}^{lim}=\mu_yF_{z,i}^{+}
@@ -107,7 +107,7 @@ graph LR
     W3 --> W4[max_load]
 ```
 
-四個節點共用 `data/analysis_flow.csv`，使用 `flow_row=tertiary`；第一個 FWL 的 `branch_from=cog_movable`，其餘節點依序串接。`COG_movable` 從 Excel 元件資料計算 `ms`、平均單輪 `mu` 與慣量；前軸配重比例和軸距使用手動輸入的前、後輪中心 x 座標，Excel 元件重心座標不代替輪心。重心離地高度 `h_cog` 也直接手動輸入。單擊節點編輯獨立輸入，雙擊查看圖表、CSV 與本節方程式。
+四個節點共用 `data/analysis_flow.csv`，使用 `flow_row=tertiary`；第一個 FWL 的 `branch_from=cog_movable`，並透過 `extra_from=coefficient_of_friction` 接收輪胎分析分支，其餘節點依序串接。執行 FWL 或其後續節點時，會先重算輪胎模型、最佳胎壓、最佳 camber 與摩擦係數。`COG_movable` 從 Excel 元件資料計算 `ms`、平均單輪 `mu` 與慣量；前軸配重比例和軸距使用手動輸入的前、後輪中心 x 座標，Excel 元件重心座標不代替輪心。重心離地高度 `h_cog` 也直接手動輸入。單擊節點編輯獨立輸入，雙擊查看圖表、CSV 與本節方程式。
 
 主視窗只有一張流程圖，輪載群組接在共用的重心資料起點。使用既有的「Run 全流程」或「單獨執行所選分析」，後者會重讀 Excel 並重算必要的前置分析。`Ks_pitch_N_per_m`、`Ks_roll_N_per_m` 仍取自共用剛性分析的輸出。
 

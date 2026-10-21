@@ -204,7 +204,7 @@ class CorneringTests(unittest.TestCase):
 
     def test_invalid_physical_inputs_are_rejected_before_plotting(self):
         for name, overrides in (
-            ("speed_vs_r", {"mu_w": "nan"}),
+            ("speed_vs_r", {"wl_mu_y": "nan"}),
             ("turning_radius", {"vehicle_max_steering_angle_deg": "90"}),
             ("ideal_ackemann", {"t": "6"}),
             ("bicycle_model", {"bicycle_front_cornering_stiffness_N_per_rad": "0"}),

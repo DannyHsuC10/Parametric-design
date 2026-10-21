@@ -8,7 +8,7 @@
 
 - `ms`：四輪簧上質量總和（kg）。
 - `mu`：單輪簧下質量（kg）。
-- `mu_w`：輪胎與地面的摩擦係數。
+- `wl_mu_y`：輪胎與地面的摩擦係數。
 - `skidpad_target_downforce_N`：由前序 `skidpad_test` 自動帶入，不需在此輸入。
 - `skidpad_target_lap_time_s`：由前序 `skidpad_test` 自動帶入，不需在此輸入；目標秒數只需在 `skidpad_test` 設定。
 
@@ -19,14 +19,14 @@
 依摩擦力上限與車重加下壓力計算橫向加速度，並轉換成重力加速度倍數：
 
 $$
-a_y=\mu_w\frac{mg+F_{down}}{m},\qquad
-\frac{a_y}{g}=\mu_w\frac{mg+F_{down}}{mg}
+a_y=\mu_y\frac{mg+F_{down}}{m},\qquad
+\frac{a_y}{g}=\mu_y\frac{mg+F_{down}}{mg}
 $$
 
 圖中的紅色標記為無下壓力基準；橘色星號標示 skidpad 目標圈速所需下壓力對應的最大橫向加速度。該點依下式計算：
 
 $$
-a_{y,target}=\mu_w\frac{mg+F_{target}}{m},\qquad
+a_{y,target}=\mu_y\frac{mg+F_{target}}{m},\qquad
 a_{y,target,g}=\frac{a_{y,target}}{g}
 $$
 

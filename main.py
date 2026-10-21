@@ -434,6 +434,7 @@ class MainWindow(QWidget):
             if name in plugin.hidden_parameters or name in {
                 "ms", "mu", "mu_front", "mu_rear", "L", "hl_front_weight_ratio",
                 "hl_sprung_roll_inertia_kg_m2",
+                "mu_w", "wl_mu_y",
             }:
                 continue
             edit = QLineEdit(self.parameter_values.get(name, ""))

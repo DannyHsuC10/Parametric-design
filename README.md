@@ -2,11 +2,13 @@
 
 使用 CSV 參數與可點選的流程圖執行車輛動態分析。
 
+流程最前方新增「輪胎模型（MF_tester）→ 最佳胎壓 → 最佳 camber → coefficient_of_friction 分析」，並由摩擦係數分支到賽道分析、Skidpad 圈速與下壓力、四輪載荷包絡（FWL）。MF_tester 輸出原 Figures 的全部 19 張圖；縱／橫向回歸摩擦係數會自動傳給後續分析。使用方式與公式見 [輪胎分析說明](analysis/tire_analysis/README.md)。
+
 賽道分析已由 `new/` 整合至 `analysis/track_analysis/`，使用 `data/input_data/input_map.xlsx`，並在流程圖連到「懸吊壓縮行程與輪端剛性」與「路面 PSD 與速度響應」。單擊「賽道分析」設定參數，執行後雙擊開啟十一張結果圖、半徑分布與分數權重。
 
 - [賽道分析：流程、參數、模型與輸出](analysis/track_analysis/README.md)
 
-流程為 `賽道分析 → speed_vs_R → Turning_Radius → ideal_ackemann → Bicycle_Model`；`Skidpad 圈速與下壓力` 保持獨立，不接到賽道分析或 `speed_vs_R`。四個新節點共用既有摩擦係數、幾何、質量與慣量；Bicycle 的 Cf／Cr 先使用各 40,000 N/rad 的可編輯示例值。
+轉向流程為 `賽道分析 → speed_vs_R → Turning_Radius → ideal_ackemann → Bicycle_Model`；`Skidpad 圈速與下壓力` 由摩擦係數分析獨立分支。這些節點共用輪胎分析導出的橫向摩擦係數、幾何、質量與慣量；Bicycle 的 Cf／Cr 先使用各 40,000 N/rad 的可編輯示例值。
 
 `new/Slalom.py` 已整合為 `analysis/Slalom.py`，在「轉向分析」群組新增 `Turning_Radius → Slalom` 分支。Slalom 輸入框只保留共用前輪距 `t`；賽道寬度、角錐間距、偏移比例與駕駛誤差餘裕等固定在該 Python 檔案開頭。執行後雙擊查看各組連續過彎走線圖及半徑資料。
 

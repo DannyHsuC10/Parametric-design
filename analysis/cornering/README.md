@@ -27,7 +27,7 @@ graph TD
 
 | 原變量 | 整合後來源 |
 | --- | --- |
-| `mu_y` | 共用 `mu_w`，也供賽道與 Skidpad 使用 |
+| `mu_y` | 輪胎分析導出的 `wl_mu_y`，也供賽道與 Skidpad 使用 |
 | `L` | `COG_movable` 依手動輪心座標計算的軸距 |
 | `tf` | 共用前輪距 `t` |
 | `m` | Excel 全車元件總質量 `cog_total_mass_kg` |
@@ -40,7 +40,7 @@ Cf 與 Cr 依使用者確認，各預設 **40,000 N/rad 示例值**，應依輪�
 
 ## 各分析
 
-- `speed_vs_R`（`speed_vs_r`）：半徑掃描固定為 3–50 m、200 點，直接定義在 `analysis/speed_vs_R.py`，介面僅顯示共用摩擦係數 `mu_w`。計算 `v=sqrt(mu_w*g*R)`；此圖為純摩擦極限，賽道的時間分布另套用最高速度上限。兩者共用 `models.cornering_speed`。
+- `speed_vs_R`（`speed_vs_r`）：半徑掃描固定為 3–50 m、200 點，直接定義在 `analysis/speed_vs_R.py`，橫向摩擦係數 `wl_mu_y` 由輪胎分析自動導入，不顯示輸入框。計算 `v=sqrt(wl_mu_y*g*R)`；此圖為純摩擦極限，賽道的時間分布另套用最高速度上限。兩者共用 `models.cornering_speed`。
 - `Turning_Radius`（`turning_radius`）：轉角掃描固定為 10–60°、500 點，寫在 `analysis/Turning_Radius.py`，計算 `R=L/tan(theta)`。介面提供「車輛最大轉向角」輸入框，預設 45°，可設定大於 0°、小於 90° 的角度；圖中以紅色小點標記精確輸入角度，並標示角度與對應半徑，另輸出 `vehicle_turning_limit.csv`。標記超過掃描範圍時，座標軸會擴展以顯示該點，掃描曲線仍維持 10–60°。theta 為等效前輪轉角，R 以後軸中心的軌跡為基準。
 - `Slalom`（`slalom`）：由 `Turning_Radius` 分支，依交錯角錐位置與車寬餘裕計算相切圓弧，保留 `new/Slalom.py` 的半徑公式。輸入框只提供共用前輪距 `t`（預設 1.25 m），原 `L` 未參與公式，因此不額外要求軸距或 Turning_Radius 的導出半徑。賽道幾何固定在 `analysis/Slalom.py` 開頭的常數：`TRACK_WIDTH_M=10`、`CONE_GAP_M=7`、`CONE_RADIUS_M=0.16122034611053285`、`DRIVING_ERROR_M=0.2`、`NUM_CONES=5`，以及 `OFFSET_RATIOS=(0.01, 1/6, 1/3)`；若要修改幾何，直接編輯 Python。每張圖最多四組。輪胎寬度沿用來源固定值 `TIRE_WIDTH_M=0.1905`。結果包含各組偏移量、過彎半徑及圓弧角度，存入 `slalom_geometry.csv`。此分析比較指定輪距的幾何走線，沒有自動搜尋最佳輪距，也未檢查完整車身外廓是否位於賽道邊界內。[公式與結果說明](../../data/results/slalom/analysis.md)
 - `ideal_ackemann`（`ideal_ackemann`）：半徑掃描固定為 3–30 m、51 點，直接定義在 `analysis/ideal_ackemann.py`；介面只保留前輪距 `t`（m），軸距 `L` 使用前置分析結果。計算 `delta_i=atan(L/(R-t/2))`、`delta_o=atan(L/(R+t/2))`。R 同樣以後軸中心為基準；與賽道中心線半徑比較時應注意座標基準。保留原程式 `(delta_i-delta_o)/delta_i*100` 的角差比例；此指標與慣用的 Ackermann 完成率不同，理想幾何不代表該角差比例為 100%。

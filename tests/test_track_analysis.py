@@ -39,7 +39,9 @@ class TrackAnalysisTests(unittest.TestCase):
         with patch("main.QMessageBox.critical") as error:
             flow = MainWindow.load_flow(window)
         error.assert_not_called()
-        self.assertEqual(len(flow), 44)
+        self.assertEqual({row["analysis_id"] for row in flow}, set(plugins))
+        self.assertEqual([row["node_id"] for row in flow[:4]],
+                         ["tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction"])
         window.flow = flow
         captures = []
         window.flow_view = SimpleNamespace(setHtml=captures.append)
@@ -49,7 +51,9 @@ class TrackAnalysisTests(unittest.TestCase):
         edges = set(re.findall(r"(flow_node_\d+) --> (flow_node_\d+)", source))
         outgoing = {target for start, target in edges if start == graph_ids["track_analysis"]}
         self.assertEqual(outgoing, {graph_ids[node] for node in
-                                   ("skidpad_test", "compressed_travel", "psd", "turning_radius")})
+                                   ("compressed_travel", "psd", "speed_vs_r")})
+        for target in ("track_analysis", "skidpad_test", "FWL"):
+            self.assertIn((graph_ids["coefficient_of_friction"], graph_ids[target]), edges)
         # Preserve the extra skidpad-to-suspension connection already in the workspace.
         self.assertIn((graph_ids["skidpad_test"], graph_ids["compressed_travel"]), edges)
 

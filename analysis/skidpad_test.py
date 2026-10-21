@@ -6,7 +6,7 @@ PLUGIN_ID = "skidpad_test"
 PARAMETERS = {
     "ms": "float",
     "mu": "float",
-    "mu_w": "float",
+    "wl_mu_y": "float",
     "target_lap_time_s": "float",
 }
 OUTPUTS = {
@@ -24,10 +24,10 @@ import numpy as np
 def main(parameters):
     sprung_mass = parameters["ms"]
     unsprung_mass = parameters["mu"]
-    tire_friction = parameters["mu_w"]
+    tire_friction = parameters["wl_mu_y"]
     target_lap_time = parameters["target_lap_time_s"]
     if sprung_mass <= 0 or unsprung_mass <= 0 or tire_friction <= 0:
-        raise ValueError("ms, mu, and mu_w must be greater than zero")
+        raise ValueError("ms, mu, and wl_mu_y must be greater than zero")
     if not 4.0 <= target_lap_time <= 6.0:
         raise ValueError("target_lap_time_s must be between 4.0 and 6.0 seconds")
 

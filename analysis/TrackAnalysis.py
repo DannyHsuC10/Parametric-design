@@ -22,7 +22,7 @@ PARAMETER_DEFAULTS = {
     "track_mesh_size_m": 0.1,
     "track_max_speed_kmh": 110.0,
     "track_radius_limit_m": 100.0,
-    "mu_w": 1.7,
+    "wl_mu_y": 1.7,
     "track_skidpad_score": 75.0,
     "track_autocross_score": 100.0,
     "track_endurance_score": 250.0,
@@ -60,7 +60,7 @@ def main(parameters, *, input_path=None):
     radius_limit = values["track_radius_limit_m"]
     info, segments, tables = read_workbook(Path(input_path) if input_path is not None else INPUT_MAP)
     track = build_track(segments, tables, mesh_size)
-    lengths, times = radius_distributions(track, max_speed, radius_limit, values["mu_w"])
+    lengths, times = radius_distributions(track, max_speed, radius_limit, values["wl_mu_y"])
     nonzero = np.abs(track["r"]) > 1e-9
     radii = np.full_like(track["r"], np.nan)
     radii[nonzero] = 1.0 / np.abs(track["r"][nonzero])
@@ -97,7 +97,7 @@ def main(parameters, *, input_path=None):
     log = (f"OpenTRACK Python\nInput: {input_path or INPUT_MAP}\nName: {info['name']}\n"
            + "\n".join(f"{name}: {value}" for name, value in outputs.items()) + "\n")
     print(log, end="")
-    print("Radius time uses v = min(sqrt(mu_w * g * R), maximum speed).")
+    print("Radius time uses v = min(sqrt(wl_mu_y * g * R), maximum speed).")
     return AnalysisResult(
         primary, outputs, figures=figures, figure_titles=FIGURE_TITLES,
         tables={

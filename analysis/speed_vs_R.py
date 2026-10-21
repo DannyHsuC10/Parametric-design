@@ -7,19 +7,19 @@ from analysis.cornering.models import cornering_speed, sweep
 from analysis_result import AnalysisResult
 
 TITLE = "speed_vs_R"
-DESCRIPTION = "Corner radius versus friction-limited speed: v = sqrt(mu_w * g * R)."
+DESCRIPTION = "Corner radius versus friction-limited speed: v = sqrt(wl_mu_y * g * R)."
 PLUGIN_ID = "speed_vs_r"
 SPEED_RADIUS_MIN_M = 3.0
 SPEED_RADIUS_MAX_M = 50.0
 NUM_POINTS_SPEED_RADIUS = 200
-PARAMETERS = {"mu_w": "float"}
+PARAMETERS = {"wl_mu_y": "float"}
 OUTPUTS = {"cornering_speed_min_kmh": "Speed limit at the minimum sweep radius (km/h)",
            "cornering_speed_max_kmh": "Speed limit at the maximum sweep radius (km/h)"}
 
 
 def main(parameters):
     radius = sweep(SPEED_RADIUS_MIN_M, SPEED_RADIUS_MAX_M, NUM_POINTS_SPEED_RADIUS, "Radius sweep")
-    speed = cornering_speed(radius, parameters["mu_w"])
+    speed = cornering_speed(radius, parameters["wl_mu_y"])
     figure, axis = plt.subplots(figsize=(8, 5))
     axis.plot(radius, speed * 3.6, linewidth=2)
     axis.set(xlabel="Corner Radius R (m)", ylabel="Maximum Speed (km/h)",

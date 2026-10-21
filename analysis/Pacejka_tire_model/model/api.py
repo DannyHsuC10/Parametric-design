@@ -13,7 +13,7 @@ from typing import Union, Dict
 import logging
 
 from pathlib import Path
-base_dir = Path(__file__).resolve().parent .parent  # up to Pacejka_MF_model/
+TIRE_FILE = Path(__file__).resolve().parents[3] / "data" / "input_data" / "tire.tir"
 from ._common import (
     CalculationInput
 )
@@ -168,15 +168,14 @@ def _parse_value(raw: str):# 參數處理函數
     except ValueError:
         return raw
 
-def load_tir(filename: str) -> dict:# 讀取 TIR 參數
+def load_tir() -> dict:# 讀取固定的 TIR 參數檔
     """
-    讀取 .tir 檔，回傳 flat dict：
+    固定讀取 data/input_data/tire.tir，回傳 flat dict：
     tir_params["PCX1"] = 1.9
     """
-    filepath = base_dir /"tir"/ filename
     tir_params = {}
 
-    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+    with TIRE_FILE.open("r", encoding="utf-8", errors="ignore") as f:
         for line in f:
             line = line.strip()
 

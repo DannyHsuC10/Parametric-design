@@ -8,7 +8,7 @@
 
 - `ms`：四輪簧上質量總和（kg）。
 - `mu`：單輪簧下質量（kg）。
-- `mu_w`：輪胎與地面的摩擦係數。
+- `wl_mu_y`：輪胎與地面的摩擦係數。
 - `target_lap_time_s`：目標圈速（秒），需介於 4 至 6 秒；預設為 5.0 秒。只需在 `skidpad_test` 設定。
 
 車輛總質量依 $m=ms+4\mu$ 計算。skidpad 直徑固定為 $D=18.25$ m，安全係數固定為 1.4。
@@ -31,7 +31,7 @@ $$
 依輪胎摩擦係數反推需求下壓力：
 
 $$
-F_{down}=\left(\frac{\mu_{required}}{\mu_w}-1\right)mg
+F_{down}=\left(\frac{\mu_{required}}{\mu_y}-1\right)mg
 $$
 
 圖表中的紅色標記顯示固定參考圈速；橘色星號顯示輸入的目標圈速。目標圈速對應的下壓力會以 `skidpad_target_downforce_N` 輸出，並同時作為 `F_ref` 傳給下一個分析；目標車速以 km/h 作為 `v_ref` 傳遞。

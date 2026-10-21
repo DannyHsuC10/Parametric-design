@@ -6,7 +6,7 @@ PLUGIN_ID = "donwforce_target"
 PARAMETERS = {
     "ms": "float",
     "mu": "float",
-    "mu_w": "float",
+    "wl_mu_y": "float",
     "skidpad_target_downforce_N": "float",
     "skidpad_target_lap_time_s": "float",
 }
@@ -27,11 +27,11 @@ import numpy as np
 def main(parameters):
     sprung_mass = parameters["ms"]
     unsprung_mass = parameters["mu"]
-    tire_friction = parameters["mu_w"]
+    tire_friction = parameters["wl_mu_y"]
     target_downforce = parameters["skidpad_target_downforce_N"]
     target_lap_time = parameters["skidpad_target_lap_time_s"]
     if sprung_mass <= 0 or unsprung_mass <= 0 or tire_friction <= 0:
-        raise ValueError("ms, mu, and mu_w must be greater than zero")
+        raise ValueError("ms, mu, and wl_mu_y must be greater than zero")
 
     mass = sprung_mass + 4 * unsprung_mass
     gravity = 9.81
