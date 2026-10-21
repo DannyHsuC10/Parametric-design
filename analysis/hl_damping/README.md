@@ -54,7 +54,7 @@ graph TD
 | `Ks_roll_N_per_m` | `Tire stiffness` 的 roll 彈簧輸出，作為前軸 roll spring rate；後軸乘 `hl_rear_roll_spring_ratio` |
 | `MR` | 前後軸 heave 運動比；roll 及 independent 使用各自新增的運動比 |
 | `Kt`、`L`、`t`、`h_cog` | 每輪輪胎剛度、軸距、前輪距、重心高度；後輪距另設 `hl_rear_track_m` |
-| `ax`、`ay` | 煞車及過彎最大工況，單位 g；`hl_acceleration_g` 為加速工況 |
+| `ax`、`ay` | 煞車及過彎最大工況，單位 g；`acc_g` 為共用加速工況 |
 | `hl_reference_case_g` | 準靜態參考工況及比較圖的側向參考階躍，預設 1 g |
 | `hl_*_heave_*_zeta` | 前後軸、低／高速、壓縮／回彈四種 heave 目標阻尼比 |
 | `hl_*_roll_*_zeta` | 前後軸低／高速 roll 目標阻尼比，以懸吊 roll 剛度分配加權後設定三個模態 |

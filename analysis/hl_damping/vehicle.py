@@ -159,7 +159,7 @@ def make_vehicle(parameters) -> Vehicle:
         if not 0 < p[name] < 1:
             raise ValueError(f"{name} 必須介於 0 和 1 之間")
     for name in p:
-        if name.endswith("_zeta") or name in {"ax", "ay", "hl_acceleration_g", "hl_reference_case_g"}:
+        if name.endswith("_zeta") or name in {"ax", "ay", "acc_g", "hl_reference_case_g"}:
             if p[name] < 0:
                 raise ValueError(f"{name} 不可為負數")
 
@@ -198,10 +198,10 @@ def make_vehicle(parameters) -> Vehicle:
         tire_vertical_rate_n_per_m=p["Kt"], gravity_mps2=9.80665,
         front=axles[0], rear=axles[1],
         analysis=AnalysisSettings(
-            acceleration_cases_g=(p["hl_reference_case_g"], p["hl_acceleration_g"]),
+            acceleration_cases_g=(p["hl_reference_case_g"], p["acc_g"]),
             braking_cases_g=(p["hl_reference_case_g"], p["ax"]),
             cornering_cases_g=(p["hl_reference_case_g"], p["ay"]),
-            ode_acceleration_g=p["hl_acceleration_g"], ode_braking_g=p["ax"],
+            ode_acceleration_g=p["acc_g"], ode_braking_g=p["ax"],
             roll_unit_step_ay_g=p["hl_reference_case_g"], roll_step_ay_g=p["ay"],
             damper_knee_velocity_mm_s=p["hl_knee_velocity_mm_s"],
         ),

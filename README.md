@@ -2,13 +2,21 @@
 
 使用 CSV 參數與可點選的流程圖執行車輛動態分析。
 
-賽道分析已由 `new/` 整合至 `analysis/track_analysis/`，使用 `data/input_data/input_map.xlsx`，並在流程圖連到「Skidpad 圈速與下壓力」、「懸吊壓縮行程與輪端剛性」與「路面 PSD 與速度響應」。單擊「賽道分析」設定參數，執行後雙擊開啟十一張結果圖、半徑分布與分數權重。
+賽道分析已由 `new/` 整合至 `analysis/track_analysis/`，使用 `data/input_data/input_map.xlsx`，並在流程圖連到「懸吊壓縮行程與輪端剛性」與「路面 PSD 與速度響應」。單擊「賽道分析」設定參數，執行後雙擊開啟十一張結果圖、半徑分布與分數權重。
 
 - [賽道分析：流程、參數、模型與輸出](analysis/track_analysis/README.md)
 
-流程為 `賽道分析 → speed_vs_R → Turning_Radius → ideal_ackemann → Bicycle_Model`；賽道分析仍連到 `Skidpad 圈速與下壓力`。四個新節點共用既有摩擦係數、幾何、質量與慣量；Bicycle 的 Cf／Cr 先使用各 40,000 N/rad 的可編輯示例值。
+流程為 `賽道分析 → speed_vs_R → Turning_Radius → ideal_ackemann → Bicycle_Model`；`Skidpad 圈速與下壓力` 保持獨立，不接到賽道分析或 `speed_vs_R`。四個新節點共用既有摩擦係數、幾何、質量與慣量；Bicycle 的 Cf／Cr 先使用各 40,000 N/rad 的可編輯示例值。
 
 - [彎速、轉向與 Bicycle Model：參數來源、公式與結果](analysis/cornering/README.md)
+
+行星齒輪與縱向性能分析已由 `new/` 整合到「輪胎極限載荷」之後，包含齒比、齒數搜尋、行星齒數檢查、輸出加速模擬、旋轉慣量與阻力／齒強分析。齒輪與馬達規格使用可編輯的示例預設值，請依實際資料更新。
+
+- [行星齒輪流程、參數與模型說明](analysis/gearing/README.md)
+
+煞車分析已由 `new/` 整合到「輪胎極限載荷」之後：`輪胎極限載荷 → Brake_ratio → Pedal_ratio → Brake_force`，另由 `Pedal_ratio → Brake_hydraulic_pressure`。四個節點共用既有車重、重心、配重與輪胎參數；踏板比由上游自動計算，油管膨脹分析自動採用 `Pedal_ratio` 前後油路壓力中的較高值，資料使用 `data/input_data/brake_line_data.csv`，無須手填目標壓力。`Pedal_box` 暫不加入。新增總泵、卡鉗與碟盤規格的預設值為可編輯示例，請依實車資料調整。
+
+- [煞車流程、參數、模型與輸出](analysis/braking/README.md)
 
 共用的振動與阻尼模型集中在 `analysis/suspension_dynamics/`：`oscillation_models.py` 提供時間取樣、解析解、Euler 積分與能量計算；`damping_models.py` 提供阻尼參數換算與單自由度、四分之一車求解工具。各分析入口仍放在 `analysis/`，由既有流程載入。
 

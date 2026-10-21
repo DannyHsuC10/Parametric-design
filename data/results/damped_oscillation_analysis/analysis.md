@@ -37,11 +37,3 @@ F_{z,static}=(m_s+m_u)g,\qquad \Delta F_z=K_tx_u,\qquad F_z=F_{z,static}+\Delta 
 $$
 
 圖表比較帶正負號的變化；輸出另列最大絕對變化。本線性模型未加入輪胎離地後的接觸切換。
-
-## Python 固定設定
-
-於 analysis/Damped_oscillation_analysis.py 檔案頂端設定阻尼比組合、初始狀態 (0.05 m, 0 m/s, 0 m, 0 m/s)、模擬時間 3 s、輸出 1000 點，保留原程式的預設 RK45 容許誤差。
-
-## 圖表與輸出
-
-同圖兩個面板分別為簧上位移與輪胎負載變化。輸出使用的 Ks、參考臨界阻尼、靜態輪胎負載，以及原有各比較阻尼比的最大絕對簧上位移與輪胎負載變化。另以 damped_sweep_selected_ratio_used、damped_sweep_selected_coefficient_Ns_per_m 及 selected_peak 輸出記錄最佳候選組合的阻尼比、阻尼係數與峰值。

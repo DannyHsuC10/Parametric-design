@@ -311,7 +311,8 @@ class MainWindow(QWidget):
             previous = None
             for row in rows:
                 source = row["branch_from"] or (previous["node_id"] if previous else None)
-                if source in graph_ids:
+                detached = str(row.get("flow_detached", "")).strip().lower() in {"1", "true", "yes"}
+                if source in graph_ids and not detached:
                     lines.append(f"    {graph_ids[source]} --> {graph_ids[row['node_id']]}")
                 previous = row
 
@@ -450,6 +451,18 @@ class MainWindow(QWidget):
                 "bicycle_rear_cornering_stiffness_N_per_rad": "後軸側偏剛性 Cr（N/rad）",
                 "bicycle_v_ref_kmh": "v_ref（km/h）",
                 "vehicle_max_steering_angle_deg": "車輛最大轉向角（deg）",
+                "brake_driver_force_N": "車手踏力（N）",
+                "brake_balance_bar_front_ratio": "Balance bar 前總泵推力比例（0～1）",
+                "brake_master_front_diameter_m": "前總泵缸徑（m）",
+                "brake_master_rear_diameter_m": "後總泵缸徑（m）",
+                "brake_caliper_front_piston_diameter_m": "前卡鉗活塞直徑（m）",
+                "brake_caliper_rear_piston_diameter_m": "後卡鉗活塞直徑（m）",
+                "brake_caliper_front_piston_count": "每顆前卡鉗兩側總活塞數（正偶數）",
+                "brake_caliper_rear_piston_count": "每顆後卡鉗兩側總活塞數（正偶數）",
+                "brake_pad_mu": "來令片摩擦係數",
+                "brake_disc_outer_diameter_m": "碟盤外徑（m）",
+                "brake_disc_contact_offset_m": "碟盤外緣至有效摩擦點的徑向距離（m）",
+                "brake_safety_factor": "踏板比設計安全係數（至少 1）",
             }
             self.parameter_form.addRow(labels.get(name, name), edit)
             if name in {"cog_front_axle_x_m", "cog_rear_axle_x_m"}:
@@ -458,6 +471,10 @@ class MainWindow(QWidget):
                 edit.setToolTip("等效前輪轉角，非方向盤轉角；Turning_Radius 的標記角度也會用作 Bicycle_Model 的轉向階躍。須大於 0° 且小於 90°。")
             if name == "bicycle_v_ref_kmh":
                 edit.setToolTip("Bicycle Model 的手動參考速度，須大於零；不會被 Skidpad 的計算速度覆蓋。")
+            if name.startswith("brake_caliper_"):
+                edit.setToolTip("假設對向固定式、等徑活塞卡鉗；活塞數包含單顆卡鉗的兩側，每軸為兩顆卡鉗。")
+            if name == "brake_balance_bar_front_ratio":
+                edit.setToolTip("前總泵分到的推力比例；實際前後煞車力比例另由總泵、卡鉗與碟盤參數計算。")
             self.parameter_edits[name] = edit
 
     def show_node_parameters(self, node_id):

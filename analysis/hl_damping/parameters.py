@@ -23,7 +23,7 @@ DEFAULTS = {
     "hl_rear_roll_low_zeta": 1.0,
     "hl_rear_roll_high_zeta": 0.5,
     "hl_knee_velocity_mm_s": 50.0,
-    "hl_acceleration_g": 1.2,
+    "acc_g": 1.2,
     "hl_reference_case_g": 1.0,
 }
 
@@ -91,7 +91,7 @@ def plugin_metadata(stage):
         visible = {name for name in DEFAULTS if "independent_motion_ratio" in name}
         visible.add("hl_knee_velocity_mm_s")
     elif group == "simulation":
-        visible = {"ax", "ay", "L", "h_cog", "hl_acceleration_g", "hl_reference_case_g"}
+        visible = {"ax", "ay", "L", "h_cog", "acc_g", "hl_reference_case_g"}
     return {
         "PLUGIN_ID": stage, "TITLE": title, "DESCRIPTION": GROUPS[group],
         "PARAMETERS": parameters, "HIDDEN_PARAMETERS": set(parameters) - visible,

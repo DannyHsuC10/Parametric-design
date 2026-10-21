@@ -30,4 +30,3 @@ a_{y,target}=\mu_w\frac{mg+F_{target}}{m},\qquad
 a_{y,target,g}=\frac{a_{y,target}}{g}
 $$
 
-圖上標註目標圈速、下壓力及實際最大橫向加速度。輸出 `downforce_target_actual_lateral_acceleration_m_per_s2` 為 m/s$^2$，`downforce_target_actual_lateral_acceleration_g` 為 g；`downforce_target_max_lateral_acceleration_g` 則是 2500 N 下壓力端點的加速度（g）。

@@ -75,11 +75,12 @@ class CorneringTests(unittest.TestCase):
             "speed_vs_r", "turning_radius", "ideal_ackemann", "bicycle_model"
         }}, {"轉向分析"})
         for first, second in (("track_analysis", "speed_vs_r"), ("speed_vs_r", "turning_radius"),
-                              ("track_analysis", "skidpad_test"), ("turning_radius", "ideal_ackemann"),
+                              ("turning_radius", "ideal_ackemann"),
                               ("ideal_ackemann", "bicycle_model")):
             self.assertIn((ids[first], ids[second]), edges)
         self.assertNotIn((ids["speed_vs_r"], ids["track_analysis"]), edges)
         self.assertNotIn((ids["speed_vs_r"], ids["skidpad_test"]), edges)
+        self.assertNotIn((ids["track_analysis"], ids["skidpad_test"]), edges)
         required = MainWindow._required_analysis_rows(window, "bicycle_model")
         names = [row["node_id"] for row in required]
         self.assertLess(names.index("cog_movable"), names.index("bicycle_model"))

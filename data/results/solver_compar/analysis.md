@@ -180,24 +180,3 @@ $$
 目前預設 $t=1.25\ \mathrm{m}$、$h=0.3\ \mathrm{m}$，交點約在 2.083 g。這是三個剛體平衡約束下的非負輪載極限；若懸吊剛度分配固定為特定解，實際單輪可能更早達到零輪載。
 
 比較圖使用指定的 $a_x,a_y$；側向與可行範圍掃描採 $a_x=0$、$a_y\in[0,g|\gamma_y|]$。輸出 `solver_comparison.csv` 與 `null_space_sweep.csv`，後者保留上下界、CG 係數、固定基底及有效性。圖軸依實際上下界自動縮放，不再使用固定 [-5, 5] 視窗。
-
-## 流程與執行方式
-
-```mermaid
-graph LR
-    W1[FWL] --> W2[solver_compar]
-    W2 --> W3[sus_load]
-    W3 --> W4[max_load]
-```
-
-四個節點共用 `data/analysis_flow.csv`，使用 `flow_row=tertiary`；第一個 FWL 的 `branch_from=cog_movable`，其餘節點依序串接。`COG_movable` 從 Excel 元件資料計算 `ms`、平均單輪 `mu` 與慣量；前軸配重比例和軸距使用手動輸入的前、後輪中心 x 座標，Excel 元件重心座標不代替輪心。重心離地高度 `h_cog` 也直接手動輸入。單擊節點編輯獨立輸入，雙擊查看圖表、CSV 與本節方程式。
-
-主視窗只有一張流程圖，輪載群組接在共用的重心資料起點。使用既有的「Run 全流程」或「單獨執行所選分析」，後者會重讀 Excel 並重算必要的前置分析。`Ks_pitch_N_per_m`、`Ks_roll_N_per_m` 仍取自共用剛性分析的輸出。
-
-無視窗執行：
-
-```powershell
-.venv/Scripts/python.exe -B -X utf8 -m analysis.wheel_load
-```
-
-支援 `--csv <參數路徑>` 與 `--output <結果根目錄>`。完整方程式與圖表報告位於 `data/results/wheel_load/index.html`；每個節點的 `analysis.md` 僅保留共用定義與該節計算方程式。

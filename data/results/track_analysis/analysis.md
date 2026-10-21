@@ -13,6 +13,6 @@ $$
 
 Autocross 與 Endurance 分數按各半徑區間的彎道時間占比分配；Skidpad 分數加在最接近 9.125 m 的非空區間。分數預設沿用原程式的 75／100／250 分，可在節點參數中修改。`track_top_5_score_rate_percent` 表示前五名半徑區間占總分數池的百分比。
 
-流程由賽道分析連到 speed_vs_R，再延伸 Turning_Radius → ideal_ackemann → Bicycle_Model；賽道分析仍連到 Skidpad 圈速與下壓力、懸吊壓縮行程與輪端剛性及路面 PSD 與速度響應。下游模型沿用各自的輸入；PSD 速度資料仍來自 `vt_data.csv`。曲率 FFT 使用空間頻率（1/m），PSD 激振頻率使用 Hz。
+流程由賽道分析連到 speed_vs_R，再延伸 Turning_Radius → ideal_ackemann → Bicycle_Model；賽道分析另連到懸吊壓縮行程與輪端剛性及路面 PSD 與速度響應，Skidpad 圈速與下壓力維持獨立。下游模型沿用各自的輸入；PSD 速度資料仍來自 `vt_data.csv`。曲率 FFT 使用空間頻率（1/m），PSD 激振頻率使用 Hz。
 
 完整說明見 `analysis/track_analysis/README.md`。結果另附三張半徑分布 CSV、`OpenTRACK.npz`、`track.json` 與 `OpenTRACK.log`。

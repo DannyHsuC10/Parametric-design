@@ -8,7 +8,6 @@ graph TD
     speed --> radius[Turning_Radius]
     radius --> ackermann[ideal_ackemann]
     ackermann --> bicycle[Bicycle_Model]
-    track --> skidpad[Skidpad 圈速與下壓力]
     subgraph turn_group[轉向分析]
         speed
         radius
