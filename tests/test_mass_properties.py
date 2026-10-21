@@ -99,8 +99,10 @@ class MassPropertiesTests(unittest.TestCase):
         cached |= {"Ks_pitch_N_per_m": "1", "Ks_roll_N_per_m": "1"}
         window = SimpleNamespace(flow=self.flow, plugins_by_id=self.plugins, parameter_values=cached)
         rows = MainWindow._required_analysis_rows(window, "hl_roll")
-        self.assertEqual([r["node_id"] for r in rows], ["cog_movable", "compressed_travel", "aero_stiffness",
-                                                       "frequency_stiffness", "tire_stiffness", "hl_roll"])
+        ids = [r["node_id"] for r in rows]
+        self.assertEqual(ids, ["cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness",
+                               "tire_stiffness", "overall_rigidity", "roll_center",
+                               "roll_center_min_load_f", "roll_center_same_load_r", "hl_roll"])
         for selected in ("cg", "FWL"):
             self.assertEqual([r["node_id"] for r in MainWindow._required_analysis_rows(window, selected)],
                              ["cog_movable", selected])
@@ -109,14 +111,18 @@ class MassPropertiesTests(unittest.TestCase):
         app = QApplication.instance() or QApplication([])
         host = QWidget()
         window = SimpleNamespace(parameter_form=QFormLayout(host), parameter_edits={},
-                                 parameter_values=self.inputs | {n: str(v) for n, v in self.outputs.items()},
-                                 output_names=set(cog.OUTPUTS), update_parameter=lambda *_: None)
+                                 parameter_values=self.inputs | {n: str(v) for n, v in self.outputs.items()} |
+                                                 {"hl_front_roll_center_m": "0.021", "hl_rear_roll_center_m": "0.039"},
+                                 output_names=set(cog.OUTPUTS) | {"hl_front_roll_center_m", "hl_rear_roll_center_m"},
+                                 update_parameter=lambda *_: None)
         MainWindow.build_parameter_fields(window, self.plugins["hl_roll"])
         for name in ("ms", "mu", "mu_front", "mu_rear"):
             self.assertNotIn(name, window.parameter_edits)
         self.assertNotIn("hl_front_weight_ratio", window.parameter_edits)
         self.assertNotIn("hl_sprung_roll_inertia_kg_m2", window.parameter_edits)
         self.assertFalse(window.parameter_edits["h_cog"].isReadOnly())
+        self.assertTrue(window.parameter_edits["hl_front_roll_center_m"].isReadOnly())
+        self.assertTrue(window.parameter_edits["hl_rear_roll_center_m"].isReadOnly())
         MainWindow.build_parameter_fields(window, self.plugins["cog_movable"])
         self.assertFalse(cog.HIDDEN_PARAMETERS.intersection(window.parameter_edits))
         self.assertFalse({"cog_sprung_file", "cog_unsprung_front_file", "cog_unsprung_rear_file"}

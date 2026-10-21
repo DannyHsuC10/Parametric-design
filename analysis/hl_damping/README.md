@@ -1,6 +1,6 @@
 # 高低速阻尼完整分析
 
-本套件整理自 `new/HL_damping`，整合進現有 `analysis` 插件與 CSV 資料流程。保留來源資料夾，正式執行的共用模型放在本資料夾，十個 `analysis/hl_*.py` 為流程圖入口。
+本套件整理自 `new/HL_damping`，整合進現有 `analysis` 插件與 CSV 資料流程。保留來源資料夾，正式執行的共用模型放在本資料夾，十個 `analysis/hl_*.py` 為流程圖入口。Roll／阻尼分析使用前軸 `roll_center_min_load_f` 的最佳高度與後軸 `roll_center_same_load_r` 的匹配高度，分別作為 `hl_front_roll_center_m`、`hl_rear_roll_center_m`。
 
 ## 五類輸出
 

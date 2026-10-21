@@ -463,6 +463,7 @@ class MainWindow(QWidget):
                 "brake_disc_outer_diameter_m": "碟盤外徑（m）",
                 "brake_disc_contact_offset_m": "碟盤外緣至有效摩擦點的徑向距離（m）",
                 "brake_safety_factor": "踏板比設計安全係數（至少 1）",
+                "rc_chassis_stiffness_ratio": "車架／懸吊等效線性剛性比",
             }
             self.parameter_form.addRow(labels.get(name, name), edit)
             if name in {"cog_front_axle_x_m", "cog_rear_axle_x_m"}:

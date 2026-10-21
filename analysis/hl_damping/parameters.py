@@ -2,8 +2,6 @@
 
 DEFAULTS = {
     "hl_rear_track_m": 1.25,
-    "hl_front_roll_center_m": 0.025,
-    "hl_rear_roll_center_m": 0.05,
     "hl_rear_heave_spring_ratio": 0.8,
     "hl_rear_roll_spring_ratio": 0.75,
     "hl_front_roll_motion_ratio": 0.7,
@@ -30,7 +28,8 @@ DEFAULTS = {
 SHARED_PARAMETERS = dict.fromkeys((
     "ms", "mu", "mu_front", "mu_rear", "MR", "Kt", "L", "t", "h_cog",
     "hl_front_weight_ratio", "hl_sprung_front_weight_ratio", "hl_sprung_roll_inertia_kg_m2",
-    "ax", "ay", "Ks_pitch_N_per_m", "Ks_roll_N_per_m", *DEFAULTS,
+    "ax", "ay", "Ks_pitch_N_per_m", "Ks_roll_N_per_m",
+    "hl_front_roll_center_m", "hl_rear_roll_center_m", *DEFAULTS,
 ), "float")
 
 GROUPS = {
@@ -78,7 +77,6 @@ def plugin_metadata(stage):
         visible |= {"MR", "Kt", "hl_front_weight_ratio", "hl_rear_heave_spring_ratio"}
     elif stage == "hl_roll":
         visible |= {"t", "hl_rear_track_m", "h_cog", "hl_front_weight_ratio",
-                    "hl_front_roll_center_m", "hl_rear_roll_center_m",
                     "hl_sprung_roll_inertia_kg_m2", "hl_rear_roll_spring_ratio"}
         visible |= {name for name in DEFAULTS if "roll_motion_ratio" in name}
     elif stage in {"hl_heave_response", "hl_heave_damper"}:

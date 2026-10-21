@@ -18,6 +18,10 @@
 
 - [煞車流程、參數、模型與輸出](analysis/braking/README.md)
 
+Roll Center 分析接在「車架剛度與整車等效剛性」之後：`roll_center → roll_center_min_load_f → roll_center_same_load_r`。前軸最佳高度輸出為 `hl_front_roll_center_m`，後軸匹配高度輸出為 `hl_rear_roll_center_m`；後續 Roll 與阻尼分析會自動使用這兩個結果，不需手動輸入。
+
+- [Roll Center 流程、參數與計算方程式](analysis/roll_center_analysis/README.md)
+
 共用的振動與阻尼模型集中在 `analysis/suspension_dynamics/`：`oscillation_models.py` 提供時間取樣、解析解、Euler 積分與能量計算；`damping_models.py` 提供阻尼參數換算與單自由度、四分之一車求解工具。各分析入口仍放在 `analysis/`，由既有流程載入。
 
 - [共用振動與阻尼模型：計算方程式、座標與求解方法](analysis/suspension_dynamics/README.md)

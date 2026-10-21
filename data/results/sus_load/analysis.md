@@ -117,3 +117,24 @@ $$
 此角度僅表示縱向慣性轉移造成的增量，不含靜態車高或下壓力造成的基準姿態。前後剛度不同時，載重轉移量仍等量反向，變化的是位移大小。
 
 此準靜態模型未另計 roll center 幾何轉移、簧下獨立轉移或輪胎順應性。輸出 `suspension_load_envelope.csv`、`stiffness.csv`，並以 `operating_point.csv` 記錄指定 $a_x,a_y$ 的四輪原始輪載，交給 max_load 使用。
+
+## 流程與執行方式
+
+```mermaid
+graph LR
+    W1[FWL] --> W2[solver_compar]
+    W2 --> W3[sus_load]
+    W3 --> W4[max_load]
+```
+
+四個節點共用 `data/analysis_flow.csv`，使用 `flow_row=tertiary`；第一個 FWL 的 `branch_from=cog_movable`，其餘節點依序串接。`COG_movable` 從 Excel 元件資料計算 `ms`、平均單輪 `mu` 與慣量；前軸配重比例和軸距使用手動輸入的前、後輪中心 x 座標，Excel 元件重心座標不代替輪心。重心離地高度 `h_cog` 也直接手動輸入。單擊節點編輯獨立輸入，雙擊查看圖表、CSV 與本節方程式。
+
+主視窗只有一張流程圖，輪載群組接在共用的重心資料起點。使用既有的「Run 全流程」或「單獨執行所選分析」，後者會重讀 Excel 並重算必要的前置分析。`Ks_pitch_N_per_m`、`Ks_roll_N_per_m` 仍取自共用剛性分析的輸出。
+
+無視窗執行：
+
+```powershell
+.venv/Scripts/python.exe -B -X utf8 -m analysis.wheel_load
+```
+
+支援 `--csv <參數路徑>` 與 `--output <結果根目錄>`。完整方程式與圖表報告位於 `data/results/wheel_load/index.html`；每個節點的 `analysis.md` 僅保留共用定義與該節計算方程式。
