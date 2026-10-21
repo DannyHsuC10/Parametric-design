@@ -5,3 +5,10 @@
 /data/results/**/*.json
 
 # Markdown 說明及 data/ 下的流程、輸入參數 CSV 維持版本追蹤。
+
+# Python bytecode caches
+__pycache__/
+*.py[co]
+
+# Python virtual environment
+.venv/
