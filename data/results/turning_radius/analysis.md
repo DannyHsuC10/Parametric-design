@@ -10,4 +10,4 @@ theta 為等效前輪轉角，非方向盤轉角，須大於 0° 且小於 90°�
 
 結果附完整轉角／半徑 CSV，以及 `vehicle_turning_limit.csv` 記錄最大轉向角與對應半徑；`turning_radius_at_max_steering_m` 為該設定的導出半徑。
 
-流程為 賽道分析 → Turning_Radius → ideal_ackemann。詳細說明見 `analysis/cornering/README.md`。
+流程為 賽道分析 → speed_vs_R → Turning_Radius → ideal_ackemann；另由 Turning_Radius 分支至 Slalom，分析輪距與角錐配置下的連續過彎走線。詳細說明見 `analysis/cornering/README.md`。

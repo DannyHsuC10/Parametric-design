@@ -44,6 +44,25 @@ def ackermann_angles(radius, wheelbase, width):
     return np.arctan(wheelbase / (radius - width / 2)), np.arctan(wheelbase / (radius + width / 2))
 
 
+def slalom_geometry(track_width, offset_ratios, wheel_track, cone_radius, driving_error,
+                    gap, tire_width=0.1905):
+    """Circular slalom paths tangent to alternating cone-clearance circles."""
+    require_positive({"track_width": track_width, "wheel_track": wheel_track,
+                      "gap": gap, "tire_width": tire_width},
+                     ("track_width", "wheel_track", "gap", "tire_width"))
+    if not np.isfinite([cone_radius, driving_error]).all() or min(cone_radius, driving_error) < 0:
+        raise ValueError("Cone radius and driving error must be finite and nonnegative")
+    ratios = np.asarray(offset_ratios, dtype=float)
+    if ratios.ndim != 1 or not ratios.size or not np.isfinite(ratios).all() or np.any(ratios < 0):
+        raise ValueError("Offset ratios must be a nonempty list of finite, nonnegative numbers")
+    offsets = track_width * ratios
+    clearance = wheel_track / 2 + tire_width / 2 + cone_radius + driving_error
+    height = offsets + clearance
+    radius = ((gap / 2) ** 2 + height**2) / (2 * height)
+    angles = np.rad2deg(np.arctan(2 * (radius - height) / gap))
+    return offsets, clearance, radius, angles
+
+
 def bicycle_ode(time, state, delta_fun, vx, mass, inertia, lf, lr, cf, cr):
     vy, yaw_rate = state
     front_slip = delta_fun(time) - (vy + lf * yaw_rate) / vx

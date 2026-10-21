@@ -8,6 +8,8 @@
 
 流程為 `賽道分析 → speed_vs_R → Turning_Radius → ideal_ackemann → Bicycle_Model`；`Skidpad 圈速與下壓力` 保持獨立，不接到賽道分析或 `speed_vs_R`。四個新節點共用既有摩擦係數、幾何、質量與慣量；Bicycle 的 Cf／Cr 先使用各 40,000 N/rad 的可編輯示例值。
 
+`new/Slalom.py` 已整合為 `analysis/Slalom.py`，在「轉向分析」群組新增 `Turning_Radius → Slalom` 分支。Slalom 輸入框只保留共用前輪距 `t`；賽道寬度、角錐間距、偏移比例與駕駛誤差餘裕等固定在該 Python 檔案開頭。執行後雙擊查看各組連續過彎走線圖及半徑資料。
+
 - [彎速、轉向與 Bicycle Model：參數來源、公式與結果](analysis/cornering/README.md)
 
 行星齒輪與縱向性能分析已由 `new/` 整合到「輪胎極限載荷」之後，包含齒比、齒數搜尋、行星齒數檢查、輸出加速模擬、旋轉慣量與阻力／齒強分析。齒輪與馬達規格使用可編輯的示例預設值，請依實際資料更新。

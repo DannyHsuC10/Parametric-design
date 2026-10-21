@@ -72,9 +72,10 @@ class CorneringTests(unittest.TestCase):
         self.assertIn('["轉向分析"]', source)
         self.assertIn('stroke:#444444,stroke-width:3px', source)
         self.assertEqual({row["flow_group"] for row in flow if row["node_id"] in {
-            "speed_vs_r", "turning_radius", "ideal_ackemann", "bicycle_model"
+            "speed_vs_r", "turning_radius", "slalom", "ideal_ackemann", "bicycle_model"
         }}, {"轉向分析"})
         for first, second in (("track_analysis", "speed_vs_r"), ("speed_vs_r", "turning_radius"),
+                              ("turning_radius", "slalom"),
                               ("turning_radius", "ideal_ackemann"),
                               ("ideal_ackemann", "bicycle_model")):
             self.assertIn((ids[first], ids[second]), edges)
