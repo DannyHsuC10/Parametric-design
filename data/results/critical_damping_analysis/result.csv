@@ -1,7 +1,0 @@
-﻿category,name,number
-輸入量,ms,260.0
-輸入量,Ks,55477.73886943472
-導出量,critical_damping_mass_used_kg,65.0
-導出量,critical_damping_stiffness_used_N_per_m,55477.73886943472
-導出量,critical_damping_at_Ks_Ns_per_m,3797.922077406674
-導出量,critical_damping_frequency_at_Ks_Hz,4.649677477670093

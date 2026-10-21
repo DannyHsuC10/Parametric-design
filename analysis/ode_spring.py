@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
-from oscillation_models import energy_error_percent, require_positive, time_grid
+from .suspension_dynamics.oscillation_models import energy_error_percent, require_positive, time_grid
 
 
 def main(parameters):

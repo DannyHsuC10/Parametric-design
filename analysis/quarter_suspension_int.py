@@ -3,8 +3,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from damping_models import QUARTER_CAR_PARAMETERS, print_settings, system_settings
-from oscillation_models import time_grid
+from .suspension_dynamics.damping_models import QUARTER_CAR_PARAMETERS, print_settings, system_settings
+from .suspension_dynamics.oscillation_models import time_grid
 
 TITLE = "quarter_suspension_int"
 PLUGIN_ID = "quarter_suspension_int"

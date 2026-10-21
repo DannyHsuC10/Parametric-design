@@ -1,9 +1,0 @@
-﻿category,name,number
-輸入量,ms,260.0
-輸入量,mu,15.0
-輸入量,Ks,55477.73886943472
-導出量,simulation_rk45_stiffness_used_N_per_m,55477.73886943472
-導出量,simulation_rk45_initial_energy_J,48.58679339669836
-導出量,simulation_rk45_max_energy_error_percent,0.3101070061606099
-導出量,simulation_rk45_max_sprung_displacement_m,0.004201369580031157
-導出量,simulation_rk45_max_unsprung_displacement_m,0.025

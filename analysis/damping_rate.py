@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from analysis_result import AnalysisResult
 
-from damping_models import SINGLE_DOF_PARAMETERS, checked_solution, system_settings
-from oscillation_models import oscillator_energy
+from .suspension_dynamics.damping_models import SINGLE_DOF_PARAMETERS, checked_solution, system_settings
+from .suspension_dynamics.oscillation_models import oscillator_energy
 
 TITLE = "damping_rate"
 PLUGIN_ID = "damping_rate"

@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from analysis_result import AnalysisResult
 
-from oscillation_models import (
+from .suspension_dynamics.oscillation_models import (
     analytical_response,
     energy_error_percent,
     explicit_euler,

@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from oscillation_models import require_positive
+from .suspension_dynamics.oscillation_models import require_positive
 
 TITLE = "Critical_Damping_Analysis"
 PLUGIN_ID = "critical_damping_analysis"

@@ -1,0 +1,7 @@
+# 可由分析程式重新產生的結果，包含 results 根目錄與所有子資料夾。
+/data/results/**/*.html
+/data/results/**/*.png
+/data/results/**/*.csv
+/data/results/**/*.json
+
+# Markdown 說明及 data/ 下的流程、輸入參數 CSV 維持版本追蹤。

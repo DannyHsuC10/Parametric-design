@@ -2,6 +2,10 @@
 
 使用 CSV 參數與可點選的流程圖執行車輛動態分析。
 
+共用的振動與阻尼模型集中在 `analysis/suspension_dynamics/`：`oscillation_models.py` 提供時間取樣、解析解、Euler 積分與能量計算；`damping_models.py` 提供阻尼參數換算與單自由度、四分之一車求解工具。各分析入口仍放在 `analysis/`，由既有流程載入。
+
+- [共用振動與阻尼模型：計算方程式、座標與求解方法](analysis/suspension_dynamics/README.md)
+
 所有分析共用 `ms`（全車簧上質量，kg）與 `mu`（單輪簧下質量，kg）。四分之一車模型在計算時使用 `ms / 4`；輸入框與 CSV 只保留一組質量設定。舊 CSV 的 `simulation_ms_total_kg`、`simulation_mu_kg` 會自動轉為 `ms`、`mu`；兩種名稱同時存在時，以 `ms`、`mu` 為準。
 
 各分析結果的每張圖最多顯示四個子圖；圖片選單可切換主要結果與其他內容分組。`Time_sensitivity`、`damping_rate`、`PSD` 與 `tender` 已拆成多張圖，保留所有原有分析內容。

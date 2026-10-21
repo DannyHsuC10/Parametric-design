@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from damping_models import QUARTER_CAR_PARAMETERS, quarter_car_response, system_settings
+from .suspension_dynamics.damping_models import QUARTER_CAR_PARAMETERS, quarter_car_response, system_settings
 
 TITLE = "Damped_oscillation_analysis"
 PLUGIN_ID = "damped_oscillation_analysis"

@@ -1,9 +1,0 @@
-﻿category,name,number
-輸入量,ms,260.0
-輸入量,Ks,55477.73886943472
-導出量,simulation_sensitivity_mass_used_kg,65.0
-導出量,simulation_sensitivity_stiffness_used_N_per_m,55477.73886943472
-導出量,simulation_sensitivity_finest_dt_s,1e-05
-導出量,simulation_sensitivity_finest_final_energy_error_percent,4.359886001805125
-導出量,simulation_sensitivity_coarsest_final_energy_error_percent,6.095071691261164e+19
-導出量,simulation_sensitivity_finest_max_abs_error_m,0.0010667276996074587

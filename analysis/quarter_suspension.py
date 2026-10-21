@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from damping_models import QUARTER_CAR_PARAMETERS, print_settings, quarter_car_response, system_settings
+from .suspension_dynamics.damping_models import QUARTER_CAR_PARAMETERS, print_settings, quarter_car_response, system_settings
 
 TITLE = "quarter_suspension"
 PLUGIN_ID = "quarter_suspension"

@@ -16,7 +16,7 @@ from scipy.linalg import expm
 
 from analysis_data import load_analysis_parameters, parse_analysis_parameters
 from main import MainWindow
-from oscillation_models import (
+from analysis.suspension_dynamics.oscillation_models import (
     analytical_response,
     explicit_euler,
     oscillator_energy,

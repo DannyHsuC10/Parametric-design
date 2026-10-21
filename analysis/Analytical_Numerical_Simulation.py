@@ -27,7 +27,7 @@ TIME_STEP_S = 0.00001
 import matplotlib.pyplot as plt
 import numpy as np
 
-from oscillation_models import (
+from .suspension_dynamics.oscillation_models import (
     analytical_response,
     energy_error_percent,
     explicit_euler,

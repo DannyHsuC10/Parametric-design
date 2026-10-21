@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from damping_models import SINGLE_DOF_PARAMETERS, checked_solution, print_settings, system_settings
+from .suspension_dynamics.damping_models import SINGLE_DOF_PARAMETERS, checked_solution, print_settings, system_settings
 
 TITLE = "damping_ode"
 PLUGIN_ID = "damping_ode"
