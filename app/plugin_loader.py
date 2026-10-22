@@ -29,6 +29,7 @@ class AnalysisPlugin:
         self.parameters = getattr(module, "PARAMETERS", {})
         self.parameter_defaults = getattr(module, "PARAMETER_DEFAULTS", {})
         self.hidden_parameters = set(getattr(module, "HIDDEN_PARAMETERS", ()))
+        self.visible_parameters = set(getattr(module, "VISIBLE_PARAMETERS", ()))
         self.outputs = getattr(module, "OUTPUTS", {})
         self.required_analyses = tuple(getattr(module, "REQUIRES", ()))
         self.input_files = tuple(getattr(module, "INPUT_FILES", ()))

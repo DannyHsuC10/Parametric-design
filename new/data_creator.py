@@ -1,6 +1,9 @@
 """唯一批次啟動介面。修改下方設定後執行此檔案。"""
 
-from batch_runner import main
+if __package__:
+    from .batch_runner import main
+else:
+    from batch_runner import main
 
 
 # ===== 使用者設定 =====

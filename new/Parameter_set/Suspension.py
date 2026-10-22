@@ -54,7 +54,7 @@ class SuspensionLR:
         # d_roll 為左右位移差；K_theta=k_roll*track**2/2，C_theta 同理。
         m_roll = 2*self.Ix/self.track**2
         self.c_roll = 2*self.zeta*np.sqrt(self.k_roll*m_roll)
-        print(f"SuspensionLR: k_heave={self.k_heave}, c_heave={self.c_heave}, k_roll={self.k_roll}, c_roll={self.c_roll}")
+        
         k_corner = 0
         MR_corner = 1
 

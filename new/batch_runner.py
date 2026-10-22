@@ -6,6 +6,7 @@ import csv
 from datetime import datetime, timezone
 from functools import partial
 import hashlib
+from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -13,11 +14,18 @@ import traceback
 
 import numpy as np
 
-from batch_cases import (
-    FAMILIES, INPUT_START, SIMULATION_TIME, DEFAULT_DT, compatibility_error,
-)
-from data_visualization.Simulation_Logger import SimulationLogger
-from road.quarter_road import RandomRoad
+if __package__:
+    from .batch_cases import (
+        FAMILIES, INPUT_START, SIMULATION_TIME, DEFAULT_DT, compatibility_error,
+    )
+    from .data_visualization.Simulation_Logger import SimulationLogger
+    from .road.quarter_road import RandomRoad
+else:
+    from batch_cases import (
+        FAMILIES, INPUT_START, SIMULATION_TIME, DEFAULT_DT, compatibility_error,
+    )
+    from data_visualization.Simulation_Logger import SimulationLogger
+    from road.quarter_road import RandomRoad
 
 HERE = Path(__file__).resolve().parent
 
@@ -59,19 +67,21 @@ def source_hashes(family):
     return {str(p.relative_to(HERE)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
 
 
-def prepare_case(family, model, scenario, dt=DEFAULT_DT, seed=0):
+def prepare_case(family, model, scenario, dt=DEFAULT_DT, seed=None, *, suspension=None):
     reason = compatibility_error(family, model, scenario)
     if reason:
         raise ValueError(reason)
     spec = FAMILIES[family]
     # Some existing constructors print debugging values.
-    with open(os.devnull, "w") as sink, redirect_stdout(sink):
-        suspension = spec.suspension_factory()
+    if suspension is None:
+        with open(os.devnull, "w") as sink, redirect_stdout(sink):
+            suspension = spec.suspension_factory()
     state = spec.state_factory(dt)
     condition = spec.scenarios[scenario]
     parameters = dict(condition.parameters)
     if condition.function is RandomRoad:
-        parameters["seed"] = seed
+        if seed is not None:
+            parameters["seed"] = seed
         road = condition.function(**parameters)
     else:
         if family == "FR" and scenario == "impulse_drive":
@@ -98,7 +108,7 @@ def prepare_case(family, model, scenario, dt=DEFAULT_DT, seed=0):
 def simulate_case(suspension, state, road, model, config):
     """Log the initial sample and the exact end point; inputs align with t."""
     logger = SimulationLogger()
-    steps = int(round(SIMULATION_TIME / state.dt))
+    steps = int(round(config["duration_s"] / state.dt))
     with open(os.devnull, "w") as sink, redirect_stdout(sink), np.errstate(
         over="raise", invalid="raise", divide="raise"
     ):
@@ -123,15 +133,21 @@ def simulate_case(suspension, state, road, model, config):
     return logger
 
 
-def save_animation(logger, path, fps=10, dpi=70):
+def save_animation(logger, path=None, fps=10, dpi=70):
+    """Save a GIF atomically, or return its bytes for an analysis artifact."""
     # No GUI windows or external ffmpeg installation are required.
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from PIL import Image
-    from data_visualization.Dynamic_Visualizer_quarter import Visualizer
-    from data_visualization.Dynamic_Visualizer_roll import RollCarVisualizer
-    from data_visualization.Dynamic_Visualizer_pitch import PitchCarVisualizer
+    if __package__:
+        from .data_visualization.Dynamic_Visualizer_quarter import Visualizer
+        from .data_visualization.Dynamic_Visualizer_roll import RollCarVisualizer
+        from .data_visualization.Dynamic_Visualizer_pitch import PitchCarVisualizer
+    else:
+        from data_visualization.Dynamic_Visualizer_quarter import Visualizer
+        from data_visualization.Dynamic_Visualizer_roll import RollCarVisualizer
+        from data_visualization.Dynamic_Visualizer_pitch import PitchCarVisualizer
 
     config = logger.metadata["config"]
     data = logger.result()
@@ -179,14 +195,14 @@ def save_animation(logger, path, fps=10, dpi=70):
 
         fig.suptitle(
             f"{family} / {config['model']} / {config['scenario']} | "
-            f"input starts {INPUT_START:.2f} s | {SIMULATION_TIME:.1f} s simulation"
+            f"input starts {config['input_start_s']:.2f} s | {config['duration_s']:.1f} s simulation"
         )
         fig.subplots_adjust(top=0.89, bottom=0.08, hspace=0.65)
         for axis in fig.axes:
             if axis.get_legend() is not None:
                 axis.legend(loc="upper right", fontsize=7)
         # Keep all numeric samples in PKL; only the animation is downsampled.
-        count = max(2, round(SIMULATION_TIME * fps))
+        count = max(2, round(config["duration_s"] * fps))
         frames = np.linspace(0, len(data["t"]) - 1, count, dtype=int)
         # All signal curves are static. Cache them once instead of recomputing
         # axes/legends/annotations for every GIF frame.
@@ -202,6 +218,12 @@ def save_animation(logger, path, fps=10, dpi=70):
             for artist in update_frame(index):
                 artist.axes.draw_artist(artist)
             images.append(Image.fromarray(np.asarray(fig.canvas.buffer_rgba()).copy()).convert("RGB"))
+        if path is None:
+            with BytesIO() as output:
+                images[0].save(output, format="GIF", save_all=True, append_images=images[1:],
+                               duration=round(1000 / fps), loop=0)
+                return output.getvalue()
+        path = Path(path)
         temp = path.with_name("response.partial.gif")
         try:
             images[0].save(temp, save_all=True, append_images=images[1:],

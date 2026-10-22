@@ -42,6 +42,10 @@ Roll Center 分析接在「車架剛度與整車等效剛性」之後：`roll_ce
 
 共用的振動與阻尼模型集中在 `analysis/suspension_dynamics/`：`oscillation_models.py` 提供時間取樣、解析解、Euler 積分與能量計算；`damping_models.py` 提供阻尼參數換算與單自由度、四分之一車求解工具。各分析入口仍放在 `analysis/`，由既有流程載入。
 
+懸吊模型整包已由 `new/` 搬入 `analysis/suspension_models/`，並加入「懸吊模型工況分析」群組，從「四分之一車阻尼比與輪載分析」分成 quarter、LR 左右與 FR 前後三條流程，共 11 個模型、38 個相容工況。每個模型可獨立執行，雙擊節點後可切換各工況曲線、姿態圖與 GIF 動畫。懸吊設定在 `analysis/suspension_models/Parameter_set/Suspension.py`，工況設定在 `analysis/suspension_models/batch_cases.py`；上游質量、簧率、輪胎剛性、阻尼與適用幾何自動套用，其他設定保留該 Suspension.py 的定義，不新增輸入框。
+
+- [懸吊模型流程、各工況與參數傳遞](analysis/suspension_models/README.md)
+
 - [共用振動與阻尼模型：計算方程式、座標與求解方法](analysis/suspension_dynamics/README.md)
 
 流程以 `COG_movable` 為資料起點，從 `data/input_data/Center_of_gravity_LP03_*.xlsx` 的簧上、前簧下、後簧下元件資料計算質量、重心與慣量，分出 `CG`、`Compressed travel`、`FWL 四輪載重包絡` 三條箭頭。`CG` 保留原 45°／60° 傾斜幾何比較。

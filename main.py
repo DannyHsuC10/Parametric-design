@@ -6,7 +6,7 @@ from pathlib import Path
 from time import perf_counter, time
 
 from PySide6.QtCore import QTimer, QSize, Qt, Signal, Slot, QUrlQuery
-from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtGui import QColor, QMovie, QPixmap
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
@@ -89,12 +89,34 @@ class ScalableImageLabel(QLabel):
     def __init__(self):
         super().__init__()
         self.original_pixmap = QPixmap()
+        self.animation = None
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setMinimumHeight(260)
 
+    def stop_animation(self):
+        if self.animation is not None:
+            self.animation.stop()
+            self.animation.frameChanged.disconnect(self.update_animation_frame)
+            # Release QImageReader's file handle immediately on Windows.
+            self.animation.setFileName("")
+            self.animation.deleteLater()
+            self.animation = None
+
     def set_image(self, path):
+        self.stop_animation()
+        if Path(path).suffix.lower() == ".gif":
+            self.animation = QMovie(str(path), parent=self)
+            self.animation.frameChanged.connect(self.update_animation_frame)
+            self.animation.start()
+            self.update_animation_frame()
+            return
         self.original_pixmap = QPixmap(str(path))
         self.update_pixmap()
+
+    def update_animation_frame(self):
+        if self.animation is not None:
+            self.original_pixmap = self.animation.currentPixmap()
+            self.update_pixmap()
 
     def update_pixmap(self):
         if not self.original_pixmap.isNull():
@@ -116,6 +138,10 @@ class ScalableImageLabel(QLabel):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.update_pixmap()
+
+    def closeEvent(self, event):
+        self.stop_animation()
+        super().closeEvent(event)
 
 
 class MainWindow(QWidget):
@@ -231,9 +257,8 @@ class MainWindow(QWidget):
         self.main_splitter.setHandleWidth(8)
         self.main_splitter.addWidget(flow_section)
         self.main_splitter.addWidget(self.work_splitter)
-        self.main_splitter.setStretchFactor(0, 3)
-        self.main_splitter.setStretchFactor(1, 2)
-        self.main_splitter.setSizes([420, 280])
+        self.main_splitter.setStretchFactor(0, 4)
+        self.main_splitter.setStretchFactor(1, 4)
         self.main_splitter.handle(1).setToolTip("上下拖曳，調整流程圖與下方工作區高度")
 
         layout = QVBoxLayout(self)
@@ -393,11 +418,11 @@ class MainWindow(QWidget):
         if plugin is None:
             return
         for name in plugin.parameters:
-            if name in plugin.hidden_parameters or name in {
+            if (name in plugin.hidden_parameters or name in {
                 "ms", "mu", "mu_front", "mu_rear", "L", "hl_front_weight_ratio",
                 "hl_sprung_roll_inertia_kg_m2",
                 "mu_w", "wl_mu_y",
-            }:
+            }) and name not in plugin.visible_parameters:
                 continue
             edit = QLineEdit(self.parameter_values.get(name, ""))
             if name in self.output_names:
@@ -408,6 +433,24 @@ class MainWindow(QWidget):
                 edit.textChanged.connect(lambda value, key=name: self.update_parameter(key, value))
             labels = {
                 "h_cog": "重心高度 h_cog（m）",
+                "Kt": "輪胎垂直剛性 Kt（N/m）",
+                "ct": "輪胎阻尼 ct（N·s/m）",
+                "MR": "懸吊運動比 MR",
+                "t": "輪距 t（m）",
+                "L": "軸距 L（m）",
+                "hl_rear_heave_spring_ratio": "後軸 Heave 剛性比",
+                "h_rc": "Roll Center 高度 h_rc（m）",
+                "tau_rc": "Roll Center 傳遞時間常數 tau_rc（s）",
+                "k_frame_to_roll_ratio": "車架／Roll 剛性比",
+                "m_frame": "等效車架質量 m_frame（kg）",
+                "zeta_frame": "車架阻尼比",
+                "k_left": "左角點附加彈簧剛性（N/m）",
+                "k_right": "右角點附加彈簧剛性（N/m）",
+                "Iy": "簧上俯仰慣量 Iy（kg·m²）",
+                "anti_dive_front": "前軸 Anti-dive 比例",
+                "anti_squat_rear": "後軸 Anti-squat 比例",
+                "k_front": "前軸附加角點彈簧剛性（N/m）",
+                "k_rear": "後軸附加角點彈簧剛性（N/m）",
                 "drive_motor_torque_Nm": "馬達最大扭矩（N·m，motor）",
                 "cog_front_axle_x_m": "前軸輪心 x（m）",
                 "cog_rear_axle_x_m": "後軸輪心 x（m）",
@@ -509,21 +552,13 @@ class MainWindow(QWidget):
             return
 
         try:
-            available_parameters = set(self.parameter_values)
-            for row in self.flow:
-                plugin = self.plugins_by_id[row["analysis_id"]]
-                missing = set(plugin.parameters) - available_parameters
-                if missing:
-                    raise ValueError(
-                        f"{row['title']} 缺少參數：{', '.join(sorted(missing))}"
-                    )
-                available_parameters.update(plugin.outputs)
+            selected_rows = self._all_analysis_rows_in_dependency_order()
         except ValueError as error:
             self.status_label.setText(f"參數尚未完成：{error}")
             QMessageBox.warning(self, "參數錯誤", str(error))
             return
 
-        self._start_analysis(self.flow, incremental=incremental)
+        self._start_analysis(selected_rows, incremental=incremental)
         if incremental:
             self.console.append("檢查所有流程：只重算輸入、來源資料已變更或尚無結果的分析；未變更的項目沿用成功結果。")
 
@@ -543,6 +578,7 @@ class MainWindow(QWidget):
 
         required_node_ids = set()
         visiting = set()
+        ordered_rows = []
 
         def include_dependencies(row):
             node_id = row["node_id"]
@@ -566,9 +602,24 @@ class MainWindow(QWidget):
                     raise ValueError(f"{row['title']} 缺少輸入參數：{parameter_name}")
             visiting.remove(node_id)
             required_node_ids.add(node_id)
+            ordered_rows.append(row)
 
         include_dependencies(selected_row)
-        return [row for row in self.flow if row["node_id"] in required_node_ids]
+        # Dependencies can appear after the selected model in the visual flow.
+        # Preserve the DFS post-order so upstream derived outputs exist before
+        # the consumer's parameters are parsed and its analysis is run.
+        return ordered_rows
+
+    def _all_analysis_rows_in_dependency_order(self):
+        """Return the whole workflow with every producer before its consumers."""
+        ordered_rows = []
+        included = set()
+        for row in self.flow:
+            for required_row in MainWindow._required_analysis_rows(self, row["node_id"]):
+                if required_row["node_id"] not in included:
+                    included.add(required_row["node_id"])
+                    ordered_rows.append(required_row)
+        return ordered_rows
 
     def run_selected_analysis(self):
         self._run_selected(include_dependencies=False)
@@ -761,6 +812,7 @@ class MainWindow(QWidget):
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         image_label = ScalableImageLabel()
+        dialog.finished.connect(image_label.stop_animation)
         stage_started = perf_counter()
         image_label.set_image(result_dir / "plot.png")
         timings["image_ms"] = (perf_counter()-stage_started)*1000

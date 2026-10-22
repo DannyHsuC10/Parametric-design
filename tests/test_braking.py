@@ -84,6 +84,33 @@ class BrakingTests(unittest.TestCase):
                 self.assertNotIn("brake_pedal_ratio_required", values)
                 self.assertNotIn("brake_pressure_target_MPa", values)
 
+    def test_each_brake_stage_keeps_its_hand_maintained_note(self):
+        notes = {}
+        ratio = self.run_stage("brake_ratio", DEFAULTS | VEHICLE)
+        notes["brake_ratio"] = ratio.artifacts
+        pedal = self.run_stage("pedal_ratio", DEFAULTS | VEHICLE | {
+            "R_tire": VEHICLE["R_tire"],
+            "brake_ideal_front_ratio": ratio.outputs["brake_ideal_front_ratio"],
+        })
+        notes["pedal_ratio"] = pedal.artifacts
+        force = self.run_stage("brake_force", DEFAULTS | VEHICLE | {
+            "R_tire": VEHICLE["R_tire"],
+            "brake_pedal_ratio_required": pedal.outputs["brake_pedal_ratio_required"],
+        })
+        notes["brake_force"] = force.artifacts
+        hydraulic = self.run_stage("brake_hydraulic_pressure", {
+            "brake_pedal_front_pressure_Pa": 1.0e6,
+            "brake_pedal_rear_pressure_Pa": 0.9e6,
+        })
+        notes["brake_hydraulic_pressure"] = hydraulic.artifacts
+        for result in (ratio, pedal, force, hydraulic):
+            result.close()
+
+        for stage, artifacts in notes.items():
+            with self.subTest(stage=stage):
+                self.assertNotIn("analysis.md", artifacts)
+                self.assertTrue((ROOT / "data" / "results" / stage / "analysis.md").is_file())
+
     def test_non_half_weight_distribution_and_force_balance(self):
         front, rear = axle_loads(VEHICLE, np.array([0, 1.0]))
         np.testing.assert_allclose(front, [1177.2, 1667.7])
@@ -268,7 +295,8 @@ class BrakingTests(unittest.TestCase):
                     save_analysis_result(destination, stage, parameters, result)
                     choices = load_plot_choices(destination / stage)
                     self.assertEqual(len(choices), 1 + len(result.figures))
-                    self.assertTrue((destination / stage / "analysis.rendered.html").is_file())
+                    self.assertFalse((destination / stage / "analysis.md").exists())
+                    self.assertTrue((ROOT / "data/results" / stage / "analysis.md").is_file())
                     values.update(result.outputs)
                 finally:
                     result.close()

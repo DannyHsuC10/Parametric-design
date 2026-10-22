@@ -1,7 +1,5 @@
 """Brake plugins return gallery figures, tables and downstream parameters."""
 
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -284,5 +282,4 @@ def run(stage, parameters):
               "brake_hydraulic_pressure": _hydraulic}[stage](p)
     for name, value in result.outputs.items():
         print(f"{name}: {value}")
-    result.artifacts["analysis.md"] = Path(__file__).with_name("README.md").read_text(encoding="utf-8")
     return result

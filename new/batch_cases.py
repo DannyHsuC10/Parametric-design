@@ -3,12 +3,20 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from model import quarter_model, LR_model, FR_model
-from road import quarter_road, LR_road, FR_road
-from Parameter_set.Suspension import SuspensionQuarter, SuspensionLR, SuspensionFR
-from Parameter_set.suspension_state import (
-    quarter_suspension_state, LR_suspension_state, FR_suspension_state,
-)
+if __package__:
+    from .model import quarter_model, LR_model, FR_model
+    from .road import quarter_road, LR_road, FR_road
+    from .Parameter_set.Suspension import SuspensionQuarter, SuspensionLR, SuspensionFR
+    from .Parameter_set.suspension_state import (
+        quarter_suspension_state, LR_suspension_state, FR_suspension_state,
+    )
+else:
+    from model import quarter_model, LR_model, FR_model
+    from road import quarter_road, LR_road, FR_road
+    from Parameter_set.Suspension import SuspensionQuarter, SuspensionLR, SuspensionFR
+    from Parameter_set.suspension_state import (
+        quarter_suspension_state, LR_suspension_state, FR_suspension_state,
+    )
 
 INPUT_START = 0.1
 SIMULATION_TIME = 1

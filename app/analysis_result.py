@@ -49,6 +49,8 @@ def save_analysis_result(results_dir, node_id, parameters, result):
     plots = [{"file": "plot.png", "title": result.figure_titles.get("plot.png", "主要結果")}]
     plots.extend({"file": filename, "title": result.figure_titles.get(filename, Path(filename).stem)}
                  for filename in result.figures)
+    plots.extend({"file": filename, "title": result.figure_titles.get(filename, Path(filename).stem)}
+                 for filename in result.artifacts if Path(filename).suffix.lower() == ".gif")
     (result_dir / "plots.json").write_text(json.dumps(plots, ensure_ascii=False, indent=2), encoding="utf-8")
     for filename, frame in result.tables.items():
         filename = filename if filename.endswith(".csv") else f"{filename}.csv"
@@ -82,5 +84,6 @@ def load_plot_choices(result_dir):
     except (OSError, ValueError, TypeError, KeyError):
         pass
     return [("主要結果", "plot.png")] + [
-        (path.stem, path.name) for path in sorted(result_dir.glob("*.png")) if path.name != "plot.png"
+        (path.stem, path.name) for path in sorted(result_dir.glob("*"))
+        if path.suffix.lower() in {".png", ".gif"} and path.name != "plot.png"
     ]
