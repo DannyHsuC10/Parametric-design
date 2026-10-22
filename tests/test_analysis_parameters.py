@@ -76,7 +76,7 @@ class SharedParameterTests(unittest.TestCase):
                              .intersection(names))
             self.assertFalse(aliases.intersection(names))
 
-    def test_editing_one_panel_updates_other_panels_and_invalidates_outputs(self):
+    def test_editing_one_panel_updates_other_panels_and_keeps_last_outputs_for_reuse(self):
         app = QApplication.instance() or QApplication([])
         host = QWidget()
         form = QFormLayout(host)
@@ -91,8 +91,8 @@ class SharedParameterTests(unittest.TestCase):
         self.assertFalse({"ms", "mu"}.intersection(window.parameter_edits))
         window.parameter_edits["h_cog"].setText("0.35")
         self.assertEqual(window.parameter_values["h_cog"], "0.35")
-        self.assertNotIn("Ks", window.parameter_values)
-        self.assertEqual(window.output_values, {})
+        self.assertEqual(window.parameter_values["Ks"], "60000")
+        self.assertEqual(window.output_values, {"Ks": 60000})
         for stage in ("cg", "compressed_travel", "hl_roll", "fwl"):
             MainWindow.build_parameter_fields(window, plugins[stage])
             self.assertFalse({"ms", "mu"}.intersection(window.parameter_edits))

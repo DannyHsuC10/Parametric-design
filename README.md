@@ -2,6 +2,15 @@
 
 使用 CSV 參數與可點選的流程圖執行車輛動態分析。
 
+流程圖上方以「選擇流程」下拉選單切換「完整流程」與各 `flow_group` 灰框群組，預設顯示完整流程。選單不另列未分組分析，這些節點仍可在完整流程中查看。群組頁面只顯示該群組的節點與內部連線，所有頁面共用參數與執行結果，並保留各自的縮放及捲動位置。以滑鼠滾輪放大／縮小（1%～400%）、按住滑鼠左鍵或中鍵拖曳平移，也可使用水平／垂直捲軸或 Shift＋滾輪水平移動。上方提供縮放按鈕、「符合視窗」與「100%」還原原始大小。
+
+單擊節點後，可選擇兩種執行方式：
+
+- **只執行所選分析**：僅重算該節點，沿用目前工作階段最近一次成功的上游結果；尚未載入的上游數值會從對應 `data/results/<node_id>/result.csv` 的導出量讀取。修改輸入參數會保留最近結果，適合上游維持不變時反覆調整下游分析。若無可用結果，會提示先執行前置分析，不會自動重跑上游。
+- **所選分析＋前置分析**：重新執行所選節點及所有必要前置分析，即使已有結果也會重算；修改 Excel、上游參數或需要更新導出量時使用。兩種操作在群組頁面皆可使用，前置分析可跨群組執行。
+
+「Run 全流程」在任何流程頁面都會執行完整流程。
+
 流程最前方新增「輪胎模型（MF_tester）→ 最佳胎壓 → 最佳 camber → coefficient_of_friction 分析」，並由摩擦係數分支到賽道分析、Skidpad 圈速與下壓力、四輪載荷包絡（FWL）。MF_tester 輸出原 Figures 的全部 19 張圖；縱／橫向回歸摩擦係數會自動傳給後續分析。使用方式與公式見 [輪胎分析說明](analysis/tire_analysis/README.md)。
 
 賽道分析已由 `new/` 整合至 `analysis/track_analysis/`，使用 `data/input_data/input_map.xlsx`，並在流程圖連到「懸吊壓縮行程與輪端剛性」與「路面 PSD 與速度響應」。賽道分析設定固定，不顯示輸入框；執行後雙擊開啟十一張結果圖、半徑分布與分數權重。
@@ -39,7 +48,7 @@ Roll Center 分析接在「車架剛度與整車等效剛性」之後：`roll_ce
 - [重心、慣性、座標、單位與質量傳遞說明](data/results/cog_movable/analysis.md)
 - [CG 傾斜幾何比較](data/results/cg/analysis.md)
 
-各節點不顯示簧上／簧下質量、軸距 `L`、全車前軸重量比 `hl_front_weight_ratio`、簧上側傾慣量 `hl_sprung_roll_inertia_kg_m2` 的輸入框；這些值由來源資料與手動輪心座標計算，仍供下游分析使用。三份 Excel 檔案路徑固定在 `analysis/COG_movable.py`，不放在參數 CSV 中；其他質量、配重與慣量導出量可在結果表或「檢視目前變量」查閱。選跑下游節點也會重讀 Excel 並重算必要前置分析。載入 CSV 時忽略已存導出量，避免舊數值蓋過來源資料；手動 `h_cog` 會保留。舊質量名稱 `simulation_ms_total_kg`、`simulation_mu_kg` 仍可由參數解析工具正規化為 `ms`、`mu`。
+各節點不顯示簧上／簧下質量、軸距 `L`、全車前軸重量比 `hl_front_weight_ratio`、簧上側傾慣量 `hl_sprung_roll_inertia_kg_m2` 的輸入框；這些值由來源資料與手動輪心座標計算，仍供下游分析使用。三份 Excel 檔案路徑固定在 `analysis/COG_movable.py`，不放在參數 CSV 中；其他質量、配重與慣量導出量可在結果表或「檢視目前變量」查閱。「所選分析＋前置分析」會重讀 Excel 並重算必要前置分析；「只執行所選分析」沿用最近結果。載入 CSV 時忽略其中已存的導出量，手動 `h_cog` 會保留；只有單節點執行會按需讀取結果目錄中的上游快照。舊質量名稱 `simulation_ms_total_kg`、`simulation_mu_kg` 仍可由參數解析工具正規化為 `ms`、`mu`。
 
 各分析結果的每張圖最多顯示四個子圖；圖片選單可切換主要結果與其他內容分組。`Time_sensitivity`、`damping_rate`、`PSD` 與 `tender` 已拆成多張圖，保留所有原有分析內容。
 
@@ -66,7 +75,7 @@ Print out 的 `[開啟結果]` 訊息會分別顯示雙擊事件等待、圖片�
 .venv/Scripts/python.exe -X utf8 -m analysis.hl_damping
 ```
 
-四輪載重與輪胎力流程為 `COG_movable → FWL → solver_compar → sus_load → max_load`。在同一份 `data/analysis_flow.csv` 以 `flow_row=tertiary` 建立「輪載與輪胎力分析」群組，並以 `branch_from=cog_movable` 連到共用的重心資料起點。使用既有的「Run 全流程」與「單獨執行所選分析」操作，後者會重算必要資料與剛性前置分析。
+四輪載重與輪胎力流程為 `COG_movable → FWL → solver_compar → sus_load → max_load`。在同一份 `data/analysis_flow.csv` 以 `flow_row=tertiary` 建立「輪載與輪胎力分析」群組，並以 `branch_from=cog_movable` 連到共用的重心資料起點。可從下拉選單選擇完整流程或輪載群組，再選擇節點，使用「只執行所選分析」沿用上游結果，或用「所選分析＋前置分析」重算必要資料與剛性前置分析。
 
 - [分離流程圖、CSV 設定與模型分析](analysis/wheel_load/README.md)
 - [輪載分析結果報告](data/results/wheel_load/index.html)

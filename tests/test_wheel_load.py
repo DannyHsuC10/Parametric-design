@@ -18,7 +18,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QWidget
 
 from analysis_data import load_analysis_parameters, parse_analysis_parameters
 from analysis_result import save_analysis_result
@@ -165,7 +165,7 @@ class WheelLoadTests(unittest.TestCase):
             "tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction",
             "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
 
-    def test_one_flow_view_keeps_wheel_nodes_without_extra_tab_or_run_button(self):
+    def test_flow_dropdown_keeps_shared_parameters_and_execution_actions(self):
         class FlowPlaceholder(QWidget):
             def setPage(self, page):
                 pass
@@ -182,7 +182,8 @@ class WheelLoadTests(unittest.TestCase):
             window = MainWindow()
         try:
             self.assertEqual(flow_views.call_count, 1)
-            self.assertFalse(window.findChildren(QTabWidget))
+            self.assertIn(window.flow_selector, window.findChildren(QComboBox))
+            self.assertEqual(window.flow_selector.currentText(), "完整流程")
             self.assertFalse(hasattr(window, "run_wheel_load_button"))
             self.assertIn("flow-node://", window.flow_view.source)
             for title in ("四輪載荷包絡（FWL）", "輪載求解器與零空間比較", "懸吊剛性下的四輪載荷", "輪胎極限載荷"):
@@ -192,13 +193,13 @@ class WheelLoadTests(unittest.TestCase):
             self.assertEqual(window.active_node_id, "max_load")
             self.assertFalse(window.parameter_edits)
             with patch.object(window, "_start_analysis") as start:
-                window.run_selected_button.click()
+                window.run_with_dependencies_button.click()
                 rows = start.call_args.args[0]
                 self.assertEqual([row["node_id"] for row in rows], [
                     "tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction",
                     "cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness", *STAGES])
                 window.analysis_runner = object()
-                window.run_selected_button.click()
+                window.run_with_dependencies_button.click()
                 self.assertEqual(start.call_count, 1)
                 window.analysis_runner = None
         finally:

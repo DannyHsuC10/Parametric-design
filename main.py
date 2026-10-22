@@ -1,5 +1,4 @@
 import csv
-import json
 import re
 import sys
 from pathlib import Path
@@ -22,6 +21,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSplitter,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
@@ -29,10 +29,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from analysis_data import canonical_parameter_name, load_analysis_parameters
+from analysis_data import canonical_parameter_name, load_analysis_parameters, parse_analysis_parameters
 from analysis_result import AnalysisResult, load_plot_choices, save_analysis_result
 from analysis_runner import AnalysisRunner
 from document_theme import document_colors
+from flow_diagram import render_flow_diagram
 from markdown_renderer import render_markdown, render_markdown_file
 from markdown_view import MarkdownView
 from plugin_loader import scan_analysis
@@ -142,20 +143,32 @@ class MainWindow(QWidget):
         self.csv_label.setWordWrap(True)
         self.database_button = QPushButton("檢視目前變量")
         self.run_button = QPushButton("Run 全流程")
-        self.run_selected_button = QPushButton("單獨執行所選分析")
+        self.run_selected_button = QPushButton("只執行所選分析")
+        self.run_selected_button.setToolTip("只重算所選節點，沿用最近一次成功的上游結果（含已儲存結果）。")
         self.run_selected_button.setEnabled(False)
+        self.run_with_dependencies_button = QPushButton("所選分析＋前置分析")
+        self.run_with_dependencies_button.setToolTip("重新執行所選節點及所有必要的上游分析，更新導出量。")
+        self.run_with_dependencies_button.setEnabled(False)
         self.status_label = QLabel("選擇 CSV 後按 Run，依流程順序執行分析。")
 
-        self.flow_view = QWebEngineView()
-        self.flow_view.setMinimumHeight(120)
-        self.flow_page = FlowDiagramPage(self.flow_view)
-        self.flow_page.setBackgroundColor(QColor(document_colors()["background"]))
-        self.flow_view.setPage(self.flow_page)
-        self.flow_view.settings().setAttribute(
-            QWebEngineSettings.WebAttribute.JavascriptEnabled, True
-        )
-        self.flow_page.flowNodeRequested.connect(self.handle_flow_node_request)
-        self.build_flow_buttons()
+        self.flow_selector = QComboBox()
+        self.flow_selector.setMinimumWidth(220)
+        self.flow_selector.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.flow_stack = QStackedWidget()
+        self.flow_stack.setMinimumHeight(120)
+        self.flow_views = {}
+        self.flow_pages = {}
+        groups = list(dict.fromkeys(row.get("flow_group", "") for row in self.flow))
+        self.flow_groups = [None] + [group for group in groups if group]
+        for group in self.flow_groups:
+            title = "完整流程" if group is None else group
+            page = QWidget()
+            page_layout = QVBoxLayout(page)
+            page_layout.setContentsMargins(0, 0, 0, 0)
+            self.flow_stack.addWidget(page)
+            self.flow_selector.addItem(title)
+        self.flow_selector.currentIndexChanged.connect(self.show_flow_page)
+        self.show_flow_page(0)
 
         self.parameter_form = QFormLayout()
         self.parameter_panel = QWidget()
@@ -174,6 +187,7 @@ class MainWindow(QWidget):
         controls.addWidget(self.csv_label, 1)
         controls.addWidget(self.run_button)
         controls.addWidget(self.run_selected_button)
+        controls.addWidget(self.run_with_dependencies_button)
 
         parameter_section = QWidget()
         parameter_layout = QVBoxLayout(parameter_section)
@@ -200,7 +214,12 @@ class MainWindow(QWidget):
         flow_section = QWidget()
         flow_layout = QVBoxLayout(flow_section)
         flow_layout.setContentsMargins(0, 0, 0, 0)
-        flow_layout.addWidget(self.flow_view, 1)
+        flow_controls = QHBoxLayout()
+        flow_controls.addWidget(QLabel("選擇流程"))
+        flow_controls.addWidget(self.flow_selector)
+        flow_controls.addStretch(1)
+        flow_layout.addLayout(flow_controls)
+        flow_layout.addWidget(self.flow_stack, 1)
         flow_layout.addWidget(self.status_label)
 
         self.main_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -215,13 +234,14 @@ class MainWindow(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addLayout(controls)
-        layout.addWidget(QLabel("單擊節點設定參數；雙擊查看結果；也可單獨執行所選分析（必要時會先跑前置分析）"))
+        layout.addWidget(QLabel("單擊節點設定參數；雙擊查看結果。「只執行所選分析」沿用上游結果；更新上游請用「所選分析＋前置分析」。"))
         layout.addWidget(self.main_splitter, 1)
 
         self.csv_button.clicked.connect(self.select_csv)
         self.database_button.clicked.connect(self.show_database)
         self.run_button.clicked.connect(self.run_flow)
         self.run_selected_button.clicked.connect(self.run_selected_analysis)
+        self.run_with_dependencies_button.clicked.connect(self.run_selected_with_dependencies)
 
         self.load_csv(DEFAULT_CSV)
         # Open the source node's editable geometry inputs immediately.
@@ -293,109 +313,38 @@ class MainWindow(QWidget):
             QMessageBox.critical(self, "流程設定錯誤", str(error))
             return []
 
-    def build_flow_buttons(self, flow=None, view=None):
+    def show_flow_page(self, index):
+        if not 0 <= index < self.flow_stack.count():
+            return
+        self.flow_stack.setCurrentIndex(index)
+        if index in self.flow_views:
+            return
+        view = QWebEngineView()
+        view.setMinimumHeight(120)
+        page = FlowDiagramPage(view)
+        page.setBackgroundColor(QColor(document_colors()["background"]))
+        view.setPage(page)
+        view.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+        page.flowNodeRequested.connect(
+            lambda node_id, double, source=page: self.handle_flow_node_request(node_id, double, source)
+        )
+        self.flow_views[index] = view
+        self.flow_pages[index] = page
+        self.flow_stack.widget(index).layout().addWidget(view)
+        if index == 0:
+            self.flow_view, self.flow_page = view, page
+        self.build_flow_buttons(view=view, group=self.flow_groups[index])
+
+    def build_flow_buttons(self, flow=None, view=None, group=None):
         flow = self.flow if flow is None else flow
         view = self.flow_view if view is None else view
-        graph_ids = {
-            row["node_id"]: f"flow_node_{index}"
-            for index, row in enumerate(flow)
-        }
-        lines = ["graph TD"]
-        main_rows = [row for row in flow if row["flow_row"] == "main"]
-        branch_rows = [row for row in flow if row["flow_row"] == "branch"]
-        secondary_rows = [row for row in flow if row["flow_row"] == "secondary"]
-        tertiary_rows = [row for row in flow if row["flow_row"] == "tertiary"]
-        merge_rows = [row for row in flow if row["flow_row"] == "merge"]
+        view.setHtml(render_flow_diagram(flow, group))
 
-        def connect_chain(rows):
-            previous = None
-            for row in rows:
-                source = row["branch_from"] or (previous["node_id"] if previous else None)
-                detached = str(row.get("flow_detached", "")).strip().lower() in {"1", "true", "yes"}
-                if source in graph_ids and not detached:
-                    lines.append(f"    {graph_ids[source]} --> {graph_ids[row['node_id']]}")
-                previous = row
-
-        connect_chain(main_rows)
-        for row in branch_rows:
-            lines.append(f"    {graph_ids[row['branch_from']]} --> {graph_ids[row['node_id']]}")
-        connect_chain(secondary_rows)
-        connect_chain(tertiary_rows)
-        for row in merge_rows:
-            merge_id = graph_ids[row["node_id"]]
-            sources = [row["branch_from"]] + (row.get("merge_from") or "").split("|")
-            for source in dict.fromkeys(source.strip() for source in sources if source.strip()):
-                lines.append(f"    {graph_ids[source]} --> {merge_id}")
-        for row in flow:
-            target_id = graph_ids[row["node_id"]]
-            for source in (row.get("extra_from") or "").split("|"):
-                source = source.strip()
-                if source in graph_ids:
-                    lines.append(f"    {graph_ids[source]} --> {target_id}")
-
-        groups = {}
-        for row in flow:
-            groups.setdefault(row.get("flow_group", ""), []).append(row)
-        for index, (group, rows) in enumerate(groups.items()):
-            if group:
-                title = group.replace('"', "&quot;")
-                lines.append(f'    subgraph flow_group_{index}["{title}"]')
-            for row in rows:
-                graph_id = graph_ids[row["node_id"]]
-                title = row["title"].replace('"', "&quot;")
-                lines.append(f'    {graph_id}["{title}"]')
-            if group:
-                lines.append("    end")
-                if group == "轉向分析":
-                    lines.append(f"    style flow_group_{index} fill:#f2f2f2,stroke:#444444,stroke-width:3px,color:#222222")
-
-        lines.append("    classDef flowNode fill:#f1f1f1,stroke:#b8b8b8,color:#222222")
-        lines.append("    class " + ",".join(graph_ids.values()) + " flowNode")
-
-        diagram_markdown = "```mermaid\n" + "\n".join(lines) + "\n```"
-        rendered_html = render_markdown(diagram_markdown)
-        click_map = {
-            row["title"]: row["node_id"]
-            for row in flow
-        }
-        click_map_json = json.dumps(click_map, ensure_ascii=True).replace("</", "<\\/")
-        click_script = f"""<script>
-(() => {{
-  const titleToId = {click_map_json};
-  let clickTimer = null;
-  function findNode(event) {{
-    const group = event.target.closest('g.node');
-    if (!group) return null;
-    const title = (group.textContent || '').replace(/\\s+/g, ' ').trim();
-    return titleToId[title] || null;
-  }}
-  function request(nodeId, kind, clickedAt) {{
-    window.location.href = 'flow-node://' + kind + '/' + encodeURIComponent(nodeId)
-      + '?clicked_at=' + clickedAt;
-  }}
-  document.addEventListener('click', event => {{
-    const nodeId = findNode(event);
-    if (!nodeId) return;
-    clearTimeout(clickTimer);
-    const clickedAt = performance.timeOrigin + event.timeStamp;
-    clickTimer = setTimeout(() => request(nodeId, 'single', clickedAt), 260);
-  }});
-  document.addEventListener('dblclick', event => {{
-    const nodeId = findNode(event);
-    if (!nodeId) return;
-    clearTimeout(clickTimer);
-    request(nodeId, 'double', performance.timeOrigin + event.timeStamp);
-  }});
-}})();
-</script>"""
-        rendered_html = rendered_html.replace("</body>", click_script + "</body>")
-        view.setHtml(rendered_html)
-
-    def handle_flow_node_request(self, node_id, is_double_click):
+    def handle_flow_node_request(self, node_id, is_double_click, source_page=None):
         if self.analysis_runner is not None:
             return
         if is_double_click:
-            self._result_request_delay_ms = getattr(self.flow_page, "last_request_delay_ms", None)
+            self._result_request_delay_ms = getattr(source_page or self.flow_page, "last_request_delay_ms", None)
             self.show_result(node_id)
         else:
             self.show_node_parameters(node_id)
@@ -413,7 +362,8 @@ class MainWindow(QWidget):
             for plugin in self.plugins
             for name, value in plugin.parameter_defaults.items()
         }
-        # Saved outputs are snapshots. Always rebuild them from their source inputs.
+        # Loading another CSV starts a fresh session. Only the single-node action
+        # explicitly opts into restoring saved upstream snapshots.
         self.parameter_values = {name: value for name, value in (defaults | parameters).items()
                                  if name not in self.output_names}
         self.output_values = {}
@@ -441,7 +391,7 @@ class MainWindow(QWidget):
             if name in self.output_names:
                 edit.setReadOnly(True)
                 edit.setPlaceholderText("由前置分析計算")
-                edit.setToolTip("修改來源資料後重新執行，會自動更新此導出量。")
+                edit.setToolTip("沿用最近一次的上游結果；修改來源資料後，請使用「所選分析＋前置分析」更新。")
             else:
                 edit.textChanged.connect(lambda value, key=name: self.update_parameter(key, value))
             labels = {
@@ -484,7 +434,8 @@ class MainWindow(QWidget):
         if row is None:
             return
         self.active_node_id = node_id
-        self.run_selected_button.setEnabled(True)
+        self.run_selected_button.setEnabled(self.analysis_runner is None)
+        self.run_with_dependencies_button.setEnabled(self.analysis_runner is None)
         plugin = self.plugins_by_id[row["analysis_id"]]
         self.parameter_title.setText(f"{row['title']} 輸入參數")
         self.build_parameter_fields(plugin)
@@ -492,9 +443,8 @@ class MainWindow(QWidget):
     def update_parameter(self, name, value):
         name = canonical_parameter_name(name)
         self.parameter_values[name] = value
-        for output_name in self.output_names:
-            self.output_values.pop(output_name, None)
-            self.parameter_values.pop(output_name, None)
+        # Retain the last successful upstream values for explicit single-node runs.
+        # The dependency action always recomputes them regardless of this cache.
 
     def select_csv(self):
         filename, _ = QFileDialog.getOpenFileName(
@@ -597,6 +547,44 @@ class MainWindow(QWidget):
         return [row for row in self.flow if row["node_id"] in required_node_ids]
 
     def run_selected_analysis(self):
+        self._run_selected(include_dependencies=False)
+
+    def run_selected_with_dependencies(self):
+        self._run_selected(include_dependencies=True)
+
+    def _single_analysis_values(self, row):
+        """Reuse live outputs first; restore missing inputs from their producer's export."""
+        plugin = self.plugins_by_id[row["analysis_id"]]
+        values = dict(self.parameter_values)
+        restored = {}
+        missing = {name for name in plugin.parameters if not str(values.get(name, "")).strip()}
+        for producer_row in self.flow:
+            if producer_row["node_id"] == row["node_id"]:
+                continue
+            producer = self.plugins_by_id[producer_row["analysis_id"]]
+            needed = missing.intersection(producer.outputs)
+            if not needed:
+                continue
+            path = RESULTS_DIR / producer_row["node_id"] / "result.csv"
+            try:
+                with path.open(encoding="utf-8-sig", newline="") as stream:
+                    for entry in csv.DictReader(stream):
+                        name = canonical_parameter_name(entry.get("name", ""))
+                        if entry.get("category") == "導出量" and name in needed and (entry.get("number") or "").strip():
+                            restored[name] = entry["number"]
+            except (OSError, UnicodeError, csv.Error):
+                continue
+        values.update(restored)
+        missing = [name for name in plugin.parameters if not str(values.get(name, "")).strip()]
+        if missing:
+            raise ValueError(
+                "缺少可沿用的參數或上游結果：" + ", ".join(missing)
+                + "。請先執行「所選分析＋前置分析」。"
+            )
+        parse_analysis_parameters(values, plugin.parameters)
+        return values, restored
+
+    def _run_selected(self, include_dependencies):
         if self.analysis_runner is not None:
             return
         if not self.active_node_id:
@@ -604,18 +592,34 @@ class MainWindow(QWidget):
             return
 
         try:
-            selected_rows = self._required_analysis_rows(self.active_node_id)
+            restored = {}
+            if include_dependencies:
+                selected_rows = self._required_analysis_rows(self.active_node_id)
+            else:
+                row = next((row for row in self.flow if row["node_id"] == self.active_node_id), None)
+                if row is None:
+                    raise ValueError("找不到所選分析節點")
+                values, restored = self._single_analysis_values(row)
+                selected_rows = [row]
         except ValueError as error:
             self.status_label.setText(f"無法執行所選分析：{error}")
             QMessageBox.warning(self, "分析參數錯誤", str(error))
             return
 
+        if not include_dependencies:
+            self.parameter_values.update(values)
+            self.output_values.update(restored)
         self._start_analysis(selected_rows, self.active_node_id)
+        if not include_dependencies:
+            self.console.append("只執行所選分析：沿用最近一次成功的上游結果，上游不重算。")
+            if restored:
+                self.console.append("已從儲存結果載入：" + ", ".join(restored))
 
     def _start_analysis(self, rows, selected_node_id=None):
         self.console.clear()
         self.run_button.setEnabled(False)
         self.run_selected_button.setEnabled(False)
+        self.run_with_dependencies_button.setEnabled(False)
         self.csv_button.setEnabled(False)
         self.parameter_scroll.setEnabled(False)
         self._run_started_at = perf_counter()
@@ -676,6 +680,7 @@ class MainWindow(QWidget):
         self.analysis_runner = None
         self.run_button.setEnabled(True)
         self.run_selected_button.setEnabled(self.active_node_id is not None)
+        self.run_with_dependencies_button.setEnabled(self.active_node_id is not None)
         self.csv_button.setEnabled(True)
         self.parameter_scroll.setEnabled(True)
         if self.active_node_id:
@@ -700,7 +705,7 @@ class MainWindow(QWidget):
                    "event_wait_ms": getattr(self, "_result_request_delay_ms", None)}
         node_dir = RESULTS_DIR / node_id
         if not (node_dir / "result.csv").exists():
-            QMessageBox.information(self, "尚無分析結果", f"{node_id} 尚無已儲存結果，請先按「Run 全流程」。")
+            QMessageBox.information(self, "尚無分析結果", f"{node_id} 尚無已儲存結果，請先執行這個分析。")
             return
 
         result_dir = node_dir

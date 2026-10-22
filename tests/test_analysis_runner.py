@@ -161,7 +161,8 @@ class AnalysisRunnerTests(unittest.TestCase):
             self.assertTrue(destination.is_relative_to(ROOT.resolve()))
             window = self.make_window(stack, destination, plugins)
             try:
-                window.run_selected_analysis()
+                window.parameter_values["source_value"] = "999"
+                window.run_selected_with_dependencies()
                 self.wait_for(lambda: window.analysis_runner is None)
                 text = window.console.toPlainText()
                 self.assertIn("必要前置分析｜Source", text)
@@ -171,6 +172,84 @@ class AnalysisRunnerTests(unittest.TestCase):
                 if window.analysis_runner is not None:
                     window.analysis_runner.wait(5000)
                     self.app.processEvents()
+                window.close()
+
+    def test_single_analysis_reuses_upstream_after_edit_without_running_source(self):
+        source = MagicMock(return_value=None)
+        source.side_effect = lambda parameters: response({"source_value": 3})
+        plugins = [plugin("Source", source, outputs={"source_value": "value"}),
+                   plugin("Selected", lambda p: response({"answer": p["source_value"] * p["gain"]}),
+                          parameters={"source_value": "float", "gain": "float"}, outputs={"answer": "answer"})]
+        with TemporaryDirectory(dir=ROOT) as temporary, ExitStack() as stack:
+            window = self.make_window(stack, Path(temporary), plugins)
+            try:
+                window.parameter_values["gain"] = "2"
+                window.run_selected_with_dependencies()
+                self.wait_for(lambda: window.analysis_runner is None)
+                source.assert_called_once()
+                window.show_node_parameters("Selected")
+                window.parameter_edits["gain"].setText("4")
+                window.run_selected_button.click()
+                self.assertEqual([row["node_id"] for row in window.analysis_runner.rows], ["Selected"])
+                self.assertFalse(window.run_with_dependencies_button.isEnabled())
+                self.wait_for(lambda: window.analysis_runner is None)
+                self.assertEqual(window.output_values["answer"], 12)
+                source.assert_called_once()
+                self.assertNotIn("必要前置分析", window.console.toPlainText())
+                self.assertTrue(window.run_with_dependencies_button.isEnabled())
+            finally:
+                if window.analysis_runner is not None:
+                    window.analysis_runner.wait(5000)
+                    self.app.processEvents()
+                window.close()
+
+    def test_single_analysis_restores_saved_outputs_but_live_outputs_take_priority(self):
+        source = MagicMock()
+        plugins = [plugin("Source", source, outputs={"source_value": "value"}),
+                   plugin("Selected", lambda p: response({"answer": p["source_value"] * 2}),
+                          parameters={"source_value": "float"}, outputs={"answer": "answer"})]
+        with TemporaryDirectory(dir=ROOT) as temporary, ExitStack() as stack:
+            destination = Path(temporary)
+            (destination / "Source").mkdir()
+            (destination / "Source" / "result.csv").write_text(
+                "category,name,number\n輸入量,source_value,999\n導出量,source_value,7\n", encoding="utf-8-sig")
+            window = self.make_window(stack, destination, plugins)
+            try:
+                window.run_selected_analysis()
+                self.wait_for(lambda: window.analysis_runner is None)
+                self.assertEqual(window.output_values["answer"], 14)
+                self.assertIn("已從儲存結果載入：source_value", window.console.toPlainText())
+                window.parameter_values["source_value"] = "5"
+                window.run_selected_analysis()
+                self.wait_for(lambda: window.analysis_runner is None)
+                self.assertEqual(window.output_values["answer"], 10)
+                self.assertNotIn("已從儲存結果載入", window.console.toPlainText())
+                source.assert_not_called()
+            finally:
+                if window.analysis_runner is not None:
+                    window.analysis_runner.wait(5000)
+                    self.app.processEvents()
+                window.close()
+
+    def test_single_analysis_missing_or_invalid_upstream_never_falls_back_to_execution(self):
+        source, selected = MagicMock(), MagicMock()
+        plugins = [plugin("Source", source, outputs={"source_value": "value"}),
+                   plugin("Selected", selected, parameters={"source_value": "float"})]
+        with TemporaryDirectory(dir=ROOT) as temporary, ExitStack() as stack:
+            window = self.make_window(stack, Path(temporary), plugins)
+            warning = stack.enter_context(patch("main.QMessageBox.warning"))
+            try:
+                window.run_selected_analysis()
+                self.assertIsNone(window.analysis_runner)
+                self.assertIn("所選分析＋前置分析", warning.call_args.args[2])
+                window.parameter_values["source_value"] = "bad value"
+                window.run_selected_analysis()
+                self.assertIsNone(window.analysis_runner)
+                self.assertEqual(warning.call_count, 2)
+                source.assert_not_called()
+                selected.assert_not_called()
+                self.assertTrue(window.run_button.isEnabled())
+            finally:
                 window.close()
 
     def test_failure_reports_current_stage_and_restores_controls_and_stdout(self):
@@ -196,6 +275,7 @@ class AnalysisRunnerTests(unittest.TestCase):
                 self.assertFalse(window.progress_timer.isActive())
                 self.assertTrue(window.run_button.isEnabled())
                 self.assertTrue(window.run_selected_button.isEnabled())
+                self.assertTrue(window.run_with_dependencies_button.isEnabled())
                 self.assertTrue(window.csv_button.isEnabled())
                 self.assertTrue(window.parameter_scroll.isEnabled())
                 self.assertIs(sys.stdout, original_stdout)
