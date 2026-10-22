@@ -1,4 +1,5 @@
 import csv
+import json
 import re
 import sys
 from pathlib import Path
@@ -328,6 +329,7 @@ class MainWindow(QWidget):
         page.flowNodeRequested.connect(
             lambda node_id, double, source=page: self.handle_flow_node_request(node_id, double, source)
         )
+        page.loadFinished.connect(lambda loaded, source=page: self._sync_flow_selection(source) if loaded else None)
         self.flow_views[index] = view
         self.flow_pages[index] = page
         self.flow_stack.widget(index).layout().addWidget(view)
@@ -340,14 +342,19 @@ class MainWindow(QWidget):
         view = self.flow_view if view is None else view
         view.setHtml(render_flow_diagram(flow, group))
 
+    def _sync_flow_selection(self, page=None):
+        script = "window.flowSelection && window.flowSelection.select(" + json.dumps(self.active_node_id) + ");"
+        for target in ([page] if page is not None else self.flow_pages.values()):
+            target.runJavaScript(script)
+
     def handle_flow_node_request(self, node_id, is_double_click, source_page=None):
         if self.analysis_runner is not None:
+            self._sync_flow_selection()
             return
+        self.show_node_parameters(node_id)
         if is_double_click:
             self._result_request_delay_ms = getattr(source_page or self.flow_page, "last_request_delay_ms", None)
             self.show_result(node_id)
-        else:
-            self.show_node_parameters(node_id)
 
     def load_csv(self, path):
         try:
@@ -439,6 +446,7 @@ class MainWindow(QWidget):
         plugin = self.plugins_by_id[row["analysis_id"]]
         self.parameter_title.setText(f"{row['title']} 輸入參數")
         self.build_parameter_fields(plugin)
+        self._sync_flow_selection()
 
     def update_parameter(self, name, value):
         name = canonical_parameter_name(name)

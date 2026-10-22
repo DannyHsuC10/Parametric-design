@@ -1,7 +1,7 @@
 """Group pages preserve graph topology; zoom and clicks work in Qt's real web engine."""
 
 import csv
-from html import unescape
+from html import escape, unescape
 import json
 import os
 from pathlib import Path
@@ -26,6 +26,20 @@ from main import FlowDiagramPage, MainWindow
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def fixture_source(flow, group=None):
+    """Use simple SVG nodes so interaction tests exercise Qt without a CDN."""
+    source = render_flow_diagram(flow, group)
+    source = re.sub(r'<script src="https://[^\"]+"></script>', "", source)
+    nodes = []
+    for index, row in enumerate(row for row in flow if group is None or row.get("flow_group", "") == group):
+        x = 100 + index * 300
+        nodes.append(f'<g class="node"><rect x="{x}" y="100" width="200" height="100" '
+                     'style="fill:#f1f1f1;stroke:#b8b8b8"/>'
+                     f'<text x="{x+20}" y="150">{escape(row["title"])}</text></g>')
+    svg = '<div class="mermaid"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 2400">' + "".join(nodes) + '</svg></div>'
+    return re.sub(r'<div class="mermaid">.*?</div>', lambda _: svg, source, flags=re.S)
 
 
 class FlowDiagramTests(unittest.TestCase):
@@ -60,11 +74,11 @@ class FlowViewportTests(unittest.TestCase):
             QTest.qWait(30)
         self.assertTrue(predicate(), "Timed out waiting for web engine")
 
-    def js(self, source):
+    def js(self, source, page=None):
         values = []
         loop = QEventLoop()
-        self.page.runJavaScript("JSON.stringify(eval(" + json.dumps(source) + "))",
-                                lambda result: (values.append(result), loop.quit()))
+        (page or self.page).runJavaScript("JSON.stringify(eval(" + json.dumps(source) + "))",
+                                         lambda result: (values.append(result), loop.quit()))
         QTimer.singleShot(3000, loop.quit)
         loop.exec()
         self.assertTrue(values, "JavaScript did not return")
@@ -78,14 +92,8 @@ class FlowViewportTests(unittest.TestCase):
         self.view.show()
         self.requests = []
         self.page.flowNodeRequested.connect(lambda node, double: self.requests.append((node, double)))
-        # Use a deterministic SVG fixture so these interaction tests need no CDN.
-        source = render_flow_diagram([dict(node_id="chosen", title="Chosen", flow_row="main",
-                                          branch_from="", flow_group="")])
-        source = re.sub(r'<script src="https://[^\"]+"></script>', "", source)
-        source = re.sub(r'<div class="mermaid">.*?</div>',
-                        '<div class="mermaid"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 2400">'
-                        '<g class="node"><rect x="100" y="100" width="200" height="100" fill="gray"/>'
-                        '<text x="120" y="150">Chosen</text></g></svg></div>', source, flags=re.S)
+        source = fixture_source([dict(node_id=node, title=title, flow_row="main", branch_from="", flow_group="")
+                                 for node, title in (("chosen", "Chosen"), ("other", "Other"))])
         ready = []
         self.view.loadFinished.connect(ready.append)
         self.view.setHtml(source)
@@ -136,9 +144,19 @@ class FlowViewportTests(unittest.TestCase):
         self.assertEqual(self.js("flowViewport.zoomTo(100); flowViewport.scale"), 4)
         self.assertEqual(self.js("flowViewport.zoomTo(0); flowViewport.scale"), 0.01)
         self.js("flowViewport.zoomTo(1); document.getElementById('flow-viewport').scrollLeft = 0; document.getElementById('flow-viewport').scrollTop = 0;")
-        QTest.mouseClick(self.view.focusProxy(), Qt.MouseButton.LeftButton, pos=QPoint(200, 200))
+        # Selection styling must override Mermaid's inline fill and stroke.
+        self.js("flowSelection.select('other')")
+        self.assertEqual(self.js("document.querySelector('.flow-selected').textContent"), "Other")
+        QTest.mousePress(self.view.focusProxy(), Qt.MouseButton.LeftButton, pos=QPoint(200, 200))
+        self.wait_for(lambda: self.js("!!document.querySelector('.flow-pressed')"))
+        self.assertEqual(self.js("getComputedStyle(document.querySelector('.flow-pressed rect')).fill"), "rgb(147, 197, 253)")
+        QTest.mouseRelease(self.view.focusProxy(), Qt.MouseButton.LeftButton, pos=QPoint(200, 200))
         self.wait_for(lambda: self.requests)
         self.assertEqual(self.requests, [("chosen", False)])
+        self.assertEqual(self.js("document.querySelectorAll('.flow-selected').length"), 1)
+        self.assertEqual(self.js("document.querySelector('.flow-selected').textContent"), "Chosen")
+        self.assertEqual(self.js("getComputedStyle(document.querySelector('.flow-selected rect')).fill"), "rgb(191, 219, 254)")
+        self.assertFalse(self.js("!!document.querySelector('.flow-pressed')"))
         self.requests.clear()
         # Queue the second click after Chromium receives the native first click.
         # A runJavaScript call immediately after QTest.mouseClick can overtake it.
@@ -150,23 +168,34 @@ class FlowViewportTests(unittest.TestCase):
         self.wait_for(lambda: self.requests)
         QTest.qWait(300)
         self.assertEqual(self.requests, [("chosen", True)])
+        self.assertEqual(self.js("document.querySelector('.flow-selected').textContent"), "Chosen")
 
     def test_drag_pans_without_requesting_a_node(self):
-        self.js("flowViewport.zoomTo(1); const v = document.getElementById('flow-viewport'); v.scrollLeft = 200; v.scrollTop = 300;")
+        self.js("flowViewport.zoomTo(1); const v = document.getElementById('flow-viewport'); v.scrollLeft = 0; v.scrollTop = 0;")
         target = self.view.focusProxy()
-        QTest.mousePress(target, Qt.MouseButton.LeftButton, pos=QPoint(300, 250))
-        QTest.mouseMove(target, QPoint(200, 150), delay=30)
-        QTest.mouseRelease(target, Qt.MouseButton.LeftButton, pos=QPoint(200, 150))
+        QTest.mousePress(target, Qt.MouseButton.LeftButton, pos=QPoint(200, 200))
+        self.wait_for(lambda: self.js("!!document.querySelector('.flow-pressed')"))
+        QTest.mouseMove(target, QPoint(100, 100), delay=30)
+        self.wait_for(lambda: self.js("document.getElementById('flow-viewport').scrollLeft > 50"))
+        QTest.mouseRelease(target, Qt.MouseButton.LeftButton, pos=QPoint(100, 100))
         result = self.js("({left: document.getElementById('flow-viewport').scrollLeft, top: document.getElementById('flow-viewport').scrollTop})")
-        self.assertGreater(result["left"], 250)
-        self.assertGreater(result["top"], 350)
+        self.assertGreater(result["left"], 50)
+        self.assertGreater(result["top"], 50)
         QTest.qWait(300)
         self.assertEqual(self.requests, [])
+        self.assertFalse(self.js("!!document.querySelector('.flow-selected, .flow-pressed')"))
 
     def test_dropdown_defaults_to_full_flow_and_pages_share_node_selection(self):
+        def build_fixture(window, flow=None, view=None, group=None):
+            view.setHtml(fixture_source(window.flow, group))
+
         with TemporaryDirectory(dir=ROOT) as temporary, patch.object(MainWindow, "select_csv"), \
-                patch.object(MainWindow, "build_flow_buttons"), patch("main.LAST_SET_CSV", Path(temporary) / "last.csv"):
+                patch.object(MainWindow, "build_flow_buttons", build_fixture), patch("main.LAST_SET_CSV", Path(temporary) / "last.csv"):
             window = MainWindow()
+
+            def highlighted(page):
+                return self.js("document.querySelector('.flow-selected')?.textContent", page)
+
             try:
                 self.assertEqual(window.flow_selector.currentText(), "完整流程")
                 self.assertEqual(window.flow_stack.currentIndex(), 0)
@@ -175,6 +204,7 @@ class FlowViewportTests(unittest.TestCase):
                 self.assertNotIn("", window.flow_groups)
                 self.assertEqual(set(options[1:]), {row["flow_group"] for row in window.flow if row.get("flow_group")})
                 self.assertEqual(len(window.flow_views), 1)
+                self.wait_for(lambda: highlighted(window.flow_pages[0]) == "元件重心、質量與慣量")
                 group = window.flow_groups.index("煞車分析")
                 window.flow_selector.setCurrentIndex(group)
                 self.assertEqual(window.flow_stack.currentIndex(), group)
@@ -184,6 +214,14 @@ class FlowViewportTests(unittest.TestCase):
                 self.assertEqual(window.active_node_id, "pedal_ratio")
                 self.assertTrue(window.run_selected_button.isEnabled())
                 self.assertTrue(window.run_with_dependencies_button.isEnabled())
+                self.wait_for(lambda: highlighted(window.flow_pages[group]) == "Pedal_ratio")
+                self.wait_for(lambda: highlighted(window.flow_pages[0]) == "Pedal_ratio")
+                with patch.object(window, "show_result") as show_result:
+                    window.flow_pages[group].flowNodeRequested.emit("brake_force", True)
+                    self.assertEqual(window.active_node_id, "brake_force")
+                    show_result.assert_called_once_with("brake_force")
+                self.wait_for(lambda: highlighted(window.flow_pages[0]) == "Brake_force")
+                self.wait_for(lambda: highlighted(window.flow_pages[group]) == "Brake_force")
                 window.flow_selector.setCurrentIndex(0)
                 self.assertEqual(window.flow_stack.currentIndex(), 0)
                 window.flow_selector.setCurrentIndex(group)

@@ -77,6 +77,20 @@ html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 #flow-canvas { position: relative; min-width: 100%; min-height: 100%; }
 #flow-canvas .mermaid { display: block; overflow: visible; margin: 0; padding: 0; }
 #flow-canvas svg { position: absolute; max-width: none !important; }
+#flow-canvas .node:hover > rect, #flow-canvas .node:hover .label-container {
+  fill: #dbeafe !important; stroke: #60a5fa !important;
+}
+#flow-canvas .node.flow-selected > rect, #flow-canvas .node.flow-selected .label-container {
+  fill: #bfdbfe !important; stroke: #2563eb !important; stroke-width: 3px !important;
+}
+#flow-canvas .node.flow-pressed > rect, #flow-canvas .node.flow-pressed .label-container {
+  fill: #93c5fd !important; stroke: #1d4ed8 !important; stroke-width: 3px !important;
+}
+#flow-canvas .node.flow-selected .label, #flow-canvas .node.flow-selected .label *,
+#flow-canvas .node.flow-selected text, #flow-canvas .node.flow-pressed .label,
+#flow-canvas .node.flow-pressed .label *, #flow-canvas .node.flow-pressed text {
+  color: #0f172a !important; fill: #0f172a !important;
+}
 </style>"""
 
 VIEWPORT_TOOLBAR = """<div id="flow-toolbar" role="toolbar" aria-label="流程圖縮放">
@@ -96,6 +110,23 @@ VIEWPORT_SCRIPT = r"""<script>
   const padding = 32;
   let svg = null, width = 0, height = 0, scale = 1, offsetX = padding, offsetY = padding;
   let clickTimer = null, drag = null, suppressClickUntil = 0;
+  let selectedNodeId = null, pressedNode = null;
+
+  function nodeId(group) {
+    const title = (group.textContent || '').replace(/\s+/g, ' ').trim();
+    return titleToId[title] || null;
+  }
+  function selectNode(id) {
+    selectedNodeId = id;
+    canvas.querySelectorAll('g.node').forEach(group => {
+      group.classList.toggle('flow-selected', id != null && nodeId(group) === id);
+    });
+  }
+  function clearPressedNode() {
+    if (pressedNode) pressedNode.classList.remove('flow-pressed');
+    pressedNode = null;
+  }
+  window.flowSelection = {select: selectNode};
 
   function layout() {
     const canvasWidth = Math.max(viewport.clientWidth, width * scale + 2 * padding);
@@ -136,6 +167,7 @@ VIEWPORT_SCRIPT = r"""<script>
     scale = Math.max(0.01, Math.min(1, (viewport.clientWidth - 2 * padding) / width));
     layout();
     viewport.scrollLeft = viewport.scrollTop = 0;
+    selectNode(selectedNodeId);
   }
   const observer = new MutationObserver(initialize);
   observer.observe(canvas, {childList: true, subtree: true});
@@ -163,6 +195,12 @@ VIEWPORT_SCRIPT = r"""<script>
     const bounds = viewport.getBoundingClientRect();
     if (event.clientX - bounds.left >= viewport.clientWidth ||
         event.clientY - bounds.top >= viewport.clientHeight) return;
+    clearPressedNode();
+    const group = event.target.closest('g.node');
+    if (event.button === 0 && group && nodeId(group)) {
+      pressedNode = group;
+      pressedNode.classList.add('flow-pressed');
+    }
     drag = {id: event.pointerId, x: event.clientX, y: event.clientY,
             left: viewport.scrollLeft, top: viewport.scrollTop, moved: false};
     if (event.button === 1) event.preventDefault();
@@ -174,6 +212,7 @@ VIEWPORT_SCRIPT = r"""<script>
     if (!drag.moved) {
       drag.moved = true;
       clearTimeout(clickTimer);
+      clearPressedNode();
       viewport.setPointerCapture(event.pointerId);
       viewport.classList.add('dragging');
     }
@@ -182,6 +221,7 @@ VIEWPORT_SCRIPT = r"""<script>
   });
   function endDrag(event) {
     if (!drag || drag.id !== event.pointerId) return;
+    clearPressedNode();
     if (drag.moved) suppressClickUntil = performance.now() + 350;
     if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
     viewport.classList.remove('dragging');
@@ -189,11 +229,11 @@ VIEWPORT_SCRIPT = r"""<script>
   }
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
+  window.addEventListener('blur', clearPressedNode);
   function findNode(event) {
     const group = event.target.closest('g.node');
     if (!group || performance.now() < suppressClickUntil) return null;
-    const title = (group.textContent || '').replace(/\s+/g, ' ').trim();
-    return titleToId[title] || null;
+    return nodeId(group);
   }
   function request(nodeId, kind, clickedAt) {
     window.location.href = 'flow-node://' + kind + '/' + encodeURIComponent(nodeId)
@@ -202,6 +242,7 @@ VIEWPORT_SCRIPT = r"""<script>
   document.addEventListener('click', event => {
     const nodeId = findNode(event);
     if (!nodeId) return;
+    selectNode(nodeId);
     clearTimeout(clickTimer);
     const clickedAt = performance.timeOrigin + event.timeStamp;
     clickTimer = setTimeout(() => request(nodeId, 'single', clickedAt), 260);
@@ -209,6 +250,7 @@ VIEWPORT_SCRIPT = r"""<script>
   document.addEventListener('dblclick', event => {
     const nodeId = findNode(event);
     if (!nodeId) return;
+    selectNode(nodeId);
     clearTimeout(clickTimer);
     request(nodeId, 'double', performance.timeOrigin + event.timeStamp);
   });
