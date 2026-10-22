@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from openpyxl import load_workbook
 
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 TITLE = "COG_movable"
 DESCRIPTION = "由 Excel 質量分布計算重心、簧上／簧下質量與慣量。"

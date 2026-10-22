@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from analysis.cornering.models import bicycle_step_response, require_positive
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 TITLE = "Bicycle_Model"
 DESCRIPTION = "Linear two-state bicycle-model response to a steering step."

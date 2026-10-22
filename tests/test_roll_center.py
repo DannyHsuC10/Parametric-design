@@ -20,10 +20,10 @@ from scipy.integrate import solve_ivp
 
 from analysis.roll_center_analysis.models import Axle, amplitudes, make_axle, response, sweep, time_grid
 from analysis.roll_center_analysis.workflow import DEFAULTS, PARAMETERS, SCAN_SETTINGS
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import load_plot_choices, save_analysis_result
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import load_plot_choices, save_analysis_result
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGES = ("roll_center", "roll_center_min_load_f", "roll_center_same_load_r")

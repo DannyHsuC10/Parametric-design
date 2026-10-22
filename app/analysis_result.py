@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 import csv
 import json
 from pathlib import Path
-from analysis_data import normalize_analysis_parameters
+from .analysis_data import normalize_analysis_parameters
 
 
 @dataclass
@@ -38,7 +38,7 @@ def save_analysis_result(results_dir, node_id, parameters, result):
     parameters = normalize_analysis_parameters(parameters)
     result_dir = Path(results_dir) / node_id
     result_dir.mkdir(parents=True, exist_ok=True)
-    result.figure.savefig(result_dir / "plot.png", dpi=300, bbox_inches="tight")
+    result.figure.savefig(result_dir / "plot.png", dpi=200, bbox_inches="tight")
     with (result_dir / "result.csv").open("w", newline="", encoding="utf-8-sig") as stream:
         writer = csv.writer(stream)
         writer.writerow(["category", "name", "number"])
@@ -66,7 +66,7 @@ def save_analysis_result(results_dir, node_id, parameters, result):
         write_reports(results_dir)
     notes_path = result_dir / "analysis.md"
     if notes_path.exists():
-        from markdown_renderer import render_markdown_file
+        from .markdown_renderer import render_markdown_file
         render_markdown_file(notes_path)
 
 

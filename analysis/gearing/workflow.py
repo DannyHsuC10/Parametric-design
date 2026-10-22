@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 G = 9.81
 DEFAULTS = {

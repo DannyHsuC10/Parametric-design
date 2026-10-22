@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 from .models import (G, WHEELS, Vehicle, alpha_bounds, four_wheel_load_cg,
                      four_wheel_load_lsm, wheel_load_null_direction, wheel_load_stiffness)
 

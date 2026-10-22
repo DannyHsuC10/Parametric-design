@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from analysis.cornering.models import sweep, turning_radius
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 TITLE = "Turning_Radius"
 DESCRIPTION = "Theoretical rear-axle-center turning radius: R = L / tan(theta)."

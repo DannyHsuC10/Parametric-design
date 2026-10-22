@@ -13,7 +13,7 @@ from matplotlib import rc_context
 from matplotlib.font_manager import FontProperties
 from matplotlib.mathtext import math_to_image
 
-from document_theme import document_colors
+from .document_theme import document_colors
 
 
 INLINE_PATTERN = re.compile(r"(\$[^$\n]+\$|`[^`]+`|\*\*.+?\*\*)")
@@ -57,7 +57,7 @@ def _cached_math_svg(formula, inline, color):
                 buffer,
                 prop=FontProperties(size=font_size, math_fontfamily="cm"),
                 format="svg",
-                dpi=300,
+                dpi=200,
                 color=color or document_colors()["foreground"],
             )
     except Exception:

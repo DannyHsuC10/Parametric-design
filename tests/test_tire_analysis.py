@@ -25,10 +25,10 @@ from analysis.Pacejka_tire_model import MF_tester
 from analysis.Pacejka_tire_model.model.api import CalculationInput, MF_Universal_solver, TIRE_FILE, load_tir
 from analysis.tire_analysis.models import (CAMBERS_DEG, LOADS_N, PRESSURES_PSI, PSI_TO_PA,
                                          force_surface, friction_peaks, optimize_lateral)
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import load_plot_choices, normalize_result, save_analysis_result
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import load_plot_choices, normalize_result, save_analysis_result
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGES = ("tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction")

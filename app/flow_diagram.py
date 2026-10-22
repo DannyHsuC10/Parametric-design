@@ -2,7 +2,7 @@
 
 import json
 
-from markdown_renderer import render_markdown
+from .markdown_renderer import render_markdown
 
 
 def flow_edges(flow):

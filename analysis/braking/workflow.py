@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 from .models import (G, LINE_DATA_PATH, axle_force_gains, axle_loads, design_limit_g,
                      effective_disc_radius, first_lock_limit, fit_line_data,
                      hydraulic_geometry, ideal_distribution, line_pressures, validate)

@@ -7,7 +7,7 @@ from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 from analysis.Pacejka_tire_model import MF_tester
 from analysis.Pacejka_tire_model.model.api import TIRE_FILE
 from .models import (PSI_TO_PA, PRESSURES_PSI, CAMBERS_DEG, SLIP_ANGLES_DEG,

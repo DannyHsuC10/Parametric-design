@@ -5,8 +5,8 @@ import html
 from pathlib import Path
 import re
 
-from analysis_result import load_plot_choices
-from markdown_renderer import render_markdown, render_markdown_file
+from app.analysis_result import load_plot_choices
+from app.markdown_renderer import render_markdown, render_markdown_file
 from .parameters import STAGES, TITLES
 
 

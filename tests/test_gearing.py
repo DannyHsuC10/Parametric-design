@@ -1,6 +1,6 @@
 import unittest
 
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 from analysis.gearing.workflow import DEFAULTS
 
 
@@ -14,7 +14,7 @@ class GearingIntegrationTests(unittest.TestCase):
     def test_requested_flow_edges_and_independent_branches_load(self):
         from pathlib import Path
         from types import SimpleNamespace
-        from analysis_data import load_analysis_parameters
+        from app.analysis_data import load_analysis_parameters
         from main import MainWindow
 
         window = SimpleNamespace(plugins_by_id=self.plugins)
@@ -67,7 +67,7 @@ class GearingIntegrationTests(unittest.TestCase):
 
     def test_vehicle_mass_is_hidden_and_all_gearing_defaults_are_in_shared_csv(self):
         from pathlib import Path
-        from analysis_data import load_analysis_parameters
+        from app.analysis_data import load_analysis_parameters
 
         values = load_analysis_parameters(Path(__file__).resolve().parents[1]
                                           / "data" / "analysis_parameters.csv")

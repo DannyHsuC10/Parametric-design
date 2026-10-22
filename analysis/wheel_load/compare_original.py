@@ -21,10 +21,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import normalize_result
-from markdown_renderer import render_markdown
-from plugin_loader import scan_analysis
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import normalize_result
+from app.markdown_renderer import render_markdown
+from app.plugin_loader import scan_analysis
 from .models import (G, WHEELS, alpha_bounds, four_wheel_load_cg, four_wheel_load_lsm,
                      wheel_load_null_direction, wheel_load_stiffness)
 from .parameters import plugin_metadata
@@ -148,7 +148,7 @@ def compare(root, parameters, destination):
     for axis in axes.flat:
         axis.grid(alpha=.3)
         axis.legend(fontsize=8)
-    figure.savefig(destination / "comparison.png", dpi=180)
+    figure.savefig(destination / "comparison.png", dpi=200)
     plt.close(figure)
 
     mapping = pd.DataFrame({"parameter": list(p), "value": list(p.values())})

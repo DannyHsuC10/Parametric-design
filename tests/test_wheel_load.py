@@ -20,15 +20,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PySide6.QtWidgets import QApplication, QComboBox, QWidget
 
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import save_analysis_result
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import save_analysis_result
 from analysis.wheel_load.models import (G, Vehicle, alpha_bounds, four_wheel_load_cg,
                                         four_wheel_load_lsm, wheel_load_null_direction, wheel_load_stiffness)
 from analysis.wheel_load.compare_original import original_functions
 from analysis.wheel_load.parameters import STAGES, TITLES
 from analysis.wheel_load.workflow import validate
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,7 +42,7 @@ class WheelLoadTests(unittest.TestCase):
         with redirect_stdout(StringIO()):
             for stage in ("cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness", "tire_stiffness"):
                 plugin = cls.plugins[stage]
-                from analysis_result import normalize_result
+                from app.analysis_result import normalize_result
                 result = normalize_result(plugin.run(parse_analysis_parameters(cls.values, plugin.parameters)))
                 figure, outputs = result
                 cls.values.update({name: str(value) for name, value in outputs.items()})

@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 from .suspension_dynamics.damping_models import SINGLE_DOF_PARAMETERS, checked_solution, system_settings
 from .suspension_dynamics.oscillation_models import oscillator_energy

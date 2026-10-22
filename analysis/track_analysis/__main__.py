@@ -6,7 +6,7 @@ from pathlib import Path
 
 def main():
     from analysis.TrackAnalysis import INPUT_MAP, PARAMETER_DEFAULTS, main as analyze
-    from analysis_result import save_analysis_result
+    from app.analysis_result import save_analysis_result
 
     parser = argparse.ArgumentParser(description="Analyze an OpenTRACK Excel map.")
     parser.add_argument("input", nargs="?", type=Path, default=INPUT_MAP)

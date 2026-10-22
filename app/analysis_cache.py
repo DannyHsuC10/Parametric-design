@@ -5,7 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from analysis_data import canonical_parameter_name, parse_analysis_parameters
+from .analysis_data import canonical_parameter_name, parse_analysis_parameters
 
 
 def input_file_state(plugin):

@@ -5,7 +5,7 @@ from matplotlib.patches import Arc, Circle
 import pandas as pd
 
 from analysis.cornering.models import slalom_geometry
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 TITLE = "Slalom"
 DESCRIPTION = "依前輪距、角錐間距與偏移量，比較連續過彎的圓弧走線與半徑。"

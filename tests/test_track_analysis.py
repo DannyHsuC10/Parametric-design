@@ -24,10 +24,10 @@ import numpy as np
 from analysis.track_analysis.geometry import build_track, radius_distributions, read_workbook
 from analysis.track_analysis.score_weight import calculate_score_weights
 from analysis.track_analysis.track_data import TrackData
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import load_plot_choices, save_analysis_result
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import load_plot_choices, save_analysis_result
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -8,9 +8,9 @@ import matplotlib
 matplotlib.use("Agg")
 from PySide6.QtCore import QThread, Signal
 
-from analysis_data import parse_analysis_parameters
-from analysis_cache import begin_analysis, input_file_state, remember_analysis, reusable_outputs
-from analysis_result import normalize_result, save_analysis_result
+from .analysis_data import parse_analysis_parameters
+from .analysis_cache import begin_analysis, input_file_state, remember_analysis, reusable_outputs
+from .analysis_result import normalize_result, save_analysis_result
 
 
 class LogStream(io.TextIOBase):

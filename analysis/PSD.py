@@ -16,7 +16,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 INPUT_FILES = (Path(__file__).resolve().parents[1] / "data" / "input_data" / "vt_data.csv",)
 

@@ -6,7 +6,7 @@ import pandas as pd
 from scipy import signal
 from scipy.integrate import solve_ivp
 
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 from .damper import DamperAnalysis
 from .equivalent_independent import EquivalentIndependentAnalysis
 from .heave_analysis import HeaveAnalysis

@@ -11,14 +11,14 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QFormLayout, QWidget
 
-from analysis_data import (
+from app.analysis_data import (
     PARAMETER_ALIASES,
     load_analysis_parameters,
     normalize_analysis_parameters,
     parse_analysis_parameters,
 )
 from main import MainWindow
-from plugin_loader import AnalysisPlugin, scan_analysis
+from app.plugin_loader import AnalysisPlugin, scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 

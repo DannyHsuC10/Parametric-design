@@ -16,9 +16,9 @@ import matplotlib.pyplot as plt
 from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication, QWidget
 
-from analysis_runner import AnalysisRunner, LogStream
+from app.analysis_runner import AnalysisRunner, LogStream
 from main import MainWindow
-from plugin_loader import AnalysisPlugin
+from app.plugin_loader import AnalysisPlugin
 
 ROOT = Path(__file__).resolve().parents[1]
 

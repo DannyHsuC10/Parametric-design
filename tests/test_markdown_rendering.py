@@ -18,9 +18,9 @@ from PySide6.QtWidgets import QApplication, QDialog, QWidget
 from matplotlib import rc_context, rcParams
 
 from main import FlowDiagramPage, MainWindow
-from document_theme import document_colors
-from markdown_renderer import render_markdown, render_markdown_file
-from markdown_view import (
+from app.document_theme import document_colors
+from app.markdown_renderer import render_markdown, render_markdown_file
+from app.markdown_view import (
     MATH_ID_PROPERTY,
     MATH_OBJECT_TYPE,
     MATH_SVG_PATTERN,
@@ -122,7 +122,7 @@ class MarkdownRenderingTests(unittest.TestCase):
             first = render_markdown_file(path, cache_info=info)
             self.assertFalse(info["cache_hit"])
             self.assertTrue(path.with_suffix(".rendered.html").is_file())
-            with patch("markdown_renderer.render_markdown", side_effect=AssertionError("Unexpected formula rendering")):
+            with patch("app.markdown_renderer.render_markdown", side_effect=AssertionError("Unexpected formula rendering")):
                 self.assertEqual(render_markdown_file(path, cache_info=info), first)
                 self.assertTrue(info["cache_hit"])
             path.write_text("# Edited\n\n$x^3$", encoding="utf-8")
@@ -130,11 +130,11 @@ class MarkdownRenderingTests(unittest.TestCase):
             self.assertNotEqual(first, second)
             self.assertIn("Edited", second)
             colors = document_colors() | {"foreground": "#aabbcc"}
-            with patch("markdown_renderer.document_colors", return_value=colors):
+            with patch("app.markdown_renderer.document_colors", return_value=colors):
                 themed = render_markdown_file(path)
                 self.assertIn("fill: #aabbcc", themed)
                 self.assertNotEqual(second, themed)
-                with patch("markdown_renderer.render_markdown", side_effect=AssertionError("Unexpected formula rendering")):
+                with patch("app.markdown_renderer.render_markdown", side_effect=AssertionError("Unexpected formula rendering")):
                     self.assertEqual(render_markdown_file(path), themed)
 
     def test_prepared_notes_open_in_result_dialog_without_recompiling_formulas(self):
@@ -142,7 +142,7 @@ class MarkdownRenderingTests(unittest.TestCase):
         render_markdown_file(path)
         parent = QWidget()
         with (patch("main.QDialog.exec", return_value=0),
-              patch("markdown_renderer.render_markdown", side_effect=AssertionError("Formula recompiled while opening"))):
+              patch("app.markdown_renderer.render_markdown", side_effect=AssertionError("Formula recompiled while opening"))):
             MainWindow.show_result(parent, "solver_compar")
         view = parent.findChild(MarkdownView)
         self.assertIsNotNone(view)

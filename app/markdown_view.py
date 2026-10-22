@@ -16,8 +16,8 @@ from PySide6.QtGui import (
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QTextBrowser
 
-from document_theme import document_colors
-from markdown_renderer import svg_display_size
+from .document_theme import document_colors
+from .markdown_renderer import svg_display_size
 
 
 MATH_OBJECT_TYPE = QTextFormat.ObjectTypes.UserObject.value + 1

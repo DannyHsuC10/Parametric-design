@@ -23,9 +23,9 @@ from PySide6.QtWidgets import QApplication, QFormLayout, QWidget
 from analysis.cornering.models import (
     ackermann_angles, bicycle_ode, bicycle_step_response, cornering_speed, turning_radius,
 )
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 NEW_IDS = ("speed_vs_r", "turning_radius", "ideal_ackemann", "bicycle_model")

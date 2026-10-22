@@ -21,7 +21,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QApplication
 
-from flow_diagram import flow_edges, render_flow_diagram
+from app.flow_diagram import flow_edges, render_flow_diagram
 from main import FlowDiagramPage, MainWindow
 
 

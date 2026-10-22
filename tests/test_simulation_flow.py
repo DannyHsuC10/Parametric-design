@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.linalg import expm
 
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
 from main import MainWindow
 from analysis.suspension_dynamics.oscillation_models import (
     analytical_response,
@@ -22,7 +22,7 @@ from analysis.suspension_dynamics.oscillation_models import (
     oscillator_energy,
     time_grid,
 )
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -6,9 +6,9 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import normalize_result, save_analysis_result
-from plugin_loader import scan_analysis
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import normalize_result, save_analysis_result
+from app.plugin_loader import scan_analysis
 from .parameters import STAGES
 
 

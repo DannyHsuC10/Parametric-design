@@ -21,10 +21,10 @@ import pandas as pd
 from analysis.braking.models import (G, LINE_DATA_PATH, axle_loads, fit_line_data,
                                      ideal_distribution)
 from analysis.braking.workflow import DEFAULTS
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import load_plot_choices, save_analysis_result
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import load_plot_choices, save_analysis_result
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGES = ("brake_ratio", "pedal_ratio", "brake_force", "brake_hydraulic_pressure")

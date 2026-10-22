@@ -30,14 +30,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from analysis_data import canonical_parameter_name, load_analysis_parameters, parse_analysis_parameters
-from analysis_result import AnalysisResult, load_plot_choices, save_analysis_result
-from analysis_runner import AnalysisRunner
-from document_theme import document_colors
-from flow_diagram import render_flow_diagram
-from markdown_renderer import render_markdown, render_markdown_file
-from markdown_view import MarkdownView
-from plugin_loader import scan_analysis
+from app.analysis_data import canonical_parameter_name, load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import AnalysisResult, load_plot_choices, save_analysis_result
+from app.analysis_runner import AnalysisRunner
+from app.document_theme import document_colors
+from app.flow_diagram import render_flow_diagram
+from app.markdown_renderer import render_markdown, render_markdown_file
+from app.markdown_view import MarkdownView
+from app.plugin_loader import scan_analysis
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPT_DIR / "data"

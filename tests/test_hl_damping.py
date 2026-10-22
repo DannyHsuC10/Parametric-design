@@ -20,14 +20,14 @@ import numpy as np
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QTableWidget, QWidget
 
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import normalize_result, save_analysis_result
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import normalize_result, save_analysis_result
 from analysis.hl_damping.frequency import frequency_response
 from analysis.hl_damping.parameters import GROUPS, STAGES
 from analysis.hl_damping.workflow import build_models, response_metrics, simulate_lateral
 from analysis.hl_damping.vehicle import make_vehicle
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 
 ROOT = Path(__file__).resolve().parents[1]

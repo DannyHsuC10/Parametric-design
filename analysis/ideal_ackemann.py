@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from analysis.cornering.models import ackermann_angles, sweep
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 TITLE = "ideal_ackemann"
 DESCRIPTION = "Ideal Ackermann wheel angles and (inner - outer) / inner angle percentage."

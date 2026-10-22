@@ -1,9 +1,9 @@
 import os
 import importlib
 from pathlib import Path
-from analysis_data import normalize_analysis_parameters
+from .analysis_data import normalize_analysis_parameters
 
-PROJECT_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = Path(__file__).resolve().parents[1]
 
 
 class AnalysisPlugin:

@@ -22,11 +22,11 @@ from PySide6.QtWidgets import QApplication, QFormLayout, QWidget
 
 from analysis import motor
 from analysis.gearing.workflow import DEFAULTS
-from analysis_data import parse_analysis_parameters
-from analysis_runner import AnalysisRunner
-from flow_diagram import flow_edges
+from app.analysis_data import parse_analysis_parameters
+from app.analysis_runner import AnalysisRunner
+from app.flow_diagram import flow_edges
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 

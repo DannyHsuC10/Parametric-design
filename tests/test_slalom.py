@@ -19,10 +19,10 @@ import pandas as pd
 
 from analysis import Slalom
 from analysis.cornering.models import slalom_geometry
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import save_analysis_result
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import save_analysis_result
 from new.Slalom import slalom_path_analysis
-from plugin_loader import AnalysisPlugin
+from app.plugin_loader import AnalysisPlugin
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -27,7 +27,7 @@ OUTPUTS = {
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import root
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 
 def main(parameters):

@@ -17,10 +17,10 @@ import matplotlib.pyplot as plt
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QWidget
 
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
-from analysis_result import load_plot_choices, normalize_result, save_analysis_result
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_result import load_plot_choices, normalize_result, save_analysis_result
 from main import MainWindow, ScalableImageLabel
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 

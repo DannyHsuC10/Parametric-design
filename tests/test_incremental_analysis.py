@@ -10,11 +10,11 @@ from unittest.mock import Mock, patch
 
 from matplotlib.figure import Figure
 
-from analysis_cache import input_file_state, reusable_outputs
-from analysis_data import load_analysis_parameters
-from analysis_result import AnalysisResult
-from analysis_runner import AnalysisRunner
-from plugin_loader import AnalysisPlugin, scan_analysis
+from app.analysis_cache import input_file_state, reusable_outputs
+from app.analysis_data import load_analysis_parameters
+from app.analysis_result import AnalysisResult
+from app.analysis_runner import AnalysisRunner
+from app.plugin_loader import AnalysisPlugin, scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -46,7 +46,7 @@ class IncrementalAnalysisTests(unittest.TestCase):
         self.assertTrue(self.folder.is_relative_to(ROOT))
         self.execution = []
         self.logs = []
-        self.saver = patch("analysis_runner.save_analysis_result", side_effect=export_result).start()
+        self.saver = patch("app.analysis_runner.save_analysis_result", side_effect=export_result).start()
         self.addCleanup(patch.stopall)
 
     def run_nodes(self, plugins, values, *, selected=None, incremental=True, expect_error=False, rows=None):

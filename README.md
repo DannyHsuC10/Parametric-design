@@ -67,6 +67,17 @@ Print out 的 `[開啟結果]` 訊息會分別顯示雙擊事件等待、圖片�
 .venv/Scripts/python.exe main.py
 ```
 
+專案目錄分工：
+
+- `main.py`：桌面介面的啟動入口。
+- `app/`：介面與分析流程共用工具。`analysis_*.py` 負責參數、背景執行、快取與結果儲存；`markdown_*.py` 與 `document_theme.py` 負責說明顯示與配色；`flow_diagram.py` 負責流程圖；`plugin_loader.py` 負責載入分析模組。
+- `analysis/`：各項車輛動態分析與模型。
+- `data/`：流程設定、輸入資料與分析結果。
+- `tests/`：回歸測試。
+- `spider/`：資料蒐集與統計工具。
+
+程式引用共用工具時使用 `from app.analysis_data import ...` 等套件路徑。
+
 高低速阻尼整包分析已接在 `Damped_oscillation_analysis` 後方，依 Heave、Roll、阻尼器與 Shock Dyno、獨立懸吊等效、工況與 ODE 分成五個群組、十個小節點。
 
 - [五類分析、流程與參數說明](analysis/hl_damping/README.md)

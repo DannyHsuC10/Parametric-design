@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 from analysis.track_analysis.geometry import (
     ascii_map, build_track, create_figures, radius_distributions, read_workbook,
 )

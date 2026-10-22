@@ -18,9 +18,9 @@ import pandas as pd
 from PySide6.QtWidgets import QApplication, QFormLayout, QWidget
 
 from analysis import COG_movable as cog
-from analysis_data import load_analysis_parameters, parse_analysis_parameters
+from app.analysis_data import load_analysis_parameters, parse_analysis_parameters
 from main import MainWindow
-from plugin_loader import scan_analysis
+from app.plugin_loader import scan_analysis
 
 ROOT = Path(__file__).resolve().parents[1]
 

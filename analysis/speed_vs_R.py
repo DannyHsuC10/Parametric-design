@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from analysis.cornering.models import cornering_speed, sweep
-from analysis_result import AnalysisResult
+from app.analysis_result import AnalysisResult
 
 TITLE = "speed_vs_R"
 DESCRIPTION = "Corner radius versus friction-limited speed: v = sqrt(wl_mu_y * g * R)."
