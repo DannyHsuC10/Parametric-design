@@ -53,7 +53,6 @@ bicycle_front_cornering_stiffness_N_per_rad,40000.0,Y
 bicycle_rear_cornering_stiffness_N_per_rad,40000.0,Y
 bicycle_v_ref_kmh,40.0,Y
 drive_target_speed_kmh,80.0,Y
-drive_motor_torque_Nm,60.0,Y
 drive_motor_rpm,6000.0,Y
 drive_gear_efficiency,0.9,Y
 drive_wheel_inertia_kg_m2,0.1,Y

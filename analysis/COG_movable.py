@@ -18,6 +18,7 @@ SOURCE_FILES = {
     "unsprung_front": "data/input_data/Center_of_gravity_LP03_unsprungfront.xlsx",
     "unsprung_rear": "data/input_data/Center_of_gravity_LP03_unsprungrear.xlsx",
 }
+INPUT_FILES = tuple(PROJECT_DIR / path for path in SOURCE_FILES.values())
 PARAMETER_DEFAULTS = {
     # Axle center coordinates are manual vehicle geometry, not Excel component CGs.
     "cog_front_axle_x_m": 0.765, "cog_rear_axle_x_m": -0.765,

@@ -1,6 +1,8 @@
 """Export every chart from Pacejka MF_tester as the first workflow stage."""
 
-from .tire_analysis.workflow import run_model
+from .tire_analysis.workflow import TIRE_FILE, run_model
+
+INPUT_FILES = (TIRE_FILE,)
 
 PLUGIN_ID = "tire_model"
 TITLE = "輪胎模型（MF_tester）"

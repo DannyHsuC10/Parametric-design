@@ -12,7 +12,6 @@ from analysis_result import AnalysisResult
 G = 9.81
 DEFAULTS = {
     "drive_target_speed_kmh": 80.0,
-    "drive_motor_torque_Nm": 60.0,
     "drive_motor_rpm": 6000.0,
     "acc_g": 1.2,
     "drive_gear_efficiency": 0.9,
@@ -95,7 +94,7 @@ OUTPUTS = {
     "tooth_strength": ("gear_strength_transition_teeth", "gear_strength_module_required_min_mm"),
 }
 REQUIRES = {
-    "acc_load": ("max_load",), "gear_rate": ("acc_load",), "gear_tooth": ("gear_rate",),
+    "acc_load": ("max_load",), "gear_rate": ("acc_load", "motor"), "gear_tooth": ("gear_rate",),
     "number_of_gear": ("gear_tooth",), "output_check": ("number_of_gear",),
     "rotational_inertia": ("number_of_gear",), "acc_resis": ("gear_rate",),
     "tooth_strength": ("gear_tooth",),

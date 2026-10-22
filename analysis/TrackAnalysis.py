@@ -18,6 +18,7 @@ TITLE = "賽道分析"
 DESCRIPTION = "Reconstruct track geometry, analyze curvature and radius distributions, and weight event scores."
 PLUGIN_ID = "track_analysis"
 INPUT_MAP = Path(__file__).resolve().parents[1] / "data" / "input_data" / "input_map.xlsx"
+INPUT_FILES = (INPUT_MAP,)
 TRACK_SETTINGS = {
     "track_mesh_size_m": 0.1,
     "track_max_speed_kmh": 110.0,

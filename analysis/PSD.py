@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from analysis_result import AnalysisResult
 
+INPUT_FILES = (Path(__file__).resolve().parents[1] / "data" / "input_data" / "vt_data.csv",)
+
 
 def _load_velocity_trace(path):
     with path.open("r", newline="", encoding="utf-8-sig") as csv_file:
@@ -47,8 +49,7 @@ def _load_velocity_trace(path):
 
 
 def main(parameters):
-    project_dir = Path(__file__).resolve().parent.parent
-    data_path = project_dir / "data" / "input_data" / "vt_data.csv"
+    data_path = INPUT_FILES[0]
     if not data_path.is_file():
         raise FileNotFoundError(f"找不到速度資料檔：{data_path}")
     time, speed = _load_velocity_trace(data_path)

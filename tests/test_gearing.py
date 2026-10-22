@@ -8,6 +8,8 @@ class GearingIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.plugins = {plugin.plugin_id: plugin for plugin in scan_analysis()}
+        from analysis.motor import CURVE_FILE, load_curve
+        cls.motor_outputs = {"drive_motor_torque_Nm": float(load_curve(CURVE_FILE)["torque"].max())}
 
     def test_requested_flow_edges_and_independent_branches_load(self):
         from pathlib import Path
@@ -19,11 +21,11 @@ class GearingIntegrationTests(unittest.TestCase):
         flow = MainWindow.load_flow(window, Path(__file__).resolve().parents[1] / "data" / "analysis_flow.csv")
         gearing_flow = [row for row in flow if row.get("flow_group") == "傳動分析"]
         self.assertEqual([row["node_id"] for row in gearing_flow], [
-            "acc_load", "gear_rate", "gear_tooth", "number_of_gear", "output_check",
+            "acc_load", "motor", "gear_rate", "gear_tooth", "number_of_gear", "output_check",
             "rotational_inertia", "acc_resis", "tooth_strength",
         ])
         self.assertEqual({row["node_id"]: row["branch_from"] for row in gearing_flow}, {
-            "acc_load": "max_load", "gear_rate": "acc_load", "gear_tooth": "gear_rate",
+            "acc_load": "max_load", "motor": "", "gear_rate": "acc_load", "gear_tooth": "gear_rate",
             "number_of_gear": "gear_tooth", "output_check": "number_of_gear",
             "rotational_inertia": "number_of_gear", "acc_resis": "gear_rate",
             "tooth_strength": "gear_tooth",
@@ -37,12 +39,12 @@ class GearingIntegrationTests(unittest.TestCase):
             selected = MainWindow._required_analysis_rows(window, node)
             self.assertIn("max_load", {row["node_id"] for row in selected})
         gear_tooth_rows = MainWindow._required_analysis_rows(window, "gear_tooth")
-        self.assertEqual([row["node_id"] for row in gear_tooth_rows[-4:]],
-                         ["max_load", "acc_load", "gear_rate", "gear_tooth"])
+        self.assertEqual([row["node_id"] for row in gear_tooth_rows[-5:]],
+                         ["max_load", "acc_load", "motor", "gear_rate", "gear_tooth"])
         self.assertIn("cog_movable", {row["node_id"] for row in gear_tooth_rows})
 
     def test_each_new_plugin_runs_from_shared_vehicle_and_editable_gear_inputs(self):
-        params = DEFAULTS | {
+        params = DEFAULTS | self.motor_outputs | {
             "cog_total_mass_kg": 300.0, "L": 1.53, "h_cog": 0.3,
             "hl_front_weight_ratio": 0.5, "mu_w": 1.7, "R_tire": 0.2,
             "gear_planet_count": 3,
@@ -75,6 +77,8 @@ class GearingIntegrationTests(unittest.TestCase):
         for name, expected in DEFAULTS.items():
             self.assertIn(name, values)
             self.assertAlmostEqual(float(values[name]), float(expected))
+        self.assertNotIn("drive_motor_torque_Nm", values)
+        self.assertNotIn("drive_motor_torque_Nm", DEFAULTS)
 
     def test_gear_tooth_runs_without_vehicle_mass(self):
         result = self.plugins["gear_tooth"].run({
@@ -105,7 +109,7 @@ class GearingIntegrationTests(unittest.TestCase):
 
     def test_gear_rate_uses_acc_g_and_not_tire_friction_limit(self):
         plugin = self.plugins["gear_rate"]
-        base = DEFAULTS | {
+        base = DEFAULTS | self.motor_outputs | {
             "cog_total_mass_kg": 300.0, "L": 1.53, "h_cog": 0.3,
             "hl_front_weight_ratio": 0.5, "R_tire": 0.2, "acc_g": 1.2,
         }

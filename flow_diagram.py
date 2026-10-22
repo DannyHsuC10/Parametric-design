@@ -29,11 +29,15 @@ def flow_edges(flow):
 
 def render_flow_diagram(flow, group=None):
     """Keep group pages as induced subgraphs of the complete flow."""
+    edges = flow_edges(flow)
     visible = [row for row in flow if group is None or row.get("flow_group", "") == group]
     graph_ids = {row["node_id"]: f"flow_node_{index}" for index, row in enumerate(flow)}
     visible_ids = {row["node_id"] for row in visible}
+    incoming = {target for _, target in edges}
+    outgoing = {source for source, _ in edges}
+    source_ids = {node_id for node_id in visible_ids if node_id in outgoing and node_id not in incoming}
     lines = ["graph TD"]
-    for source, target in flow_edges(flow):
+    for source, target in edges:
         if source in visible_ids and target in visible_ids:
             lines.append(f"    {graph_ids[source]} --> {graph_ids[target]}")
 
@@ -52,8 +56,11 @@ def render_flow_diagram(flow, group=None):
             if title == "轉向分析":
                 lines.append(f"    style flow_group_{index} fill:#f2f2f2,stroke:#444444,stroke-width:3px,color:#222222")
     lines.append("    classDef flowNode fill:#f1f1f1,stroke:#b8b8b8,color:#222222")
+    lines.append("    classDef flowSource fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f")
     if visible:
         lines.append("    class " + ",".join(graph_ids[row["node_id"]] for row in visible) + " flowNode")
+    if source_ids:
+        lines.append("    class " + ",".join(graph_ids[node_id] for node_id in source_ids) + " flowSource")
     rendered = render_markdown("```mermaid\n" + "\n".join(lines) + "\n```")
     click_map = {row["title"]: row["node_id"] for row in visible}
     script = VIEWPORT_SCRIPT.replace("TITLE_TO_ID", json.dumps(click_map, ensure_ascii=True).replace("</", "<\\/"))
@@ -71,6 +78,10 @@ html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 #flow-toolbar button:hover { background: #505050; }
 #flow-zoom { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
 #flow-hint { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+#flow-source-legend { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 12px; }
+#flow-source-legend > span { width: 13px; height: 13px; box-sizing: border-box;
+  background: #fef3c7; border: 2px solid #d97706; border-radius: 3px; }
 #flow-viewport { position: absolute; inset: 40px 0 0; overflow: auto;
   overscroll-behavior: contain; touch-action: none; cursor: grab; }
 #flow-viewport.dragging, #flow-viewport.dragging .node { cursor: grabbing; user-select: none; }
@@ -98,6 +109,7 @@ VIEWPORT_TOOLBAR = """<div id="flow-toolbar" role="toolbar" aria-label="流程�
 <span id="flow-zoom" aria-live="polite">100%</span>
 <button id="flow-zoom-in" title="放大" aria-label="放大">＋</button>
 <button id="flow-fit">符合視窗</button><button id="flow-reset">100%</button>
+<span id="flow-source-legend"><span></span>流程起點</span>
 <span id="flow-hint">滾輪縮放｜拖曳平移｜Shift＋滾輪水平捲動</span>
 </div>"""
 
@@ -145,7 +157,7 @@ VIEWPORT_SCRIPT = r"""<script>
     if (!svg) return;
     const graphX = (viewport.scrollLeft + x - offsetX) / scale;
     const graphY = (viewport.scrollTop + y - offsetY) / scale;
-    scale = Math.min(4, Math.max(0.01, next));
+    scale = Math.min(1, Math.max(0.1, next));
     layout();
     viewport.scrollLeft = graphX * scale + offsetX - x;
     viewport.scrollTop = graphY * scale + offsetY - y;
@@ -164,7 +176,7 @@ VIEWPORT_SCRIPT = r"""<script>
     width = svg.viewBox.baseVal.width;
     height = svg.viewBox.baseVal.height;
     observer.disconnect();
-    scale = Math.max(0.01, Math.min(1, (viewport.clientWidth - 2 * padding) / width));
+    scale = 1;
     layout();
     viewport.scrollLeft = viewport.scrollTop = 0;
     selectNode(selectedNodeId);

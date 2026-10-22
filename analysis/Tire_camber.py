@@ -1,6 +1,8 @@
 """Choose camber at the pressure calculated by the preceding stage."""
 
-from .tire_analysis.workflow import run_optimization
+from .tire_analysis.workflow import TIRE_FILE, run_optimization
+
+INPUT_FILES = (TIRE_FILE,)
 
 PLUGIN_ID = "tire_camber"
 TITLE = "最佳 camber"

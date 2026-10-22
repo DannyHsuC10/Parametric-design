@@ -31,6 +31,7 @@ class AnalysisPlugin:
         self.hidden_parameters = set(getattr(module, "HIDDEN_PARAMETERS", ()))
         self.outputs = getattr(module, "OUTPUTS", {})
         self.required_analyses = tuple(getattr(module, "REQUIRES", ()))
+        self.input_files = tuple(getattr(module, "INPUT_FILES", ()))
 
 
     def run(self, parameters):

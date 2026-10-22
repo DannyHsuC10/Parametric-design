@@ -1,8 +1,10 @@
 # 行星齒輪與縱向性能分析
 
-從 `new/` 整合的八個節點已接在「輪胎極限載荷」之後。流程依序為 `Acc_load → Gear_rate → Gear_tooth → Number_of_Gear → Output_check`；`Number_of_Gear` 另分支到 `Rotational_inertia`，`Gear_rate` 分支到 `acc_resis`，`Gear_tooth` 分支到 `tooth_Strength`。
+從 `new/` 整合的傳動節點接在「輪胎極限載荷」之後。流程依序為 `Acc_load → Gear_rate → Gear_tooth → Number_of_Gear → Output_check`，並由獨立的 `motor → Gear_rate` 提供馬達曲線最大扭矩；`Number_of_Gear` 另分支到 `Rotational_inertia`，`Gear_rate` 分支到 `acc_resis`，`Gear_tooth` 分支到 `tooth_Strength`。
 
-車重、軸距、重心高度、前軸配重與輪胎摩擦係數沿用既有分析輸出或共用 CSV。原始 `new/` 程式所讀取的 `data.xlsx`／`ParameterLoader` 不在專案中，因此新增馬達與齒輪規格設為流程參數，可在介面或 `data/analysis_parameters.csv` 修改。齒輪尺寸、馬達性能、阻力參數的初始值只是可編輯示例，請依實際設計資料更新後再採用結果。
+車重、軸距、重心高度、前軸配重與輪胎摩擦係數沿用既有分析輸出或共用 CSV。原始 `new/` 程式所讀取的 `data.xlsx`／`ParameterLoader` 不在專案中，因此齒輪規格、馬達轉速及其他設定保留流程參數，可在介面或 `data/analysis_parameters.csv` 修改。這些初始值仍為可編輯示例。
+
+`motor` 讀取正式資料 `data/input_data/motor_speed_vs_torque.csv`（從 `new/` 整合，500 點），繪製原曲線並輸出 `drive_motor_torque_Nm = max(torque)`。目前最大扭矩為 **22.30565254 N·m**。`Gear_rate`、`Output_check`、`acc_resis` 與 `tooth_Strength` 皆使用此導出量，扭矩欄位為唯讀，不再使用參數 CSV 的手填扭矩；馬達轉速 `drive_motor_rpm` 仍可手動設定。曲線 CSV 已納入內容變更檢查，按「執行所有受影響分析」即可先更新 motor，再依實際數值更新相關下游，略過無關流程。
 
 `Gear_tooth` 直接以 `Gear_rate` 導出的 `gear_ratio_avg` 作為齒比搜尋目標，不另設目標齒比輸入。`Number_of_Gear` 的太陽輪、兩個行星輪及內齒輪齒數由使用者手動輸入；`Output_check` 與 `Rotational_inertia` 沿用相同齒數參數，不會覆蓋手動值。
 
@@ -14,6 +16,7 @@
 
 | 節點 | 方程式說明 |
 |---|---|
+| motor | [馬達曲線與最大扭矩](notes/motor.md) |
 | Acc_load | [加速載重轉移](notes/acc_load.md) |
 | Gear_rate | [加速與極速齒比](notes/gear_rate.md) |
 | Gear_tooth | [齒數組合與搜尋條件](notes/gear_tooth.md) |

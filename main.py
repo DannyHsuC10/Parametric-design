@@ -148,8 +148,10 @@ class MainWindow(QWidget):
         self.run_selected_button.setToolTip("只重算所選節點，沿用最近一次成功的上游結果（含已儲存結果）。")
         self.run_selected_button.setEnabled(False)
         self.run_with_dependencies_button = QPushButton("所選分析＋前置分析")
-        self.run_with_dependencies_button.setToolTip("重新執行所選節點及所有必要的上游分析，更新導出量。")
+        self.run_with_dependencies_button.setToolTip("重算所選節點；前置分析只重算輸入／來源資料有變更或尚無成功結果的項目。")
         self.run_with_dependencies_button.setEnabled(False)
+        self.run_affected_button = QPushButton("執行所有受影響分析")
+        self.run_affected_button.setToolTip("跨所有流程依序更新輸入或來源資料已變更、或尚無結果的分析，其餘沿用成功結果。")
         self.status_label = QLabel("選擇 CSV 後按 Run，依流程順序執行分析。")
 
         self.flow_selector = QComboBox()
@@ -189,6 +191,7 @@ class MainWindow(QWidget):
         controls.addWidget(self.run_button)
         controls.addWidget(self.run_selected_button)
         controls.addWidget(self.run_with_dependencies_button)
+        controls.addWidget(self.run_affected_button)
 
         parameter_section = QWidget()
         parameter_layout = QVBoxLayout(parameter_section)
@@ -228,14 +231,16 @@ class MainWindow(QWidget):
         self.main_splitter.setHandleWidth(8)
         self.main_splitter.addWidget(flow_section)
         self.main_splitter.addWidget(self.work_splitter)
-        self.main_splitter.setStretchFactor(0, 2)
-        self.main_splitter.setStretchFactor(1, 3)
-        self.main_splitter.setSizes([300, 440])
+        self.main_splitter.setStretchFactor(0, 3)
+        self.main_splitter.setStretchFactor(1, 2)
+        self.main_splitter.setSizes([420, 280])
         self.main_splitter.handle(1).setToolTip("上下拖曳，調整流程圖與下方工作區高度")
 
         layout = QVBoxLayout(self)
         layout.addLayout(controls)
-        layout.addWidget(QLabel("單擊節點設定參數；雙擊查看結果。「只執行所選分析」沿用上游結果；更新上游請用「所選分析＋前置分析」。"))
+        execution_hint = QLabel("單擊節點設定參數；雙擊查看結果。前置分析會略過未變更的項目；「執行所有受影響分析」可跨流程更新。")
+        execution_hint.setWordWrap(True)
+        layout.addWidget(execution_hint)
         layout.addWidget(self.main_splitter, 1)
 
         self.csv_button.clicked.connect(self.select_csv)
@@ -243,6 +248,7 @@ class MainWindow(QWidget):
         self.run_button.clicked.connect(self.run_flow)
         self.run_selected_button.clicked.connect(self.run_selected_analysis)
         self.run_with_dependencies_button.clicked.connect(self.run_selected_with_dependencies)
+        self.run_affected_button.clicked.connect(self.run_affected_analyses)
 
         self.load_csv(DEFAULT_CSV)
         # Open the source node's editable geometry inputs immediately.
@@ -369,8 +375,7 @@ class MainWindow(QWidget):
             for plugin in self.plugins
             for name, value in plugin.parameter_defaults.items()
         }
-        # Loading another CSV starts a fresh session. Only the single-node action
-        # explicitly opts into restoring saved upstream snapshots.
+        # Outputs are restored by execution actions, never taken from the input CSV.
         self.parameter_values = {name: value for name, value in (defaults | parameters).items()
                                  if name not in self.output_names}
         self.output_values = {}
@@ -403,6 +408,7 @@ class MainWindow(QWidget):
                 edit.textChanged.connect(lambda value, key=name: self.update_parameter(key, value))
             labels = {
                 "h_cog": "重心高度 h_cog（m）",
+                "drive_motor_torque_Nm": "馬達最大扭矩（N·m，motor）",
                 "cog_front_axle_x_m": "前軸輪心 x（m）",
                 "cog_rear_axle_x_m": "後軸輪心 x（m）",
                 "bicycle_front_cornering_stiffness_N_per_rad": "前軸側偏剛性 Cf（N/rad）",
@@ -424,6 +430,8 @@ class MainWindow(QWidget):
                 "rc_chassis_stiffness_ratio": "車架／懸吊等效線性剛性比",
             }
             self.parameter_form.addRow(labels.get(name, name), edit)
+            if name == "drive_motor_torque_Nm":
+                edit.setToolTip("自動使用 motor 馬達曲線分析的 max(torque)。修改曲線 CSV 後，執行前置分析或所有受影響分析以更新。")
             if name in {"cog_front_axle_x_m", "cog_rear_axle_x_m"}:
                 edit.setToolTip("手動輸入輪胎中心位置，座標基準為 Excel 原點；不使用 Excel 零件重心 dx。")
             if name == "vehicle_max_steering_angle_deg":
@@ -452,7 +460,7 @@ class MainWindow(QWidget):
         name = canonical_parameter_name(name)
         self.parameter_values[name] = value
         # Retain the last successful upstream values for explicit single-node runs.
-        # The dependency action always recomputes them regardless of this cache.
+        # Incremental runs compare each node's actual inputs to its saved inputs.
 
     def select_csv(self):
         filename, _ = QFileDialog.getOpenFileName(
@@ -488,6 +496,12 @@ class MainWindow(QWidget):
             table.setItem(row, column, QTableWidgetItem(str(cell)))
 
     def run_flow(self):
+        self._run_full_flow(incremental=False)
+
+    def run_affected_analyses(self):
+        self._run_full_flow(incremental=True)
+
+    def _run_full_flow(self, incremental):
         if self.analysis_runner is not None:
             return
         if not self.flow:
@@ -509,7 +523,9 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "參數錯誤", str(error))
             return
 
-        self._start_analysis(self.flow)
+        self._start_analysis(self.flow, incremental=incremental)
+        if incremental:
+            self.console.append("檢查所有流程：只重算輸入、來源資料已變更或尚無結果的分析；未變更的項目沿用成功結果。")
 
     def _required_analysis_rows(self, selected_node_id):
         selected_row = next(
@@ -617,17 +633,20 @@ class MainWindow(QWidget):
         if not include_dependencies:
             self.parameter_values.update(values)
             self.output_values.update(restored)
-        self._start_analysis(selected_rows, self.active_node_id)
-        if not include_dependencies:
+        self._start_analysis(selected_rows, self.active_node_id, incremental=include_dependencies)
+        if include_dependencies:
+            self.console.append("重算所選分析；前置分析會逐項比對輸入與來源資料，略過未變更且已有成功結果的項目。")
+        else:
             self.console.append("只執行所選分析：沿用最近一次成功的上游結果，上游不重算。")
             if restored:
                 self.console.append("已從儲存結果載入：" + ", ".join(restored))
 
-    def _start_analysis(self, rows, selected_node_id=None):
+    def _start_analysis(self, rows, selected_node_id=None, *, incremental=False):
         self.console.clear()
         self.run_button.setEnabled(False)
         self.run_selected_button.setEnabled(False)
         self.run_with_dependencies_button.setEnabled(False)
+        self.run_affected_button.setEnabled(False)
         self.csv_button.setEnabled(False)
         self.parameter_scroll.setEnabled(False)
         self._run_started_at = perf_counter()
@@ -637,12 +656,13 @@ class MainWindow(QWidget):
         self._stage_title = "準備分析"
         self._stage_phase = "準備中"
         runner = AnalysisRunner(self.plugins_by_id, rows, self.parameter_values, RESULTS_DIR,
-                                selected_node_id, parent=self)
+                                selected_node_id, parent=self, incremental=incremental)
         self.analysis_runner = runner
         runner.log.connect(self._append_analysis_log)
         runner.stageStarted.connect(self._analysis_stage_started)
         runner.stageSaving.connect(self._analysis_stage_saving)
         runner.stageCompleted.connect(self._analysis_stage_completed)
+        runner.stageReused.connect(self._analysis_stage_reused)
         runner.finished.connect(self._analysis_finished)
         self._refresh_analysis_status()
         self.progress_timer.start()
@@ -671,6 +691,14 @@ class MainWindow(QWidget):
             self.output_values[name] = value
             self.parameter_values[name] = str(value)
 
+    @Slot(int, int, str, object)
+    def _analysis_stage_reused(self, position, total, title, outputs):
+        self._analysis_stage_completed(position, total, title, outputs, 0)
+        self._stage_position, self._stage_total, self._stage_title = position, total, title
+        self._stage_started_at = perf_counter()
+        self._stage_phase = "沿用結果"
+        self._refresh_analysis_status()
+
     @Slot()
     def _refresh_analysis_status(self):
         if self.analysis_runner is None:
@@ -689,12 +717,18 @@ class MainWindow(QWidget):
         self.run_button.setEnabled(True)
         self.run_selected_button.setEnabled(self.active_node_id is not None)
         self.run_with_dependencies_button.setEnabled(self.active_node_id is not None)
+        self.run_affected_button.setEnabled(True)
         self.csv_button.setEnabled(True)
         self.parameter_scroll.setEnabled(True)
         if self.active_node_id:
             self.show_node_parameters(self.active_node_id)
         if runner.error:
             self.status_label.setText(f"分析中止：{runner.error}")
+        elif runner.incremental:
+            self.status_label.setText(
+                f"完成：重算 {runner.completed_count} 項，沿用 {runner.reused_count} 項，"
+                f"耗時 {runner.elapsed:.2f} 秒。結果已儲存。"
+            )
         else:
             self.status_label.setText(
                 f"完成 {runner.completed_count}/{len(runner.rows)} 項分析，耗時 {runner.elapsed:.2f} 秒。結果已儲存。"

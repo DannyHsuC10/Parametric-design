@@ -1,6 +1,8 @@
 """Friction curves, peak forces, and regression coefficients for later analyses."""
 
-from .tire_analysis.workflow import run_friction
+from .tire_analysis.workflow import TIRE_FILE, run_friction
+
+INPUT_FILES = (TIRE_FILE,)
 
 PLUGIN_ID = "coefficient_of_friction"
 TITLE = "coefficient_of_friction 分析"

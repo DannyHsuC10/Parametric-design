@@ -2,6 +2,8 @@
 
 使用手動設定的 `acc_g` 計算加速需求，$r_w$ 為輪胎半徑，$T_m$、$n_m$ 為馬達最大扭矩與轉速。
 
+$T_m$ 自動使用 `motor` 分析曲線的 `max(torque)`，即 `drive_motor_torque_Nm`；$n_m$ 使用可編輯的 `drive_motor_rpm`。
+
 $$a_t=\mathrm{acc\_g}\,g$$
 
 $$N_r=mgw_f+\frac{ma_t h}{L},\qquad N_f=mg-N_r$$

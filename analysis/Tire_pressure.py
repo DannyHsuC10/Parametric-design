@@ -1,6 +1,8 @@
 """Choose the tire pressure maximizing lateral force RMS."""
 
-from .tire_analysis.workflow import run_optimization
+from .tire_analysis.workflow import TIRE_FILE, run_optimization
+
+INPUT_FILES = (TIRE_FILE,)
 
 PLUGIN_ID = "tire_pressure"
 TITLE = "最佳胎壓"

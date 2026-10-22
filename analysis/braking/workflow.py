@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from analysis_result import AnalysisResult
-from .models import (G, axle_force_gains, axle_loads, design_limit_g,
+from .models import (G, LINE_DATA_PATH, axle_force_gains, axle_loads, design_limit_g,
                      effective_disc_radius, first_lock_limit, fit_line_data,
                      hydraulic_geometry, ideal_distribution, line_pressures, validate)
 
@@ -71,6 +71,7 @@ def metadata(stage):
         "HIDDEN_PARAMETERS": {"cog_total_mass_kg", "brake_ideal_front_ratio", "brake_pedal_ratio_required",
                               "brake_pedal_front_pressure_Pa", "brake_pedal_rear_pressure_Pa"},
         "REQUIRES": REQUIRES[stage], "OUTPUTS": {name: name for name in OUTPUTS[stage]},
+        "INPUT_FILES": (LINE_DATA_PATH,) if stage == "brake_hydraulic_pressure" else (),
     }
 
 

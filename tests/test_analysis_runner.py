@@ -123,6 +123,7 @@ class AnalysisRunnerTests(unittest.TestCase):
                 self.assertEqual(window.parameter_values["first_value"], "2.0")
                 self.assertNotIn("second_value", window.parameter_values)
                 self.assertFalse(window.run_button.isEnabled())
+                self.assertFalse(window.run_affected_button.isEnabled())
                 self.assertFalse(window.csv_button.isEnabled())
                 self.assertFalse(window.parameter_scroll.isEnabled())
                 window.run_flow()
@@ -141,6 +142,7 @@ class AnalysisRunnerTests(unittest.TestCase):
                 self.assertEqual(window.output_values["second_value"], 4.0)
                 self.assertTrue((destination / "Second" / "result.csv").exists())
                 self.assertTrue(window.run_button.isEnabled())
+                self.assertTrue(window.run_affected_button.isEnabled())
                 self.assertTrue(window.parameter_scroll.isEnabled())
                 self.assertIs(sys.stdout, original_stdout)
             finally:
@@ -231,6 +233,56 @@ class AnalysisRunnerTests(unittest.TestCase):
                     self.app.processEvents()
                 window.close()
 
+    def test_incremental_buttons_update_selected_scope_then_other_affected_branch(self):
+        source = MagicMock(side_effect=lambda p: response({"source_value": p["base"]}))
+        selected = MagicMock(side_effect=lambda p: response({"answer": p["source_value"] * p["gain"]}))
+        other = MagicMock(side_effect=lambda p: response({"other_answer": p["source_value"] + p["offset"]}))
+        unrelated = MagicMock(side_effect=lambda p: response({"temperature_result": p["temperature"]}))
+        plugins = [
+            plugin("Source", source, parameters={"base": "float"}, outputs={"source_value": "value"}),
+            plugin("Selected", selected, parameters={"source_value": "float", "gain": "float"},
+                   outputs={"answer": "value"}),
+            plugin("OtherBranch", other, parameters={"source_value": "float", "offset": "float"},
+                   outputs={"other_answer": "value"}),
+            plugin("Unrelated", unrelated, parameters={"temperature": "float"}, outputs={"temperature_result": "value"}),
+        ]
+        with TemporaryDirectory(dir=ROOT) as temporary, ExitStack() as stack:
+            window = self.make_window(stack, Path(temporary), plugins)
+            window.parameter_values = {"base": "3", "gain": "2", "offset": "5", "temperature": "1"}
+            try:
+                window.run_affected_button.click()
+                self.assertFalse(window.run_affected_button.isEnabled())
+                self.wait_for(lambda: window.analysis_runner is None)
+                self.assertEqual([p.call_count for p in (source, selected, other, unrelated)], [1, 1, 1, 1])
+                window.show_node_parameters("Selected")
+                window.parameter_edits["gain"].setText("4")
+                window.run_with_dependencies_button.click()
+                self.wait_for(lambda: window.analysis_runner is None)
+                self.assertEqual([p.call_count for p in (source, selected, other, unrelated)], [1, 2, 1, 1])
+                self.assertEqual(window.output_values["answer"], 12)
+                self.assertIn("沿用：Source", window.console.toPlainText())
+                window.show_node_parameters("Source")
+                window.parameter_edits["base"].setText("5")
+                window.show_node_parameters("Selected")
+                window.run_with_dependencies_button.click()
+                self.wait_for(lambda: window.analysis_runner is None)
+                self.assertEqual([p.call_count for p in (source, selected, other, unrelated)], [2, 3, 1, 1])
+                window.run_affected_button.click()
+                self.wait_for(lambda: window.analysis_runner is None)
+                self.assertEqual([p.call_count for p in (source, selected, other, unrelated)], [2, 3, 2, 1])
+                self.assertEqual(window.output_values["other_answer"], 10)
+                self.assertIn("重算 1 項，沿用 3 項", window.status_label.text())
+                window.run_affected_button.click()
+                self.wait_for(lambda: window.analysis_runner is None)
+                self.assertEqual([p.call_count for p in (source, selected, other, unrelated)], [2, 3, 2, 1])
+                self.assertIn("重算 0 項，沿用 4 項", window.status_label.text())
+                self.assertTrue(window.run_affected_button.isEnabled())
+            finally:
+                if window.analysis_runner is not None:
+                    window.analysis_runner.wait(5000)
+                    self.app.processEvents()
+                window.close()
+
     def test_single_analysis_missing_or_invalid_upstream_never_falls_back_to_execution(self):
         source, selected = MagicMock(), MagicMock()
         plugins = [plugin("Source", source, outputs={"source_value": "value"}),
@@ -276,6 +328,7 @@ class AnalysisRunnerTests(unittest.TestCase):
                 self.assertTrue(window.run_button.isEnabled())
                 self.assertTrue(window.run_selected_button.isEnabled())
                 self.assertTrue(window.run_with_dependencies_button.isEnabled())
+                self.assertTrue(window.run_affected_button.isEnabled())
                 self.assertTrue(window.csv_button.isEnabled())
                 self.assertTrue(window.parameter_scroll.isEnabled())
                 self.assertIs(sys.stdout, original_stdout)
