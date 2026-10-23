@@ -15,7 +15,7 @@ $$
 The suspension and tire equations use sprung-to-unsprung and unsprung-to-road relative motion. The lateral inertial moment at the roll center and the corresponding left-right force transfer are
 
 $$
-M_{x,rc}=-a_y(2m_c)h_{rc},
+M_{x,rc}=-a_y(2m_s)h_{rc},
 \qquad \Delta F_{rc}=\frac{M_{x,rc}}{t}.
 $$
 
@@ -24,7 +24,7 @@ The body heave and roll equations are
 $$
 F_z=F_{s,l}+F_{s,r},
 \qquad
-M_x=(F_{s,r}-F_{s,l})\frac{t}{2}+a_y(2m_c)h_{cg}+M_{x,rc},
+M_x=(F_{s,r}-F_{s,l})\frac{t}{2}+a_y(2m_s)h_{cg}+M_{x,rc},
 $$
 
 $$

@@ -37,10 +37,8 @@ class SuspensionLR:
         self.h_rc = 0.0
         self.h_cg = 0.3
 
-        self.tau_rc = 0.005
-
         k_heave = 50000
-        k_roll = 50000#*0.8
+        k_roll = 50000
 
         MR_heave = 1
         MR_roll = 1
@@ -69,10 +67,12 @@ class SuspensionLR:
         self.kt = 800000   # tire stiffness
         self.ct = 50       # tire damping (盡量保留一個小數字)
 
-        self.k_frame = k_roll*10      # N/m
-
-        self.m_frame = 65     # kg (虛擬質量)
-        self.c_frame = 150.0   # N·s/m，車架阻尼固定值
+        self.k_frame = self.k_roll*10      # N/m，車體／側傾通道剛性比
+        # RC 最佳化模型的等效質量：半車簧上質量的 1/4。
+        # 此為傳力支路的等效質量，不額外加入車輛總質量。
+        self.m_frame = (2*self.ms)/4
+        self.zeta_frame = 0.5
+        self.c_frame = 2*self.zeta_frame*np.sqrt(self.k_frame*self.m_frame)  # N·s/m
 
 class SuspensionFR:
     

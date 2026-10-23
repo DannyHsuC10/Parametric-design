@@ -68,11 +68,15 @@ class LR_suspension_state:
         self.Ft_r = 0.0
 
         self.dF_roll = 0.0
+        self.Mx_rc = 0.0
+        self.F_frame_cmd = 0.0
+        self.F_frame_spring = 0.0
+        self.F_frame_damper = 0.0
 
         self.dF_roll_l = 0.0
         self.dF_roll_r = 0.0
 
-        self.d_frame = 0.0      # 車架左右變形位移
+        self.d_frame = 0.0      # RC 支路等效位移（m）
         self.v_frame = 0.0      # 車架變形速度
         self.a_frame = 0.0
 

@@ -51,6 +51,9 @@ def plugin_metadata(stage):
         if stage in {"half_suspension_model_lr", "half_rollcenter_all_model"}:
             names += ["hl_front_roll_center_m", "hl_rear_roll_center_m"]
         visible = {"t", "Kt", "k_frame_to_roll_ratio"}
+        if stage == "half_rollcenter_all_model":
+            names += ["zeta_frame"]
+            visible.add("zeta_frame")
     elif family == "FR":
         names += ["L", "h_cog", "cog_total_Iyy_kg_m2", "anti_geometry_ratio"]
         visible = {"Kt", "hl_rear_heave_spring_ratio"}
@@ -102,7 +105,7 @@ def make_suspension(family, parameters):
             raise ValueError(f"{name} 必須為有限數值")
         if name in {"ms", "mu", "Ks", "Ks_pitch_N_per_m", "Ks_roll_N_per_m", "Kt", "MR", "t", "L",
                     "hl_sprung_roll_inertia_kg_m2", "cog_total_Ixx_kg_m2", "cog_total_Iyy_kg_m2",
-                    "tau_rc", "k_frame_to_roll_ratio", "m_frame", "Iy",
+                    "k_frame_to_roll_ratio", "m_frame", "Iy",
                     "hl_rear_heave_spring_ratio"} and value <= 0:
             raise ValueError(f"{name} 必須大於零")
         if name in {"damped_sweep_selected_ratio_used", "damped_sweep_selected_coefficient_Ns_per_m", "h_cog",
@@ -142,9 +145,8 @@ def make_suspension(family, parameters):
         rear_roll_center = parameters.get("hl_rear_roll_center_m")
         if front_roll_center is not None and rear_roll_center is not None:
             suspension.h_rc = (front_roll_center + rear_roll_center) / 2
-        # The equivalent frame mass represents one quarter of the whole-car
-        # sprung mass. Roll-center height and tau_rc retain Suspension.py values.
-        suspension.m_frame = parameters.get("ms", suspension.ms * 4) / 4
+        # Match the RC study's m_axle/4 using this model's half-car sprung mass.
+        suspension.m_frame = (2 * suspension.ms) / 4
         suspension.k_left = 0.0
         suspension.k_right = 0.0
         old_roll = suspension.k_roll
@@ -159,7 +161,8 @@ def make_suspension(family, parameters):
         suspension.k_frame = suspension.k_roll * parameters.get(
             "k_frame_to_roll_ratio", suspension.k_frame / suspension.k_roll
         )
-        suspension.c_frame = 50.0
+        suspension.zeta_frame = parameters.get("zeta_frame", suspension.zeta_frame)
+        suspension.c_frame = 2 * suspension.zeta_frame * np.sqrt(suspension.k_frame * suspension.m_frame)
         suspension.c_heave = 2 * suspension.zeta * np.sqrt(suspension.k_heave * suspension.ms)
         suspension.c_roll = 2 * suspension.zeta * np.sqrt(suspension.k_roll * 2 * suspension.Ix / suspension.track**2)
         effective = 1 / (1 / (2 * suspension.ms) + (suspension.track / 2)**2 / suspension.Ix)

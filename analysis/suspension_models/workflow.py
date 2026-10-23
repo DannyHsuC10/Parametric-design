@@ -90,6 +90,21 @@ def body_figure(data, family, model, scenario, suspension):
     return figure
 
 
+def frame_figure(data, scenario):
+    figure, axes = plt.subplots(3, 1, figsize=(11, 9), sharex=True)
+    axes[0].plot(data["t"], data["F_frame_cmd"], "--", label="RC force command")
+    axes[0].plot(data["t"], data["F_frame_spring"], label="Body spring force")
+    axes[0].plot(data["t"], data["F_frame_damper"], label="Body damping force")
+    axes[0].plot(data["t"], data["dF_roll"], label="Transmitted RC force")
+    axes[0].set_ylabel("Force (N)")
+    axes[1].plot(data["t"], data["d_frame"], label="Equivalent body-spring displacement")
+    axes[1].set_ylabel("Displacement (m)")
+    axes[2].plot(data["t"], data["v_frame"], label="Equivalent body-spring velocity")
+    axes[2].set_ylabel("Velocity (m/s)")
+    finish_figure(figure, axes, f"LR / rollcenter_all / {scenario} | RC body-spring branch")
+    return figure
+
+
 def run_stage(stage, parameters):
     family, model, title = STAGES[stage]
     scenarios = scenarios_for(stage)
@@ -122,6 +137,10 @@ def run_stage(stage, parameters):
                 filename = f"{scenario}_body.png"
                 result.figures[filename] = body_figure(data, family, model, scenario, suspension)
                 result.figure_titles[filename] = f"{label}｜車身姿態"
+            if family == "LR" and model == "rollcenter_all":
+                filename = f"{scenario}_frame.png"
+                result.figures[filename] = frame_figure(data, scenario)
+                result.figure_titles[filename] = f"{label}｜RC 車體彈簧傳力與變形"
             filename = f"{scenario}.gif"
             result.artifacts[filename] = batch_runner.save_animation(logger, fps=data_creator.FPS, dpi=data_creator.DPI)
             result.figure_titles[filename] = f"{label}｜GIF 動畫"

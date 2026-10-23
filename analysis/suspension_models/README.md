@@ -218,7 +218,7 @@ $$
 懸吊、輪胎與車身側傾方程式沿用左右半車四自由度形式。Roll Center 橫向慣性力矩為
 
 $$
-M_{x,rc}=-a_y(2m_c)h_{rc},
+M_{x,rc}=-a_y(2m_s)h_{rc},
 \qquad
 \Delta F_{rc}=\frac{M_{x,rc}}{t}.
 $$
@@ -226,7 +226,7 @@ $$
 總車身側傾力矩及升沉、側傾加速度為
 
 $$
-M_x=(F_{s,r}-F_{s,l})\frac{t}{2}+a_y(2m_c)h_{cg}+M_{x,rc},
+M_x=(F_{s,r}-F_{s,l})\frac{t}{2}+a_y(2m_s)h_{cg}+M_{x,rc},
 $$
 
 $$
@@ -246,10 +246,19 @@ $$
 
 ### `Half_rollcenter_all_model`：含柔性車架傳遞的 Roll Center 模型
 
-此模型保留前述 Roll Center 力矩與車身方程式，並將 Roll Center 力差經由等效車架自由度傳遞。車架命令力、變形力及車架運動為
+此模型保留前述左右半車的四個自由度，另加一個 RC 車體彈簧支路的自由度，合計五個自由度。支路沿用 `roll_center_min_load_f` 的等效質量與彈簧概念：橫向輸入以半車簧上質量 $M_s=2m_s$ 計算，等效質量取 $M_s/4$；此質量是傳力支路的簡化參數，不額外加入整車質量。
+
+$$
+m_{frame}=\frac{M_s}{4},\qquad
+k_{frame}=\rho_{frame}k_\phi,\qquad
+\rho_{frame}=\texttt{k\_frame\_to\_roll\_ratio}.
+$$
+
+其中 $k_\phi$ 是 LR 模型既有的線性側傾通道剛性 `k_roll`，由共用 `Ks_roll_N_per_m` 的一半換算；剛性比預設為 10。車架阻尼比 `zeta_frame` 可在此節點設定，預設為 0.5。套用上游質量與剛性後，阻尼係數自動換算為 $c_{frame}=2\zeta_{frame}\sqrt{k_{frame}m_{frame}}$，使質量或剛性改變時仍維持指定阻尼比。車架命令力、彈簧／阻尼傳力及支路運動為
 
 $$
 F_{frame,cmd}=\frac{M_{x,rc}}{t},
+\qquad M_{x,rc}=-a_yM_sh_{rc},
 \qquad
 F_{frame}=k_{frame}d_{frame}+c_{frame}\dot d_{frame},
 $$
@@ -267,6 +276,16 @@ $$
 $$
 
 車身總側傾力矩仍包含懸吊力矩、重心高度造成的外力矩及 Roll Center 慣性力矩。
+
+$$
+M_x=(F_{s,r}-F_{s,l})\frac{t}{2}+a_yM_s(h_{cg}-h_{rc}).
+$$
+
+支路反應速度由 $\omega_{frame}=\sqrt{k_{frame}/m_{frame}}$ 與阻尼比決定；預設阻尼比 0.5 時為衰減振動。若將 `zeta_frame` 設為零，在零初始狀態、固定側向加速度下，傳力為 $F_{frame}=F_{frame,cmd}[1-\cos(\omega_{frame}\tau)]$，其中 $\tau$ 僅表示輸入開始後的經過時間。程式沒有額外的時間延遲參數；舊的未使用欄位 `tau_rc` 已移除。
+
+此 LR 模型代表等效半車，RC 高度沿用前後最佳化高度的平均值。它保留輪胎與懸吊阻尼的完整時域反應，並記錄全部支路振動；RC 最佳化則以獨立軸模型的首次轉移率脈衝為搜尋目標，因此兩者不保證有相同的頻率或輪載曲線。這裡的車體彈簧是獨立的等效傳力支路，並未建立完整車架變形與前後軸耦合。
+
+CSV／PKL 另記錄 `F_frame_cmd`、`F_frame_spring`、`F_frame_damper`、`dF_roll`、`d_frame`、`v_frame` 與 `a_frame`。各工況的「RC 車體彈簧傳力與變形」圖可直接比較輸入力、傳遞力與支路位移。
 
 ## 前後半車模型（FR）
 

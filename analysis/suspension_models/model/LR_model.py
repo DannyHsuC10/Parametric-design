@@ -250,6 +250,28 @@ def Half_suspension_2DOF_model(sus, state):# 2DOF1/2懸吊模型
     state.F_heave = F_heave
     state.F_roll = F_roll
 
+def _roll_center_moments(sus, state):
+    """Split the half-car sprung-mass lateral moment at the roll center."""
+    lateral_force = state.ay * (2 * sus.ms)
+    state.Mx_rc = -lateral_force * sus.h_rc
+    return lateral_force * sus.h_cg, state.Mx_rc
+
+
+def _frame_transfer_force(sus, state, rc_moment):
+    """RC branch: m_frame*x'' + c_frame*x' + k_frame*x = M_rc/track.
+
+    The equivalent mass is one quarter of the half-car sprung mass. It is
+    an independent load-transfer branch, as in the RC optimization study;
+    the suspension/tire states retain their existing dynamics.
+    """
+    state.F_frame_cmd = rc_moment / sus.track
+    state.F_frame_spring = sus.k_frame * state.d_frame
+    state.F_frame_damper = sus.c_frame * state.v_frame
+    state.dF_roll = state.F_frame_spring + state.F_frame_damper
+    state.a_frame = (state.F_frame_cmd - state.dF_roll) / sus.m_frame
+    return state.dF_roll
+
+
 def Half_suspension_model(sus, state):# 1/2懸吊模型(4DOF)
     """
     4DOF Half Car
@@ -307,7 +329,7 @@ def Half_suspension_model(sus, state):# 1/2懸吊模型(4DOF)
 
 
     # Roll center
-    Mx_rc = -state.ay*(sus.m_corner*2)*(sus.h_rc)# 慣性力量用負的
+    M_ext, Mx_rc = _roll_center_moments(sus, state)
 
     dF_roll = Mx_rc/sus.track # 這個力量直接傳遞到輪胎
 
@@ -316,11 +338,7 @@ def Half_suspension_model(sus, state):# 1/2懸吊模型(4DOF)
     
     M_spring = (Fs_r-Fs_l)*sus.track/2
 
-    M_ext = state.ay*(sus.m_corner*2)*(sus.h_cg)
-
     Mx = M_spring+M_ext+Mx_rc# 總側傾力矩
-
-    print("M_spring:",M_spring,"M_ext:",M_ext,"Mx_rc:",Mx_rc)
 
     az_body = -Fz/(sus.ms*2)
 
@@ -357,10 +375,10 @@ def Half_suspension_model(sus, state):# 1/2懸吊模型(4DOF)
     state.F_heave = F_heave
     state.F_roll = F_roll
 
-def Half_rollcenter_all_model(sus, state):# 1/2懸吊模型(4DOF)
+def Half_rollcenter_all_model(sus, state):# 左右半車 + RC 等效質量彈簧（5DOF）
     """
-    for roll center test
-    加入車輛剛性傳遞延遲系統
+    Four suspension/tire DOFs plus one equivalent body-spring RC branch.
+    Response timing follows mass, stiffness and optional damping.
     """
 
     left = state.left
@@ -406,36 +424,17 @@ def Half_rollcenter_all_model(sus, state):# 1/2懸吊模型(4DOF)
 
 
 
-    # Roll center
-    # 理論幾何力
-    
-    Mx_rc = -state.ay*(sus.m_corner*2)*(sus.h_rc)
-
-    F_frame_cmd = Mx_rc / sus.track
-
-    state.a_frame = (
-        F_frame_cmd
-        - sus.k_frame*state.d_frame
-        - sus.c_frame*state.v_frame
-    ) / sus.m_frame
-
-    dF_roll = (
-        sus.k_frame*state.d_frame
-        + sus.c_frame*state.v_frame
-    )
-
-    state.dF_roll = dF_roll
+    # Split the sprung-mass moment and transmit the RC branch through the
+    # equivalent body spring, using the same branch concept as the RC study.
+    M_ext, Mx_rc = _roll_center_moments(sus, state)
+    dF_roll = _frame_transfer_force(sus, state, Mx_rc)
 
     # Virtual body dynamics
     Fz = Fs_l+Fs_r
     
     M_spring = (Fs_r-Fs_l)*sus.track/2
 
-    M_ext = state.ay*(sus.m_corner*2)*(sus.h_cg)
-
     Mx = M_spring+M_ext+Mx_rc# 總側傾力矩
-
-    #print("M_spring:",M_spring,"M_ext:",M_ext,"Mx_rc:",Mx_rc)
 
     az_body = -Fz/(sus.ms*2)
 
