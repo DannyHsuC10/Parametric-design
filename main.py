@@ -76,6 +76,7 @@ class ResultDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
         self._first_paint_seen = False
 
     def paintEvent(self, event):
@@ -806,7 +807,9 @@ class MainWindow(QWidget):
         dialog.setWindowTitle(f"{node_id} 分析結果")
         dialog.resize(1300, 800)
         layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel(f"結果資料夾：{result_dir}"))
+        folder_label = QLabel(f"結果資料夾：{result_dir}")
+        folder_label.setWordWrap(True)
+        layout.addWidget(folder_label)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         left_panel = QWidget()
