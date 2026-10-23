@@ -46,7 +46,7 @@ class SuspensionModelTests(unittest.TestCase):
         cls.results = {}
         with redirect_stdout(StringIO()):
             for stage in ("cog_movable", "compressed_travel", "aero_stiffness", "frequency_stiffness",
-                          "tire_stiffness", "damping_rate", "damped_oscillation_analysis", "overall_rigidity",
+                          "tire_stiffness", "frequency_mass", "damping_rate", "damped_oscillation_analysis", "overall_rigidity",
                           "roll_center", "roll_center_min_load_f", "roll_center_same_load_r", *STAGES):
                 plugin = cls.plugins[stage]
                 parameters = parse_analysis_parameters(cls.values, plugin.parameters)
@@ -69,7 +69,7 @@ class SuspensionModelTests(unittest.TestCase):
             expected.update(zip(("damped_oscillation_analysis", *chain), chain))
         expected.update({
             ("roll_center_same_load_r", "half_suspension_model_lr"),
-            ("roll_center_same_load_r", "half_rollcenter_all_model"),
+            ("tender", "single_spring_model"),
         })
         actual = {(a, b) for a, b in flow_edges(self.flow) if a in STAGES or b in STAGES}
         self.assertEqual(actual, expected)
@@ -156,7 +156,8 @@ assert not any(name == "new" or name.startswith("new.") for name in sys.modules)
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
 
     def test_parameter_conversion_recomputes_dependent_physical_values(self):
-        values = dict(ms=280.0, mu=12.0, Ks=35000.0, Kt=95000.0, MR=0.8,
+        values = dict(ms=280.0, mu=12.0, Ks=35000.0,
+                      Ks_required_target_frequency_N_per_m=35000.0, Kt=95000.0, MR=0.8,
                       damped_sweep_selected_ratio_used=0.5,
                       damped_sweep_selected_coefficient_Ns_per_m=1500.0,
                       t=1.4, h_cog=0.35, cog_total_Ixx_kg_m2=64.0,
@@ -195,6 +196,7 @@ assert not any(name == "new" or name.startswith("new.") for name in sys.modules)
     def test_half_car_uses_separate_pitch_roll_and_rear_heave_rates_halved(self):
         values = {
             "ms": 280.0, "mu": 12.0, "Ks": 35000.0,
+            "Ks_required_target_frequency_N_per_m": 35000.0,
             "Ks_pitch_N_per_m": 40000.0, "Ks_roll_N_per_m": 24000.0,
             "Kt": 95000.0, "MR": 0.8, "hl_rear_heave_spring_ratio": 0.75,
         }

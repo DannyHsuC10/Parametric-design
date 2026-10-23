@@ -20,6 +20,10 @@ HIDDEN_PARAMETERS = {
     "aero_cl_cd_F_ref_N",
 }
 OUTPUTS = {
+    "tender_bind_total_stroke_mm": "Total main-plus-tender suspension compression where stiffness switches from series to main spring (mm)",
+    "tender_bind_spring_stroke_mm": "Tender spring compression at coil bind, excluding main spring compression (mm)",
+    "tender_bind_force_N": "Force in each modeled spring assembly at the stiffness switch (N)",
+    "tender_bind_vehicle_downforce_N": "Total vehicle downforce at simultaneous front/rear stiffness switch with no braking (N)",
     "max_compression_used_mm": "Maximum positive front or rear suspension compression at the manually selected anti ratio (mm)",
     "max_extension_used_mm": "Maximum front or rear suspension extension magnitude at the manually selected anti ratio (mm)",
 }
@@ -61,16 +65,18 @@ def main(parameters):
         / (main_heave_stiffness + tender_heave_stiffness)
     )
     max_applied_downforce = reference_downforce * reference_downforce_ratio
-    tender_max_stroke = max_applied_downforce / series_heave_stiffness
+    # With no braking the equilibrium equations split vehicle downforce equally
+    # between the front and rear spring assemblies.
+    bind_force = max_applied_downforce / 2.0
+    tender_max_stroke = bind_force / tender_heave_stiffness
+    main_stroke_at_bind = bind_force / main_heave_stiffness
+    bind_stroke = tender_max_stroke + main_stroke_at_bind
 
     def series_force(stroke):
         equivalent_stiffness = (
             main_heave_stiffness * tender_heave_stiffness
             / (main_heave_stiffness + tender_heave_stiffness)
         )
-        bind_force = tender_heave_stiffness * tender_max_stroke
-        main_stroke_at_bind = bind_force / main_heave_stiffness
-        bind_stroke = tender_max_stroke + main_stroke_at_bind
         if stroke <= bind_stroke:
             return equivalent_stiffness * stroke
         return bind_force + main_heave_stiffness * (stroke - bind_stroke)
@@ -213,6 +219,9 @@ def main(parameters):
     print(f"Maximum applied downforce: {max_applied_downforce:.2f} N")
     print(f"Initial series heave stiffness: {series_heave_stiffness:.3f} N/mm")
     print(f"Tender stroke limit: {tender_max_stroke:.2f} mm")
+    print(f"Stiffness switch total stroke: {bind_stroke:.2f} mm")
+    print(f"Stiffness switch force: {bind_force:.2f} N")
+    print(f"Stiffness switch vehicle downforce (no braking): {max_applied_downforce:.2f} N")
     print(f"Manually set anti geometry ratio: {anti_geometry_ratio:.2f}")
     print(f"Maximum front/rear compression: {max_compression:.2f} mm")
     print(f"Maximum front/rear extension: {max_extension:.2f} mm")
@@ -223,6 +232,10 @@ def main(parameters):
         "because no finite solution was returned"
     )
     return AnalysisResult(figure, {
+        "tender_bind_total_stroke_mm": float(bind_stroke),
+        "tender_bind_spring_stroke_mm": float(tender_max_stroke),
+        "tender_bind_force_N": float(bind_force),
+        "tender_bind_vehicle_downforce_N": float(max_applied_downforce),
         "max_compression_used_mm": float(max_compression),
         "max_extension_used_mm": float(max_extension),
     }, figures={"tender_pitch_gradient.png": gradient_figure}, figure_titles={

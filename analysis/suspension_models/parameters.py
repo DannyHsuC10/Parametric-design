@@ -9,6 +9,7 @@ from .batch_cases import FAMILIES, compatibility_error
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DIR = Path(__file__).resolve().parent
 SOURCE_ANALYSIS = "damped_oscillation_analysis"
+QUARTER_STIFFNESS = "Ks_required_target_frequency_N_per_m"
 
 # Diagram arrows describe model progression; each model can run independently
 # after the physical parameter sources have been computed.
@@ -42,7 +43,9 @@ def scenarios_for(stage):
 
 def plugin_metadata(stage):
     family, _, title = STAGES[stage]
-    names = ["ms", "mu", "Ks", "Ks_pitch_N_per_m", "Ks_roll_N_per_m", "Kt", "MR",
+    stiffness_names = ([QUARTER_STIFFNESS] if family == "quarter" else
+                       ["Ks", "Ks_pitch_N_per_m", "Ks_roll_N_per_m"])
+    names = ["ms", "mu", *stiffness_names, "Kt", "MR",
              "hl_rear_heave_spring_ratio", "damped_sweep_selected_ratio_used",
              "damped_sweep_selected_coefficient_Ns_per_m"]
     if family == "LR":
@@ -103,7 +106,7 @@ def make_suspension(family, parameters):
     for name, value in parameters.items():
         if not np.isfinite(value):
             raise ValueError(f"{name} 必須為有限數值")
-        if name in {"ms", "mu", "Ks", "Ks_pitch_N_per_m", "Ks_roll_N_per_m", "Kt", "MR", "t", "L",
+        if name in {"ms", "mu", "Ks", QUARTER_STIFFNESS, "Ks_pitch_N_per_m", "Ks_roll_N_per_m", "Kt", "MR", "t", "L",
                     "hl_sprung_roll_inertia_kg_m2", "cog_total_Ixx_kg_m2", "cog_total_Iyy_kg_m2",
                     "k_frame_to_roll_ratio", "m_frame", "Iy",
                     "hl_rear_heave_spring_ratio"} and value <= 0:
@@ -120,7 +123,7 @@ def make_suspension(family, parameters):
     if family == "quarter":
         old_ks, old_cs = suspension.ks, suspension.cs
         motion_ratio = parameters.get("MR", np.sqrt(suspension.kw / old_ks))
-        suspension.ks = parameters.get("Ks", old_ks)
+        suspension.ks = parameters.get(QUARTER_STIFFNESS, old_ks)
         if "damped_sweep_selected_coefficient_Ns_per_m" in parameters:
             suspension.cs = parameters["damped_sweep_selected_coefficient_Ns_per_m"]
         elif "damped_sweep_selected_ratio_used" in parameters:

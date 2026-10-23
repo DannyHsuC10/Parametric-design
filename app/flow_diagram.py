@@ -88,6 +88,9 @@ html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 #flow-canvas { position: relative; min-width: 100%; min-height: 100%; }
 #flow-canvas .mermaid { display: block; overflow: visible; margin: 0; padding: 0; }
 #flow-canvas svg { position: absolute; max-width: none !important; }
+#flow-canvas .node > rect, #flow-canvas .cluster > rect {
+  rx: 6px !important; ry: 6px !important;
+}
 #flow-canvas .node:hover > rect, #flow-canvas .node:hover .label-container {
   fill: #dbeafe !important; stroke: #60a5fa !important;
 }

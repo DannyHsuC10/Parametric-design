@@ -31,6 +31,21 @@ $$
 
 圖表使用 0%、25%、50%、75% 與 100% 的 $F_{down,max}$ 作為下壓力情境。例：若 `F_ref_ratio=0.8`，最高情境使用 $0.8F_{ref}$。
 
+## 剛性切換點導出量
+
+雙擊分析結果後，「輸入參數與主要輸出」表格會列出以下導出量：
+
+| 導出量 | 意義 |
+| --- | --- |
+| `tender_bind_total_stroke_mm` | 主簧與 Tender 合計的壓縮行程，達到此值時剛性由串聯剛性切換為主簧剛性（mm） |
+| `tender_bind_spring_stroke_mm` | Tender 本身的壓實行程，不包含主簧壓縮量（mm） |
+| `tender_bind_force_N` | 切換時單一模型彈簧組承受的力（N），不是全車總下壓力 |
+| `tender_bind_vehicle_downforce_N` | 無煞車時，前後兩組同時切換對應的全車總下壓力（N），等於設定的 $F_{down,max}$ |
+
+設計條件為：無煞車時，全車下壓力達到 $F_{down,max}$，前後兩組 Tender 同時壓實。平衡方程將全車下壓力均分至前後，因此每組切換力為 $F_{bind}=F_{down,max}/2$。Tender 本身的壓實行程為 $s_t=F_{bind}/K_{tender}$，主簧與 Tender 合計的切換行程為 $s_{bind}=F_{bind}/K_{series}=s_t+F_{bind}/K_{heave,main}$。所有行程沿用分析的平衡位置零點。
+
+有煞車載荷轉移時，前後彈簧組的力分別為 $F_{down}/2+F_{transfer}$ 與 $F_{down}/2-F_{transfer}$，仍各自以固定的 $F_{bind}$ 判斷切換，因此前組可能提前壓實，後組則延後。
+
 ## Anti 幾何效果
 
 Anti 比例用於折減煞車造成的縱向載荷轉移：

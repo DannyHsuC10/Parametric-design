@@ -6,10 +6,13 @@
 
 ## 分析流程
 
+`single_spring_model`、`one_eighth_suspension_model`、`Double_spring_model`、`Quarter_suspension_model` 的懸吊剛性 `ks` 統一使用 `Frequency_mass` 導出的 `Ks_required_target_frequency_N_per_m`（N/m）。流程依此參數自動納入 `frequency_mass` 前置分析，剛性沿用上游結果，不新增輸入框；輪端剛性仍由 `kw = ks × MR²` 換算，再與輪胎剛性串聯取得 `ride_rate`。
+
 ```mermaid
 graph TD
     source[四分之一車阻尼比與輪載分析]
     source --> single[single_spring_model]
+    tender[Tender 簧串聯下的懸吊行程] --> single
     single --> eighth[one_eighth_suspension_model]
     eighth --> double[Double_spring_model]
     double --> quarter[Quarter_suspension_model]
