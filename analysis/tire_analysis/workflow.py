@@ -17,6 +17,18 @@ MODEL_PRESSURE_PA = 82319.0
 MODEL_CAMBER_DEG = 0.0
 
 
+def run_friction_circle(p):
+    from .friction_circle import build_figures
+
+    figures = build_figures(load_tir(), pressure=MODEL_PRESSURE_PA, IA=MODEL_CAMBER_DEG)
+    return AnalysisResult(
+        figures["Friction_Circle_vs_Slip_Ratio.png"],
+        {"friction_circle_figure_count": len(figures)}, figures=figures,
+        figure_titles={"plot.png": "摩擦圓｜滑移率曲面",
+                       "Friction_Circle_vs_Slip_Ratio.png": "摩擦圓｜滑移率曲面",
+                       "Friction_Circle_vs_Fz.png": "摩擦圓｜垂直載荷曲面"})
+
+
 def run_model(p):
     figures = MF_tester.build_figures(load_tir(), pressure=MODEL_PRESSURE_PA, IA=MODEL_CAMBER_DEG)
     # Keep every original filename, plus the shared gallery's plot.png shortcut.

@@ -77,3 +77,5 @@ order,node_id,title,analysis_id,flow_row,branch_from,merge_from,flow_group,extra
 76,pedal_ratio,Pedal_ratio,pedal_ratio,branch,brake_ratio,,煞車分析,,
 77,brake_force,Brake_force,brake_force,branch,pedal_ratio,,煞車分析,,
 78,brake_hydraulic_pressure,Brake_hydraulic_pressure,brake_hydraulic_pressure,branch,pedal_ratio,,煞車分析,,
+79,friction_circle,friction_circle,friction_circle,branch,tire_model,,輪胎分析,,
+80,tire_maping_force_limit,tire_maping_force_limit,tire_maping_force_limit,branch,tire_camber,,輪胎分析,,
