@@ -67,8 +67,8 @@ MR,1
 wl_downforce_N,0.0
 wl_aero_front_ratio,0.5
 wl_grid_points,81
-t,1.25
 zeta_frame,0.5
+t,1.25
 k_frame_to_roll_ratio,10.0
 hl_rear_heave_spring_ratio,0.8
 hl_rear_track_m,1.25
@@ -92,9 +92,9 @@ hl_rear_roll_high_zeta,0.5
 hl_knee_velocity_mm_s,50.0
 hl_reference_case_g,1.0
 rc_chassis_stiffness_ratio,10.0
+vehicle_max_steering_angle_deg,30.0
 tire_mapping_fz_N,800.0
 tire_mapping_fy_N,500.0
-vehicle_max_steering_angle_deg,30.0
 aero_speed_m_s,16.7
 c_frame,0.0
 ax,2
