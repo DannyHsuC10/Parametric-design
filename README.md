@@ -38,6 +38,8 @@
 
 Roll Center 分析接在「車架剛度與整車等效剛性」之後：`roll_center → roll_center_min_load_f → roll_center_same_load_r`。前軸最佳高度輸出為 `hl_front_roll_center_m`，後軸匹配高度輸出為 `hl_rear_roll_center_m`；後續 Roll 與阻尼分析會自動使用這兩個結果，不需手動輸入。
 
+Aero 姿態分析接在「下壓力與升力係數估算」後：`aero_cl_cd → aero_roll_pitch_analysis → aero 3D`，位於「aero 分析」群組。兩個新節點共用前序估算的升力係數、參考面積與 `v_ref` 參考速度，速度自動由 km/h 換算為 m/s，不提供輸入框；結果包含 Roll／Pitch 下壓力曲線，以及 CoP、四輪下壓力與阻力曲面。參數與方程式見 [Aero 姿態分析](analysis/aerodynamics/README.md)。
+
 - [Roll Center 流程、參數與計算方程式](analysis/roll_center_analysis/README.md)
 
 共用的振動與阻尼模型集中在 `analysis/suspension_dynamics/`：`oscillation_models.py` 提供時間取樣、解析解、Euler 積分與能量計算；`damping_models.py` 提供阻尼參數換算與單自由度、四分之一車求解工具。各分析入口仍放在 `analysis/`，由既有流程載入。

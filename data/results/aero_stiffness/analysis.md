@@ -1,6 +1,6 @@
-# Aero stiffness 分析
+# 傾斜角 stiffness 分析
 
-根據空力敏感度限制車輛傾角，其中雖然roll敏感度較低而且還有roll center 可以分掉一部份的LLT，但是輪胎傾斜會造成camber變化，還是不能放太寬。
+根據空力敏感度限制車輛傾角，其中雖然roll敏感度較低而且還有roll center 可以分掉一部份的LLT，但是輪胎傾斜會造成camber變化，還是不能放太寬。前懸吊幾何有機會補camber gain 1 deg ，輪胎在正負 1 deg 內也不會有太大的性能衰退，如果空力對於roll不敏感可以用這幾個面向設定roll 允許角度
 
 ## 分析目的
 

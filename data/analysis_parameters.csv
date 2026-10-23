@@ -1,4 +1,4 @@
-﻿name,number,Adjustable
+name,number,Adjustable
 ax,2,N
 ay,2.2,N
 sus_travel,0.025,N
@@ -91,3 +91,21 @@ brake_disc_outer_diameter_m,0.2,Y
 brake_disc_contact_offset_m,0.02,Y
 brake_safety_factor,1.5,Y
 rc_chassis_stiffness_ratio,10.0,Y
+aero_heave_m,-0.01,Y
+aero_angle_min_deg,-3.0,Y
+aero_angle_max_deg,3.0,Y
+aero_curve_points,121,Y
+aero_surface_points,30,Y
+aero_CD0,1.8,Y
+aero_Kh,-5.0,Y
+aero_Kp,0.2,Y
+aero_Kr,0.0,Y
+aero_Khh,50.0,Y
+aero_Kpp,30.0,Y
+aero_Krr,8.0,Y
+aero_Kd_h,0.0,Y
+aero_Kd_p,0.0,Y
+aero_Kd_r,0.0,Y
+aero_front_balance,0.45,Y
+aero_K_balance_pitch,0.2,Y
+aero_K_balance_roll,0.1,Y
