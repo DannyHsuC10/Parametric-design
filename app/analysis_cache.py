@@ -33,6 +33,27 @@ def begin_analysis(results_dir, node_id):
     _write_state(Path(results_dir) / node_id, {"complete": False})
 
 
+def saved_outputs(results_dir, node_id, output_names):
+    """Read a frozen successful export without checking or rerunning its inputs."""
+    folder = Path(results_dir) / node_id
+    try:
+        result = (folder / "result.csv").read_bytes()
+        state_path = folder / "cache.json"
+        if state_path.exists():
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            if (state.get("complete") is not True
+                    or state.get("result_hash") != hashlib.sha256(result).hexdigest()):
+                return {}
+        with (folder / "result.csv").open(encoding="utf-8-sig", newline="") as stream:
+            return {canonical_parameter_name(entry.get("name", "")): entry["number"]
+                    for entry in csv.DictReader(stream)
+                    if entry.get("category") == "導出量"
+                    and canonical_parameter_name(entry.get("name", "")) in output_names
+                    and (entry.get("number") or "").strip()}
+    except (OSError, UnicodeError, csv.Error, ValueError, TypeError, AttributeError):
+        return {}
+
+
 def remember_analysis(results_dir, row, parameters, outputs, files):
     result_dir = Path(results_dir) / row["node_id"]
     _write_state(result_dir, {

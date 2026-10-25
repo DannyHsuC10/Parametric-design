@@ -95,6 +95,25 @@ class RollCenterTests(unittest.TestCase):
         finally:
             result.close()
 
+    def test_edited_chassis_ratio_reaches_every_roll_center_stage(self):
+        ratio = 3.5
+        values = VEHICLE | {"rc_chassis_stiffness_ratio": str(ratio)}
+        for stage in STAGES:
+            with self.subTest(stage=stage):
+                self.assertIn("rc_chassis_stiffness_ratio", self.plugins[stage].parameters)
+                self.assertNotIn("rc_chassis_stiffness_ratio", self.plugins[stage].hidden_parameters)
+                result = self.run_stage(stage, values)
+                try:
+                    if stage == "roll_center":
+                        self.assertAlmostEqual(result.outputs["rc_normalized_optimal_ratio"], 1 / (1 + ratio))
+                    else:
+                        table = "axle_model.csv" if stage == "roll_center_min_load_f" else "axle_models.csv"
+                        axles = result.tables[table]
+                        np.testing.assert_allclose(axles.chassis_rate / axles.spring_rate, ratio)
+                    values.update(result.outputs)
+                finally:
+                    result.close()
+
     def test_analytical_forces_match_independent_ode_solution(self):
         axle = Axle(100, 8, 1.2, 0.3, 1200, 12000)
         times = np.linspace(0, 1, 1001)

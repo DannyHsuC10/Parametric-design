@@ -21,7 +21,8 @@ SCAN_SETTINGS = {
     "rc_simulation_duration_s": 2.0,
 }
 COMMON = dict.fromkeys(("ms", "h_cog", "hl_sprung_front_weight_ratio", "cog_total_Ixx_kg_m2",
-                       "Ks_roll_N_per_m", "t", "hl_front_roll_motion_ratio", "ay"), "float")
+                       "Ks_roll_N_per_m", "t", "hl_front_roll_motion_ratio", "ay",
+                       "rc_chassis_stiffness_ratio"), "float")
 PARAMETERS = {
     "roll_center": {"rc_chassis_stiffness_ratio": "float"},
     "roll_center_min_load_f": COMMON,

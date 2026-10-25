@@ -11,6 +11,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -31,8 +32,10 @@ from PySide6.QtWidgets import (
 )
 
 from app.analysis_data import canonical_parameter_name, load_analysis_parameters, parse_analysis_parameters
+from app.analysis_cache import saved_outputs
 from app.analysis_result import AnalysisResult, load_plot_choices, save_analysis_result
 from app.analysis_runner import AnalysisRunner
+from app.analysis_settings import NodeSettings, load_node_settings, save_node_settings
 from app.document_theme import document_colors
 from app.flow_diagram import render_flow_diagram
 from app.markdown_renderer import render_markdown, render_markdown_file
@@ -159,6 +162,19 @@ class MainWindow(QWidget):
         self.output_names = {name for plugin in self.plugins for name in plugin.outputs}
         self.output_values = {}
         self.parameter_edits = {}
+        self.node_settings_path = LAST_SET_CSV.with_suffix(".nodes.json")
+        settings_loaded = True
+        try:
+            self.node_settings = load_node_settings(self.node_settings_path)
+        except (OSError, ValueError) as error:
+            self.node_settings = {}
+            settings_loaded = False
+            QMessageBox.warning(self, "分析個別設定載入失敗", str(error))
+        new_nodes = {row["node_id"] for row in self.flow} - self.node_settings.keys()
+        for row in self.flow:
+            self.node_settings.setdefault(row["node_id"], NodeSettings())
+        if settings_loaded and (new_nodes or not self.node_settings_path.exists()):
+            self._save_node_settings()
         self.active_node_id = None
         self.plot = None
         self.analysis_runner = None
@@ -208,6 +224,18 @@ class MainWindow(QWidget):
         self.parameter_scroll.setWidget(self.parameter_panel)
         self.parameter_scroll.setMinimumHeight(120)
         self.parameter_title = QLabel("輸入參數（單擊流程節點以設定）")
+        self.skip_analysis_checkbox = QCheckBox("跳過此分析（所有執行按鈕皆適用）")
+        self.skip_analysis_checkbox.setToolTip("不執行此分析，也不因相依需求重跑它；保留既有結果供後續分析沿用。")
+        self.manual_parameters_checkbox = QCheckBox("不套用前置分析結果，全部參數手動設定")
+        self.manual_parameters_checkbox.setToolTip("顯示全部輸入參數；數值只儲存在此分析，不會改寫共用參數或前置結果。")
+        self.parameter_options = QWidget()
+        options_layout = QVBoxLayout(self.parameter_options)
+        options_layout.setContentsMargins(0, 0, 0, 0)
+        options_layout.addWidget(self.skip_analysis_checkbox)
+        options_layout.addWidget(self.manual_parameters_checkbox)
+        self.parameter_options.setEnabled(False)
+        self.skip_analysis_checkbox.toggled.connect(self.set_analysis_skipped)
+        self.manual_parameters_checkbox.toggled.connect(self.set_manual_parameters)
         self.console = QTextEdit()
         self.console.setReadOnly(True)
 
@@ -224,6 +252,7 @@ class MainWindow(QWidget):
         parameter_layout = QVBoxLayout(parameter_section)
         parameter_layout.setContentsMargins(0, 0, 0, 0)
         parameter_layout.addWidget(self.parameter_title)
+        parameter_layout.addWidget(self.parameter_options)
         parameter_layout.addWidget(self.parameter_scroll)
 
         console_section = QWidget()
@@ -418,21 +447,34 @@ class MainWindow(QWidget):
         self.parameter_edits.clear()
         if plugin is None:
             return
+        node_id = getattr(self, "active_node_id", None)
+        options = getattr(self, "node_settings", {}).get(node_id, NodeSettings())
         for name in plugin.parameters:
-            if (name in plugin.hidden_parameters or name in {
+            if not options.manual and (name in plugin.hidden_parameters or name in {
                 "ms", "mu", "mu_front", "mu_rear", "L", "hl_front_weight_ratio",
                 "hl_sprung_roll_inertia_kg_m2",
                 "mu_w", "wl_mu_y",
             }) and name not in plugin.visible_parameters:
                 continue
-            edit = QLineEdit(self.parameter_values.get(name, ""))
-            if name in self.output_names:
+            values = options.parameters if options.manual else self.parameter_values
+            edit = QLineEdit(str(values.get(name, "")))
+            if options.manual:
+                edit.setPlaceholderText("請輸入此分析專用的參數")
+                edit.textChanged.connect(
+                    lambda value, key=name, node=node_id: self.update_manual_parameter(node, key, value))
+            elif name in self.output_names:
                 edit.setReadOnly(True)
                 edit.setPlaceholderText("由前置分析計算")
                 edit.setToolTip("沿用最近一次的上游結果；修改來源資料後，請使用「所選分析＋前置分析」更新。")
             else:
                 edit.textChanged.connect(lambda value, key=name: self.update_parameter(key, value))
             labels = {
+                "ms": "全車簧上質量 ms（kg）",
+                "mu": "平均單輪簧下質量 mu（kg）",
+                "mu_front": "前軸單輪簧下質量（kg）",
+                "mu_rear": "後軸單輪簧下質量（kg）",
+                "hl_front_weight_ratio": "全車前軸重量比（0～1）",
+                "hl_sprung_roll_inertia_kg_m2": "簧上側傾慣量（kg·m²）",
                 "h_cog": "重心高度 h_cog（m）",
                 "Kt": "輪胎垂直剛性 Kt（N/m）",
                 "ct": "輪胎阻尼 ct（N·s/m）",
@@ -440,6 +482,11 @@ class MainWindow(QWidget):
                 "t": "輪距 t（m）",
                 "L": "軸距 L（m）",
                 "hl_rear_heave_spring_ratio": "後軸 Heave 剛性比",
+                "hl_rear_roll_spring_ratio": "後軸 Roll 剛性比",
+                "full_body_twist_stiffness_Nm_per_rad": "車架扭轉剛性（N·m/rad）",
+                "cog_total_Ixx_kg_m2": "全車 Roll 慣量 Ixx（kg·m²，COG）",
+                "cog_total_Iyy_kg_m2": "全車 Pitch 慣量 Iyy（kg·m²，COG）",
+                "cog_total_Izz_kg_m2": "全車 Yaw 慣量 Izz（kg·m²，COG）",
                 "h_rc": "Roll Center 高度 h_rc（m）",
                 "tau_rc": "Roll Center 傳遞時間常數 tau_rc（s）",
                 "k_frame_to_roll_ratio": "車架／Roll 剛性比",
@@ -486,13 +533,77 @@ class MainWindow(QWidget):
                 edit.setToolTip("假設對向固定式、等徑活塞卡鉗；活塞數包含單顆卡鉗的兩側，每軸為兩顆卡鉗。")
             if name == "brake_balance_bar_front_ratio":
                 edit.setToolTip("前總泵分到的推力比例；實際前後煞車力比例另由總泵、卡鉗與碟盤參數計算。")
+            if options.manual:
+                edit.setToolTip("此數值僅作為本分析的輸入，不會改寫共用參數或其他分析的輸入設定。")
             self.parameter_edits[name] = edit
+
+    def _save_node_settings(self):
+        try:
+            save_node_settings(self.node_settings_path, self.node_settings)
+        except OSError as error:
+            QMessageBox.warning(self, "分析個別設定存檔失敗",
+                                f"本次變更尚未存入 JSON，請確認檔案可寫入。\n{error}")
+            return False
+        return True
+
+    def set_analysis_skipped(self, checked):
+        if self.active_node_id is not None:
+            self.node_settings.setdefault(self.active_node_id, NodeSettings()).skip = checked
+            self._save_node_settings()
+
+    def _manual_parameter_defaults(self, row, plugin):
+        """Seed private inputs from available values without changing shared state."""
+        values = dict(self.parameter_values)
+        for producer_row in self.flow:
+            if producer_row["node_id"] == row["node_id"]:
+                continue
+            producer = self.plugins_by_id[producer_row["analysis_id"]]
+            missing = {name for name in plugin.parameters if not str(values.get(name, "")).strip()}
+            if missing.intersection(producer.outputs):
+                values.update({name: value for name, value in
+                               saved_outputs(RESULTS_DIR, producer_row["node_id"], producer.outputs).items()
+                               if name in missing})
+        try:
+            with (RESULTS_DIR / row["node_id"] / "result.csv").open(encoding="utf-8-sig", newline="") as stream:
+                for entry in csv.DictReader(stream):
+                    name = canonical_parameter_name(entry.get("name", ""))
+                    if (entry.get("category") == "輸入量" and name in plugin.parameters
+                            and not str(values.get(name, "")).strip()):
+                        values[name] = entry.get("number") or ""
+        except (OSError, UnicodeError, csv.Error):
+            pass
+        return {name: str(values.get(name, plugin.parameter_defaults.get(name, "")))
+                for name in plugin.parameters}
+
+    def set_manual_parameters(self, checked):
+        if self.active_node_id is None:
+            return
+        row = next(row for row in self.flow if row["node_id"] == self.active_node_id)
+        plugin = self.plugins_by_id[row["analysis_id"]]
+        options = self.node_settings.setdefault(self.active_node_id, NodeSettings())
+        if checked:
+            for name, value in self._manual_parameter_defaults(row, plugin).items():
+                options.parameters.setdefault(name, value)
+        options.manual = checked
+        self._save_node_settings()
+        self.build_parameter_fields(plugin)
+
+    def update_manual_parameter(self, node_id, name, value):
+        self.node_settings.setdefault(node_id, NodeSettings()).parameters[canonical_parameter_name(name)] = value
+        self._save_node_settings()
 
     def show_node_parameters(self, node_id):
         row = next((item for item in self.flow if item["node_id"] == node_id), None)
         if row is None:
             return
         self.active_node_id = node_id
+        options = self.node_settings.get(node_id, NodeSettings())
+        for checkbox, checked in ((self.skip_analysis_checkbox, options.skip),
+                                  (self.manual_parameters_checkbox, options.manual)):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(checked)
+            checkbox.blockSignals(False)
+        self.parameter_options.setEnabled(self.analysis_runner is None)
         self.run_selected_button.setEnabled(self.analysis_runner is None)
         self.run_with_dependencies_button.setEnabled(self.analysis_runner is None)
         plugin = self.plugins_by_id[row["analysis_id"]]
@@ -589,6 +700,17 @@ class MainWindow(QWidget):
                 raise ValueError(f"分析依賴形成循環：{node_id}")
             visiting.add(node_id)
             plugin = self.plugins_by_id[row["analysis_id"]]
+            options = getattr(self, "node_settings", {}).get(node_id, NodeSettings())
+            if options.skip or options.manual:
+                if options.manual and not options.skip:
+                    try:
+                        parse_analysis_parameters(options.parameters, plugin.parameters)
+                    except ValueError as error:
+                        raise ValueError(f"{row['title']} 手動參數未完成：{error}") from error
+                visiting.remove(node_id)
+                required_node_ids.add(node_id)
+                ordered_rows.append(row)
+                return
             for dependency in getattr(plugin, "required_analyses", ()):
                 dependency_row = next((item for item in self.flow if item["node_id"] == dependency), None)
                 if dependency_row is None:
@@ -631,6 +753,12 @@ class MainWindow(QWidget):
     def _single_analysis_values(self, row):
         """Reuse live outputs first; restore missing inputs from their producer's export."""
         plugin = self.plugins_by_id[row["analysis_id"]]
+        options = getattr(self, "node_settings", {}).get(row["node_id"], NodeSettings())
+        if options.skip:
+            return dict(self.parameter_values), {}
+        if options.manual:
+            parse_analysis_parameters(options.parameters, plugin.parameters)
+            return dict(options.parameters), {}
         values = dict(self.parameter_values)
         restored = {}
         missing = {name for name in plugin.parameters if not str(values.get(name, "")).strip()}
@@ -641,15 +769,9 @@ class MainWindow(QWidget):
             needed = missing.intersection(producer.outputs)
             if not needed:
                 continue
-            path = RESULTS_DIR / producer_row["node_id"] / "result.csv"
-            try:
-                with path.open(encoding="utf-8-sig", newline="") as stream:
-                    for entry in csv.DictReader(stream):
-                        name = canonical_parameter_name(entry.get("name", ""))
-                        if entry.get("category") == "導出量" and name in needed and (entry.get("number") or "").strip():
-                            restored[name] = entry["number"]
-            except (OSError, UnicodeError, csv.Error):
-                continue
+            restored.update({name: value for name, value in
+                             saved_outputs(RESULTS_DIR, producer_row["node_id"], producer.outputs).items()
+                             if name in needed})
         values.update(restored)
         missing = [name for name in plugin.parameters if not str(values.get(name, "")).strip()]
         if missing:
@@ -682,11 +804,16 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "分析參數錯誤", str(error))
             return
 
-        if not include_dependencies:
+        manual = self.node_settings.get(self.active_node_id, NodeSettings()).manual
+        if not include_dependencies and not manual:
             self.parameter_values.update(values)
             self.output_values.update(restored)
         self._start_analysis(selected_rows, self.active_node_id, incremental=include_dependencies)
-        if include_dependencies:
+        if self.node_settings.get(self.active_node_id, NodeSettings()).skip:
+            self.console.append("所選分析已勾選跳過，不會執行或重跑其前置分析。")
+        elif manual:
+            self.console.append("所選分析使用此節點專用的手動輸入，不套用前置結果，也不改寫共用參數。")
+        elif include_dependencies:
             self.console.append("重算所選分析；前置分析會逐項比對輸入與來源資料，略過未變更且已有成功結果的項目。")
         else:
             self.console.append("只執行所選分析：沿用最近一次成功的上游結果，上游不重算。")
@@ -701,6 +828,7 @@ class MainWindow(QWidget):
         self.run_affected_button.setEnabled(False)
         self.csv_button.setEnabled(False)
         self.parameter_scroll.setEnabled(False)
+        self.parameter_options.setEnabled(False)
         self._run_started_at = perf_counter()
         self._stage_started_at = self._run_started_at
         self._stage_position = 0
@@ -708,13 +836,15 @@ class MainWindow(QWidget):
         self._stage_title = "準備分析"
         self._stage_phase = "準備中"
         runner = AnalysisRunner(self.plugins_by_id, rows, self.parameter_values, RESULTS_DIR,
-                                selected_node_id, parent=self, incremental=incremental)
+                                selected_node_id, parent=self, incremental=incremental,
+                                node_settings=self.node_settings)
         self.analysis_runner = runner
         runner.log.connect(self._append_analysis_log)
         runner.stageStarted.connect(self._analysis_stage_started)
         runner.stageSaving.connect(self._analysis_stage_saving)
         runner.stageCompleted.connect(self._analysis_stage_completed)
         runner.stageReused.connect(self._analysis_stage_reused)
+        runner.stageSkipped.connect(self._analysis_stage_skipped)
         runner.finished.connect(self._analysis_finished)
         self._refresh_analysis_status()
         self.progress_timer.start()
@@ -751,6 +881,14 @@ class MainWindow(QWidget):
         self._stage_phase = "沿用結果"
         self._refresh_analysis_status()
 
+    @Slot(int, int, str, object)
+    def _analysis_stage_skipped(self, position, total, title, outputs):
+        self._analysis_stage_completed(position, total, title, outputs, 0)
+        self._stage_position, self._stage_total, self._stage_title = position, total, title
+        self._stage_started_at = perf_counter()
+        self._stage_phase = "跳過分析"
+        self._refresh_analysis_status()
+
     @Slot()
     def _refresh_analysis_status(self):
         if self.analysis_runner is None:
@@ -779,11 +917,12 @@ class MainWindow(QWidget):
         elif runner.incremental:
             self.status_label.setText(
                 f"完成：重算 {runner.completed_count} 項，沿用 {runner.reused_count} 項，"
-                f"耗時 {runner.elapsed:.2f} 秒。結果已儲存。"
+                f"跳過 {runner.skipped_count} 項，耗時 {runner.elapsed:.2f} 秒。結果已儲存。"
             )
         else:
             self.status_label.setText(
-                f"完成 {runner.completed_count}/{len(runner.rows)} 項分析，耗時 {runner.elapsed:.2f} 秒。結果已儲存。"
+                f"完成 {runner.completed_count}/{len(runner.rows)} 項分析，跳過 {runner.skipped_count} 項，"
+                f"耗時 {runner.elapsed:.2f} 秒。結果已儲存。"
             )
         runner.deleteLater()
         if runner.error:
@@ -901,6 +1040,7 @@ class MainWindow(QWidget):
             return
         try:
             DATA_DIR.mkdir(parents=True, exist_ok=True)
+            save_node_settings(self.node_settings_path, self.node_settings)
             with LAST_SET_CSV.open("w", newline="", encoding="utf-8-sig") as csv_file:
                 writer = csv.writer(csv_file)
                 writer.writerow(["name", "number"])

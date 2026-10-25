@@ -16,3 +16,7 @@ __pycache__/
 
 # Python virtual environment
 .venv/
+
+# Local execution options and private manual inputs.
+/data/analysis_parameters_last_set.nodes.json
+/data/analysis_parameters_last_set.nodes.json.tmp

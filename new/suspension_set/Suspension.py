@@ -28,15 +28,48 @@ class Suspension_A:
         roll_r = LinearKC(k=18000,c=2400,name="roll_r")#22000
 
         """
+        mu = 15
+        mu_f = mu
+        mu_r = mu
+        k_main = 70000
+        c_critical = 2 * np.sqrt(k_main * mu)
 
-        heave_f = LinearKC(k=35000,c=3350,name="heave_f")# 30000
-        heave_r = LinearKC(k=31500,c=3175,name="heave_r")# 28000
+        heave_f = SeriesKC(
+                            main=k_main,
+                            low=k_main*0.5,
+                            travel=0.0043,
+                            low_comp=c_critical,
+                            high_comp=c_critical,
+                            low_reb=c_critical,
+                            high_reb=c_critical,
+                            transition=0.05,
+                            mr_value=1.0,
+                            travel_lim_compress=0.08,
+                            travel_lim_stretch=0.08,
+                            name="corner_tender",
+                        )
+
+        heave_r = SeriesKC(
+                            main=k_main,
+                            low=k_main*0.5,
+                            travel=0.0043,
+                            low_comp=c_critical,
+                            high_comp=c_critical,
+                            low_reb=c_critical,
+                            high_reb=c_critical,
+                            transition=0.05,
+                            mr_value=1.0,
+                            travel_lim_compress=0.08,
+                            travel_lim_stretch=0.08,
+                            name="corner_tender",
+                        )
+
         roll_f = LinearKC(k=20000,c=2500,name="roll_f")#25000
         roll_r = LinearKC(k=18000,c=2400,name="roll_r")#22000
 
 
         roll_c = NullKC()
-        warp = LinearKC(k=0.0,c=0.0,name="warp")
+        warp = NullKC()
 
         # 扭轉剛性需要換成rad 車架設定一個小小阻尼
         self.body_twist = LinearKC(k=180000,c=300,name="body_twist")
@@ -66,7 +99,7 @@ class Suspension_A:
         self.m = 321
         self.ms = self.m-mu_f*2-mu_r*2
 
-        self.tf = 1.28
+        self.tf = 1.25
         self.tr = 1.24
         self.lf = 0.765
         self.lr = 0.765
@@ -77,10 +110,9 @@ class Suspension_A:
         self.I_rate = np.array([self.lr/self.l,self.lf/self.l])
 
         """
-        1. 為了不在懸吊模型裡面玩方向猜猜樂必須要強制把方向在這邊訂好
-        2. 幾何傳力設定到100%還是會發生姿態改變，這是因為輪胎被壓縮
-        3. roll 和 pitch 設定到100% 給相同的正交輸入姿態角度會不同，這是因為軸距輪距差異和motion ratio 一樣成2次正比
-        4. pitch 沒有輸入的時候也有初始姿態這是彈簧剛性與重心位置的問題
+        1. 幾何傳力設定到100%還是會發生姿態改變，這是因為輪胎被壓縮
+        2. roll 和 pitch 設定到100% 給相同的正交輸入姿態角度會不同，這是因為軸距輪距差異和motion ratio 一樣成2次正比
+        3. pitch 沒有輸入的時候也有初始姿態這是彈簧剛性與重心位置的問題
         """
         # 建立 GeometryModel
         # 把懸吊喀了的驗證版本
@@ -101,8 +133,6 @@ class Suspension_A:
 
             camber=np.zeros(4)
         )
-
-        #self.geometry = create_fast_geometry(self)
 
 
         Ixx = 60

@@ -16,6 +16,27 @@
 
 「Run 全流程」在任何流程頁面都會強制重算完整流程。其他三種操作也可在任何群組頁面使用。
 
+每個節點的左下方參數區新增兩個獨立勾選框：
+
+- **跳過此分析**：四種執行方式都不會計算該節點，也不會為它執行前置分析。保留目前與已儲存的成功結果供後續節點沿用；若後續缺少必要數值，會提示錯誤，不會偷偷重跑已跳過的分析。
+- **不套用前置分析結果，全部參數手動設定**：顯示此分析宣告的全部輸入參數，包括原本隱藏或唯讀的上游導出量。第一次勾選時以目前數值或已儲存結果填入，之後使用此節點自己的數值，不隨上游更新；例如只在此節點將 `ms` 設成 100 kg，不會改寫共用 `ms`、上游結果或其他節點的輸入設定。「只執行所選分析」與「所選分析＋前置分析」均可直接使用手動輸入，不必重跑前置分析。分析產生的導出量仍依原流程傳遞給後續節點。
+
+取消手動設定會恢復使用共用參數／前置結果，並保留此節點的手動數值供再次勾選使用；跳過與手動設定可同時勾選，此時優先跳過。切換節點或載入參數 CSV 不會互相覆蓋各節點的手動值。
+
+各分析設定集中在 `data/analysis_parameters_last_set.nodes.json`，以流程的 `node_id` 為索引，記錄 `skip`（是否跳過）、`manual`（是否使用手動輸入）及 `parameters`（此節點專用的手動參數）。程式啟動時自動載入，並補上新增節點的預設設定；勾選、取消勾選或編輯手動參數後立即儲存，不必等到關閉程式。也可在程式關閉時直接編輯此 JSON，下一次啟動就會套用。
+
+```json
+{
+  "compressed_travel": {
+    "skip": true,
+    "manual": false,
+    "parameters": {}
+  }
+}
+```
+
+上述範例表示跳過 `compressed_travel`，其他分析保留各自的設定。JSON 不記錄或改寫上游分析結果。
+
 自動比對使用各分析宣告的 `PARAMETERS` 與 `INPUT_FILES`，不是只看流程圖箭頭。來源檔案包含重心 Excel、輪胎 TIR、賽道 Excel、PSD 速度 CSV 與油管 CSV，會比對內容以偵測變更。每個節點成功儲存後寫入 `data/results/<node_id>/cache.json`；重新開啟程式或載入 CSV 後仍可沿用。既有 `result.csv` 若輸入一致且來源檔未更新，也能直接沿用。失敗、中斷、缺失或損壞的結果會在下次補算。Print out 會逐項顯示「開始」或「沿用」，最後統計重算與沿用的項目數。
 
 流程最前方新增「輪胎模型（MF_tester）→ 最佳胎壓 → 最佳 camber → coefficient_of_friction 分析」，並由摩擦係數分支到賽道分析、Skidpad 圈速與下壓力、四輪載荷包絡（FWL）。MF_tester 輸出原 Figures 的全部 19 張圖；縱／橫向回歸摩擦係數會自動傳給後續分析。使用方式與公式見 [輪胎分析說明](analysis/tire_analysis/README.md)。
@@ -49,6 +70,8 @@ Aero 姿態分析接在「下壓力與升力係數估算」後：`aero_cl_cd →
 懸吊模型整包已由 `new/` 搬入 `analysis/suspension_models/`，並加入「懸吊模型工況分析」群組，從「四分之一車阻尼比與輪載分析」分成 quarter、LR 左右與 FR 前後三條流程，共 11 個模型、38 個相容工況。每個模型可獨立執行，雙擊節點後可切換各工況曲線、姿態圖與 GIF 動畫。懸吊設定在 `analysis/suspension_models/Parameter_set/Suspension.py`，工況設定在 `analysis/suspension_models/batch_cases.py`；上游質量、簧率、輪胎剛性、阻尼與適用幾何自動套用，其他設定保留該 Suspension.py 的定義，不新增輸入框。
 
 - [懸吊模型流程、各工況與參數傳遞](analysis/suspension_models/README.md)
+
+完整懸吊模型已由 `new/` 整合至 `analysis/full_suspension/`，在同群組新增 `Full suspension` 節點，由 `Quarter_suspension_model`、`Half_rollcenter_all_model`、`Half_suspension_model（FR 前後）` 三條箭頭匯入。執行時依 COG、Tire stiffness、damped oscillation 及 Roll Center 的上游結果設定整車質量、慣量、軸簧率、阻尼比與前後 Roll Center；沒有上游值的模型專屬 KC／幾何設定保留原值並顯示輸入框。結果 JSON 會記錄來源數值與換算後模型參數。詳見 [完整懸吊模型與參數映射](analysis/full_suspension/README.md)。
 
 - [共用振動與阻尼模型：計算方程式、座標與求解方法](analysis/suspension_dynamics/README.md)
 

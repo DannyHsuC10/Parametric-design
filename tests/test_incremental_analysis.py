@@ -14,7 +14,9 @@ from app.analysis_cache import input_file_state, reusable_outputs
 from app.analysis_data import load_analysis_parameters
 from app.analysis_result import AnalysisResult
 from app.analysis_runner import AnalysisRunner
+from app.analysis_settings import NodeSettings
 from app.plugin_loader import AnalysisPlugin, scan_analysis
+from main import MainWindow
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,11 +51,12 @@ class IncrementalAnalysisTests(unittest.TestCase):
         self.saver = patch("app.analysis_runner.save_analysis_result", side_effect=export_result).start()
         self.addCleanup(patch.stopall)
 
-    def run_nodes(self, plugins, values, *, selected=None, incremental=True, expect_error=False, rows=None):
+    def run_nodes(self, plugins, values, *, selected=None, incremental=True, expect_error=False, rows=None,
+                  node_settings=None):
         if rows is None:
             rows = [dict(node_id=p.plugin_id, analysis_id=p.plugin_id, title=p.plugin_id) for p in plugins]
         runner = AnalysisRunner({p.plugin_id: p for p in plugins}, rows, values, self.folder,
-                                selected_node_id=selected, incremental=incremental)
+                                selected_node_id=selected, incremental=incremental, node_settings=node_settings)
         self.execution = []
         self.logs = []
         runner.stageStarted.connect(lambda position, total, title: self.execution.append(title))
@@ -173,6 +176,56 @@ class IncrementalAnalysisTests(unittest.TestCase):
                 self.run_nodes(plugins, {})
                 self.assertEqual(self.execution, ["Source"])
 
+    def test_incremental_cache_uses_private_inputs_and_reverts_to_shared_inputs(self):
+        plugins = [make_plugin("Source", {"base": "float"}, "ms", lambda p: p["base"]),
+                   make_plugin("Manual", {"ms": "float", "gain": "float"}, "answer", lambda p: p["ms"] * p["gain"]),
+                   make_plugin("Other", {"ms": "float", "gain": "float"}, "other", lambda p: p["ms"] * p["gain"])]
+        settings = {"Manual": NodeSettings(manual=True, parameters={"ms": "100", "gain": "4"})}
+        inputs = {"base": "260", "gain": "2"}
+        initial = self.run_nodes(plugins, inputs, node_settings=settings)
+        self.assertEqual(initial.values["ms"], "260.0")
+        self.assertEqual(initial.values["gain"], "2")
+        self.assertEqual(initial.values["answer"], "400.0")
+        self.assertEqual(initial.values["other"], "520.0")
+        changed = self.run_nodes(plugins, dict(inputs, base="300"), node_settings=settings)
+        self.assertEqual(self.execution, ["Source", "Other"])
+        self.assertEqual(changed.values["answer"], "400.0")
+        self.assertEqual(changed.values["other"], "600.0")
+        settings["Manual"].parameters["ms"] = "120"
+        edited = self.run_nodes(plugins, dict(inputs, base="300"), node_settings=settings)
+        self.assertEqual(self.execution, ["Manual"])
+        self.assertEqual(edited.values["answer"], "480.0")
+        settings["Manual"].manual = False
+        reverted = self.run_nodes(plugins, dict(inputs, base="300"), node_settings=settings)
+        self.assertEqual(self.execution, ["Manual"])
+        self.assertEqual(reverted.values["answer"], "600.0")
+        self.assertEqual(settings["Manual"].parameters["ms"], "120")
+        self.assertEqual(inputs, {"base": "260", "gain": "2"})
+
+    def test_skip_uses_only_successful_saved_outputs_and_never_invalidates_or_executes_source(self):
+        plugins = [make_plugin("Source", {"base": "float"}, "ms", lambda p: p["base"]),
+                   make_plugin("Consumer", {"ms": "float"}, "answer", lambda p: p["ms"] * 2)]
+        self.run_nodes(plugins, {"base": "260"})
+        folder = self.folder / "Source"
+        original = {path.name: path.read_bytes() for path in folder.iterdir()}
+        settings = {"Source": NodeSettings(skip=True, manual=True, parameters={"base": "invalid"})}
+        frozen = self.run_nodes(plugins, {}, node_settings=settings)
+        self.assertEqual((frozen.skipped_count, frozen.reused_count), (1, 1))
+        self.assertEqual(self.execution, [])
+        self.assertEqual(frozen.values["ms"], "260.0")
+        self.assertEqual({path.name: path.read_bytes() for path in folder.iterdir()}, original)
+        live = self.run_nodes(plugins, {"ms": "300"}, node_settings=settings)
+        self.assertEqual(live.values["answer"], "600.0")
+        self.assertEqual(self.execution, ["Consumer"])
+        for corrupt in ("cache.json", "result.csv"):
+            with self.subTest(corrupt=corrupt):
+                (folder / corrupt).write_text("invalid", encoding="utf-8")
+                failed = self.run_nodes(plugins, {}, node_settings=settings, expect_error=True)
+                self.assertIn("已跳過的前置分析沒有可沿用的結果", failed.error)
+                self.assertEqual(self.execution, [])
+                for name, content in original.items():
+                    (folder / name).write_bytes(content)
+
     def test_real_plugins_declare_their_fixed_data_sources(self):
         plugins = {p.plugin_id: p for p in scan_analysis()}
         for name in ("tire_model", "tire_pressure", "tire_camber", "coefficient_of_friction",
@@ -191,6 +244,10 @@ class IncrementalAnalysisTests(unittest.TestCase):
             flow = list(csv.DictReader(stream))
         values = ({key: str(value) for p in plugins for key, value in p.parameter_defaults.items()}
                   | load_analysis_parameters(ROOT / "data" / "analysis_parameters.csv"))
+        # Visual CSV order can put a model before one of its producers.
+        context = SimpleNamespace(flow=flow, plugins_by_id={p.plugin_id: p for p in plugins},
+                                  parameter_values=values)
+        flow = MainWindow._all_analysis_rows_in_dependency_order(context)
         for plugin in plugins:
             def analyze(parameters, plugin=plugin):
                 outputs = dict.fromkeys(plugin.outputs, 1)

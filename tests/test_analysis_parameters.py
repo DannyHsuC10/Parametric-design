@@ -19,6 +19,7 @@ from app.analysis_data import (
 )
 from main import MainWindow
 from app.plugin_loader import AnalysisPlugin, scan_analysis
+from app.analysis_settings import NodeSettings
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -99,6 +100,25 @@ class SharedParameterTests(unittest.TestCase):
             self.assertEqual(window.parameter_edits["h_cog"].text(), "0.35")
             self.assertFalse(window.parameter_edits["h_cog"].isReadOnly())
         host.close()
+
+    def test_manual_mode_exposes_all_declared_parameters_for_every_plugin(self):
+        app = QApplication.instance() or QApplication([])
+        host = QWidget()
+        options = NodeSettings(manual=True)
+        context = SimpleNamespace(
+            parameter_form=QFormLayout(host), parameter_edits={}, active_node_id="node",
+            parameter_values={"ms": "260"}, output_names={"ms"},
+            node_settings={"node": options}, update_manual_parameter=lambda *_: None,
+        )
+        try:
+            for plugin in scan_analysis():
+                with self.subTest(plugin=plugin.plugin_id):
+                    options.parameters = dict.fromkeys(plugin.parameters, "100")
+                    MainWindow.build_parameter_fields(context, plugin)
+                    self.assertEqual(set(context.parameter_edits), set(plugin.parameters))
+                    self.assertTrue(all(not edit.isReadOnly() for edit in context.parameter_edits.values()))
+        finally:
+            host.close()
 
 
 if __name__ == "__main__":

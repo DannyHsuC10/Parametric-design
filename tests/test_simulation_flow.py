@@ -72,8 +72,11 @@ class SimulationFlowTests(unittest.TestCase):
         })
 
     def test_all_flow_parameters_resolve_in_execution_order(self):
-        available = set(self.values)
-        for row in self.flow:
+        values = {name: str(value) for plugin in self.plugins.values()
+                  for name, value in plugin.parameter_defaults.items()} | self.values
+        available = set(values)
+        context = SimpleNamespace(flow=self.flow, plugins_by_id=self.plugins, parameter_values=values)
+        for row in MainWindow._all_analysis_rows_in_dependency_order(context):
             plugin = self.plugins[row["analysis_id"]]
             self.assertFalse(set(plugin.parameters) - available, row["node_id"])
             available.update(plugin.outputs)

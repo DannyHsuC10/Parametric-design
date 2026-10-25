@@ -84,6 +84,10 @@ class MotorTests(unittest.TestCase):
         try:
             for node in ("gear_rate", "output_check", "acc_resis", "tooth_strength"):
                 MainWindow.build_parameter_fields(window, plugins[node])
+                if node == "gear_rate":
+                    self.assertNotIn("drive_motor_torque_Nm", window.parameter_edits)
+                    self.assertIn("drive_motor_torque_Nm", plugins[node].parameters)
+                    continue
                 edit = window.parameter_edits["drive_motor_torque_Nm"]
                 self.assertTrue(edit.isReadOnly())
                 self.assertEqual(edit.text(), "22.30565254")

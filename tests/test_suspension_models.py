@@ -70,6 +70,9 @@ class SuspensionModelTests(unittest.TestCase):
         expected.update({
             ("roll_center_same_load_r", "half_suspension_model_lr"),
             ("tender", "single_spring_model"),
+            ("quarter_suspension_model", "full_suspension"),
+            ("half_rollcenter_all_model", "full_suspension"),
+            ("half_suspension_model_fr", "full_suspension"),
         })
         actual = {(a, b) for a, b in flow_edges(self.flow) if a in STAGES or b in STAGES}
         self.assertEqual(actual, expected)
