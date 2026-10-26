@@ -109,7 +109,7 @@ def metadata(stage):
         "HIDDEN_PARAMETERS": ({"cog_total_mass_kg", "gear_ratio_avg"}
                                if stage in {"gear_tooth", "tooth_strength"}
                                else {"cog_total_mass_kg"})
-                              | ({"drive_motor_torque_Nm"} if stage == "gear_rate" else set()),
+                              | ({"drive_motor_torque_Nm"} if stage in {"gear_rate", "tooth_strength"} else set()),
         "OUTPUTS": {name: name for name in OUTPUTS[stage]},
     }
 

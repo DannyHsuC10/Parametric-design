@@ -1,1 +1,1 @@
-"""Simulation logging and suspension animation renderers."""
+"""Simulation logging for static suspension analysis results."""

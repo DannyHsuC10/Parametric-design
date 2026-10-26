@@ -8,6 +8,8 @@
 
 分析方塊在滑鼠移入及按下時會變色；單擊或雙擊後，所選方塊會維持藍色高亮，切換完整流程與群組頁面時也會同步目前選取的分析。拖曳平移不會選取方塊。
 
+勾選「跳過此分析」後，對應方塊會立即變淡，取消勾選則恢復原色；完整流程與各群組頁面同步顯示，重新啟動後也會依 JSON 儲存的跳過設定還原。變淡的方塊仍可單擊設定參數或雙擊查看既有結果。
+
 單擊節點後，可選擇以下執行方式：
 
 - **只執行所選分析**：僅重算該節點，沿用目前工作階段最近一次成功的上游結果；尚未載入的上游數值會從對應 `data/results/<node_id>/result.csv` 的導出量讀取。修改輸入參數會保留最近結果，適合上游維持不變時反覆調整下游分析。若無可用結果，會提示先執行前置分析，不會自動重跑上游。
@@ -67,7 +69,7 @@ Aero 姿態分析接在「下壓力與升力係數估算」後：`aero_cl_cd →
 
 共用的振動與阻尼模型集中在 `analysis/suspension_dynamics/`：`oscillation_models.py` 提供時間取樣、解析解、Euler 積分與能量計算；`damping_models.py` 提供阻尼參數換算與單自由度、四分之一車求解工具。各分析入口仍放在 `analysis/`，由既有流程載入。
 
-懸吊模型整包已由 `new/` 搬入 `analysis/suspension_models/`，並加入「懸吊模型工況分析」群組，從「四分之一車阻尼比與輪載分析」分成 quarter、LR 左右與 FR 前後三條流程，共 11 個模型、38 個相容工況。每個模型可獨立執行，雙擊節點後可切換各工況曲線、姿態圖與 GIF 動畫。懸吊設定在 `analysis/suspension_models/Parameter_set/Suspension.py`，工況設定在 `analysis/suspension_models/batch_cases.py`；上游質量、簧率、輪胎剛性、阻尼與適用幾何自動套用，其他設定保留該 Suspension.py 的定義，不新增輸入框。
+懸吊模型整包已由 `new/` 搬入 `analysis/suspension_models/`，並加入「懸吊模型工況分析」群組，從「四分之一車阻尼比與輪載分析」分成 quarter、LR 左右與 FR 前後三條流程，共 11 個模型、38 個相容工況。每個模型可獨立執行，雙擊節點後可切換各工況的靜態曲線與姿態圖。所有分析與批次工具已移除 GIF 生成及播放功能，保留 PNG 圖表、完整時序 CSV／PKL、設定與摘要；舊結果中的 GIF 也不再出現在圖片選單。懸吊設定在 `analysis/suspension_models/Parameter_set/Suspension.py`，工況設定在 `analysis/suspension_models/batch_cases.py`；上游質量、簧率、輪胎剛性、阻尼與適用幾何自動套用，其他設定保留該 Suspension.py 的定義，不新增輸入框。
 
 - [懸吊模型流程、各工況與參數傳遞](analysis/suspension_models/README.md)
 

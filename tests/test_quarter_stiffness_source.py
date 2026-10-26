@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
 
 import matplotlib
 matplotlib.use("Agg")
@@ -64,9 +63,7 @@ class QuarterStiffnessSourceTests(unittest.TestCase):
                         result.close()
                 plugin = plugins[stage]
                 parameters = parse_analysis_parameters(values, plugin.parameters)
-                # Animation rendering does not affect the physical case configuration.
-                with patch("analysis.suspension_models.batch_runner.save_animation", return_value=b"GIF"):
-                    result = plugin.run(parameters)
+                result = plugin.run(parameters)
                 try:
                     for config in json.loads(result.artifacts["cases.json"]):
                         self.assertEqual(config["suspension_parameters"]["ks"],

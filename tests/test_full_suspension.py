@@ -85,13 +85,14 @@ class FullSuspensionTests(unittest.TestCase):
         plugin = next(item for item in scan_analysis() if item.plugin_id == "full_suspension")
         self.assertTrue(plugin.input_files)
         self.assertTrue(all(Path(path).is_relative_to(ROOT / "analysis/full_suspension") for path in plugin.input_files))
-        with patch.object(workflow, "simulate", side_effect=lambda name, parameters: self.logs[name]), patch.object(workflow, "save_animation", return_value=b"GIF"):
+        with patch.object(workflow, "simulate", side_effect=lambda name, parameters: self.logs[name]):
             result = plugin.run({})
         try:
             self.assertEqual(result.outputs["full_suspension_case_count"], 2)
             self.assertEqual(set(result.outputs), set(plugin.outputs))
             for scenario in workflow.SCENARIOS:
-                self.assertIn(f"{scenario}.gif", result.artifacts)
+                self.assertNotIn(f"{scenario}.gif", result.artifacts)
+                self.assertIn(f"{scenario}_response.png", result.figures)
                 frame = result.tables[f"{scenario}_timeseries.csv"]
                 self.assertEqual(len(frame), 1500)
                 self.assertIn("theta_Front_roll", frame)

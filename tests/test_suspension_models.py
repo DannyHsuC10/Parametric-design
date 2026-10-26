@@ -1,8 +1,8 @@
-"""Per-model scope, shared physical parameters, complete exports and GIF playback."""
+"""Per-model scope, shared physical parameters and static result exports."""
 
 import csv
 from contextlib import redirect_stdout
-from io import BytesIO, StringIO
+from io import StringIO
 import json
 import os
 from pathlib import Path
@@ -18,9 +18,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
-from PySide6.QtGui import QMovie
-from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from analysis.suspension_models.parameters import STAGES, make_suspension, scenarios_for
@@ -29,7 +26,7 @@ from app.analysis_result import load_plot_choices, normalize_result, save_analys
 from app.flow_diagram import flow_edges
 from app.plugin_loader import scan_analysis
 from main import MainWindow, ScalableImageLabel
-from analysis.suspension_models import batch_cases, batch_runner, data_creator
+from analysis.suspension_models import batch_cases, batch_runner
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -129,6 +126,7 @@ class SuspensionModelTests(unittest.TestCase):
         script = '''
 import importlib.abc
 import sys
+import numpy as np
 class BlockLegacy(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if fullname == "new" or fullname.startswith("new."):
@@ -144,14 +142,13 @@ for family in batch_cases.FAMILIES.values():
     assert all(model.function.__module__.startswith("analysis.suspension_models.") for model in family.models.values())
 cases, skipped = batch_runner.build_plan(list(batch_cases.FAMILIES))
 assert len(cases) == 38
-rendered = set()
+families = set()
 for case in cases:
     suspension, state, road, model, config = batch_runner.prepare_case(**case)
     logger = batch_runner.simulate_case(suspension, state, road, model, config)
-    if case["family"] not in rendered:
-        assert batch_runner.save_animation(logger, fps=2, dpi=30).startswith(b"GIF")
-        rendered.add(case["family"])
-assert len(rendered) == 3
+    assert all(np.isfinite(values).all() for values in logger.result().values())
+    families.add(case["family"])
+assert len(families) == 3
 assert not any(name == "new" or name.startswith("new.") for name in sys.modules)
 '''
         completed = subprocess.run([sys.executable, "-X", "utf8", "-c", script], cwd=ROOT,
@@ -240,7 +237,7 @@ assert not any(name == "new" or name.startswith("new.") for name in sys.modules)
         self.assertEqual((fr.anti_dive_front, fr.anti_squat_rear), (0.25, 0.25))
         self.assertAlmostEqual(fr.k_heave_r / fr.k_heave_f, 0.7)
 
-    def test_all_38_cases_have_complete_finite_curves_and_real_animations(self):
+    def test_all_38_cases_have_complete_finite_curves_without_animations(self):
         count = 0
         for stage, result in self.results.items():
             with self.subTest(stage=stage):
@@ -251,6 +248,7 @@ assert not any(name == "new" or name.startswith("new.") for name in sys.modules)
                 self.assertEqual(set(result.outputs), set(self.plugins[stage].outputs))
                 self.assertTrue(all(np.isfinite(value) for value in result.outputs.values()))
                 self.assertEqual(result.outputs[f"{stage}_case_count"], len(expected))
+                self.assertFalse(any(name.lower().endswith(".gif") for name in result.artifacts))
                 for figure in (result.figure, *result.figures.values()):
                     self.assertLessEqual(len(figure.axes), 4)
                     self.assertTrue(all(axis.has_data() for axis in figure.axes))
@@ -268,9 +266,6 @@ assert not any(name == "new" or name.startswith("new.") for name in sys.modules)
                     self.assertEqual(len(frame), round(batch_cases.SIMULATION_TIME / batch_cases.DEFAULT_DT) + 1)
                     initial_motion = [name for name in frame if name.endswith(("zs", "zu", "vzs", "vzu"))]
                     self.assertTrue((frame[initial_motion].iloc[0] == 0).all())
-                    with Image.open(BytesIO(result.artifacts[f"{scenario}.gif"])) as animation:
-                        self.assertEqual(animation.n_frames, max(2, round(batch_cases.SIMULATION_TIME * data_creator.FPS)))
-                        self.assertEqual(animation.info["loop"], 0)
                 count += len(expected)
         self.assertEqual(count, 38)
 
@@ -291,7 +286,7 @@ assert not any(name == "new" or name.startswith("new.") for name in sys.modules)
         *_, config = batch_runner.prepare_case("FR", "half", "accelerate", suspension=suspension)
         self.assertEqual(config["input_parameters"]["m"], 170.0)
 
-    def test_export_manifest_gif_playback_and_return_to_static_plot(self):
+    def test_static_gallery_and_legacy_gif_filtering(self):
         app = QApplication.instance() or QApplication([])
         result = self.results["quarter_suspension_model"]
         with TemporaryDirectory(dir=ROOT) as temporary:
@@ -300,28 +295,54 @@ assert not any(name == "new" or name.startswith("new.") for name in sys.modules)
             save_analysis_result(folder, "quarter_suspension_model", {}, result)
             exported = folder / "quarter_suspension_model"
             choices = load_plot_choices(exported)
-            self.assertEqual(len(choices), 9)
-            self.assertEqual({name for _, name in choices if name.endswith(".gif")},
-                             {f"{name}.gif" for name in scenarios_for("quarter_suspension_model")})
+            self.assertEqual(len(choices), 5)
+            self.assertTrue(all(name.endswith(".png") for _, name in choices))
+            self.assertFalse(list(exported.glob("*.gif")))
+            # Previous exports may still list GIF files; hide them without a rerun.
+            (exported / "legacy.gif").write_bytes(b"GIF89a")
+            manifest = exported / "plots.json"
+            entries = json.loads(manifest.read_text(encoding="utf-8"))
+            entries.append({"title": "Legacy animation", "file": "legacy.gif"})
+            manifest.write_text(json.dumps(entries), encoding="utf-8")
+            self.assertEqual(load_plot_choices(exported), choices)
+            manifest.unlink()
+            self.assertEqual({name for _, name in load_plot_choices(exported)},
+                             {name for _, name in choices})
             label = ScalableImageLabel()
             try:
                 label.resize(800, 600)
-                label.set_image(exported / "step.gif")
-                self.assertIsNotNone(label.animation)
-                self.assertEqual(label.animation.state(), QMovie.MovieState.Running)
-                self.assertFalse(label.original_pixmap.isNull())
-                QTest.qWait(160)
-                self.assertGreaterEqual(label.animation.currentFrameNumber(), 1)
                 label.set_image(exported / "plot.png")
-                self.assertIsNone(label.animation)
                 self.assertFalse(label.original_pixmap.isNull())
-                # PKL export remains readable by the original batch renderer.
+                label.set_image(exported / "step_response.png")
+                self.assertFalse(label.original_pixmap.isNull())
+                # Full-resolution numeric exports remain available.
                 logger = batch_runner.SimulationLogger.load(exported / "step.pkl")
-                batch_runner.save_animation(logger, exported / "disk_copy.gif", fps=2, dpi=40)
-                self.assertTrue((exported / "disk_copy.gif").is_file())
+                self.assertEqual(logger.metadata["config"]["scenario"], "step")
+                config = logger.metadata["config"]
+                self.assertEqual(len(logger.result()["t"]), round(config["duration_s"] / config["dt"]) + 1)
             finally:
                 label.close()
                 app.processEvents()
+
+    def test_batch_cli_exports_only_data_and_resumes_without_rewriting_it(self):
+        with TemporaryDirectory(dir=ROOT) as temporary:
+            folder = Path(temporary).resolve()
+            self.assertTrue(folder.is_relative_to(ROOT))
+            command = [sys.executable, "-m", "analysis.suspension_models.data_creator",
+                       "--models", "quarter", "--scenarios", "step", "--output", str(folder)]
+            completed = subprocess.run(command, cwd=ROOT, capture_output=True, timeout=60)
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+            manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(manifest["cases"]), 1)
+            self.assertEqual(manifest["cases"][0]["status"], "complete")
+            self.assertNotIn("gif", manifest["cases"][0])
+            self.assertNotIn("fps", manifest)
+            self.assertFalse(list(folder.rglob("*.gif")))
+            data_file = folder / manifest["cases"][0]["pkl"]
+            timestamp = data_file.stat().st_mtime_ns
+            resumed = subprocess.run(command + ["--resume"], cwd=ROOT, capture_output=True, timeout=60)
+            self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
+            self.assertEqual(data_file.stat().st_mtime_ns, timestamp)
 
 
 if __name__ == "__main__":

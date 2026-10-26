@@ -6,7 +6,7 @@ from pathlib import Path
 from time import perf_counter, time
 
 from PySide6.QtCore import QTimer, QSize, Qt, Signal, Slot, QUrlQuery
-from PySide6.QtGui import QColor, QMovie, QPixmap
+from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
@@ -93,34 +93,12 @@ class ScalableImageLabel(QLabel):
     def __init__(self):
         super().__init__()
         self.original_pixmap = QPixmap()
-        self.animation = None
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setMinimumHeight(260)
 
-    def stop_animation(self):
-        if self.animation is not None:
-            self.animation.stop()
-            self.animation.frameChanged.disconnect(self.update_animation_frame)
-            # Release QImageReader's file handle immediately on Windows.
-            self.animation.setFileName("")
-            self.animation.deleteLater()
-            self.animation = None
-
     def set_image(self, path):
-        self.stop_animation()
-        if Path(path).suffix.lower() == ".gif":
-            self.animation = QMovie(str(path), parent=self)
-            self.animation.frameChanged.connect(self.update_animation_frame)
-            self.animation.start()
-            self.update_animation_frame()
-            return
         self.original_pixmap = QPixmap(str(path))
         self.update_pixmap()
-
-    def update_animation_frame(self):
-        if self.animation is not None:
-            self.original_pixmap = self.animation.currentPixmap()
-            self.update_pixmap()
 
     def update_pixmap(self):
         if not self.original_pixmap.isNull():
@@ -142,10 +120,6 @@ class ScalableImageLabel(QLabel):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.update_pixmap()
-
-    def closeEvent(self, event):
-        self.stop_animation()
-        super().closeEvent(event)
 
 
 class MainWindow(QWidget):
@@ -390,7 +364,7 @@ class MainWindow(QWidget):
         page.flowNodeRequested.connect(
             lambda node_id, double, source=page: self.handle_flow_node_request(node_id, double, source)
         )
-        page.loadFinished.connect(lambda loaded, source=page: self._sync_flow_selection(source) if loaded else None)
+        page.loadFinished.connect(lambda loaded, source=page: self._sync_flow_state(source) if loaded else None)
         self.flow_views[index] = view
         self.flow_pages[index] = page
         self.flow_stack.widget(index).layout().addWidget(view)
@@ -403,14 +377,17 @@ class MainWindow(QWidget):
         view = self.flow_view if view is None else view
         view.setHtml(render_flow_diagram(flow, group))
 
-    def _sync_flow_selection(self, page=None):
-        script = "window.flowSelection && window.flowSelection.select(" + json.dumps(self.active_node_id) + ");"
+    def _sync_flow_state(self, page=None):
+        skipped = [node_id for node_id, options in self.node_settings.items() if options.skip]
+        script = ("if (window.flowSelection) { window.flowSelection.select("
+                  + json.dumps(self.active_node_id) + "); window.flowSelection.setSkipped("
+                  + json.dumps(skipped) + "); }")
         for target in ([page] if page is not None else self.flow_pages.values()):
             target.runJavaScript(script)
 
     def handle_flow_node_request(self, node_id, is_double_click, source_page=None):
         if self.analysis_runner is not None:
-            self._sync_flow_selection()
+            self._sync_flow_state()
             return
         self.show_node_parameters(node_id)
         if is_double_click:
@@ -549,6 +526,7 @@ class MainWindow(QWidget):
     def set_analysis_skipped(self, checked):
         if self.active_node_id is not None:
             self.node_settings.setdefault(self.active_node_id, NodeSettings()).skip = checked
+            self._sync_flow_state()
             self._save_node_settings()
 
     def _manual_parameter_defaults(self, row, plugin):
@@ -609,7 +587,7 @@ class MainWindow(QWidget):
         plugin = self.plugins_by_id[row["analysis_id"]]
         self.parameter_title.setText(f"{row['title']} 輸入參數")
         self.build_parameter_fields(plugin)
-        self._sync_flow_selection()
+        self._sync_flow_state()
 
     def update_parameter(self, name, value):
         name = canonical_parameter_name(name)
@@ -954,7 +932,6 @@ class MainWindow(QWidget):
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         image_label = ScalableImageLabel()
-        dialog.finished.connect(image_label.stop_animation)
         stage_started = perf_counter()
         image_label.set_image(result_dir / "plot.png")
         timings["image_ms"] = (perf_counter()-stage_started)*1000

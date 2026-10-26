@@ -1,4 +1,4 @@
-"""Generate both cases, including GIFs, without opening the desktop UI."""
+"""Generate static plots and data for both cases without opening the desktop UI."""
 
 from pathlib import Path
 import csv

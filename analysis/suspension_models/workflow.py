@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from app.analysis_result import AnalysisResult
-from . import batch_cases, batch_runner, data_creator
+from . import batch_cases, batch_runner
 
 from .parameters import SCENARIO_TITLES, STAGES, make_suspension, scenarios_for
 
@@ -114,7 +114,7 @@ def run_stage(stage, parameters):
     summaries, configs = [], []
     try:
         for index, scenario in enumerate(scenarios, 1):
-            print(f"  [{index}/{len(scenarios)}] {family}/{model}/{scenario}：計算與 GIF", flush=True)
+            print(f"  [{index}/{len(scenarios)}] {family}/{model}/{scenario}：計算與靜態圖表", flush=True)
             suspension = make_suspension(family, parameters)
             suspension, state, road, function, config = batch_runner.prepare_case(
                 family, model, scenario, dt=batch_cases.DEFAULT_DT, suspension=suspension,
@@ -141,10 +141,6 @@ def run_stage(stage, parameters):
                 filename = f"{scenario}_frame.png"
                 result.figures[filename] = frame_figure(data, scenario)
                 result.figure_titles[filename] = f"{label}｜RC 車體彈簧傳力與變形"
-            filename = f"{scenario}.gif"
-            result.artifacts[filename] = batch_runner.save_animation(logger, fps=data_creator.FPS, dpi=data_creator.DPI)
-            result.figure_titles[filename] = f"{label}｜GIF 動畫"
-
             heave, acceleration, angle = body_motion(data, family, model, suspension)
             axes[0].plot(data["t"], heave, label=scenario)
             axes[1].plot(data["t"], acceleration, label=scenario)

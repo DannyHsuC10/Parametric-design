@@ -84,7 +84,7 @@ class MotorTests(unittest.TestCase):
         try:
             for node in ("gear_rate", "output_check", "acc_resis", "tooth_strength"):
                 MainWindow.build_parameter_fields(window, plugins[node])
-                if node == "gear_rate":
+                if node in {"gear_rate", "tooth_strength"}:
                     self.assertNotIn("drive_motor_torque_Nm", window.parameter_edits)
                     self.assertIn("drive_motor_torque_Nm", plugins[node].parameters)
                     continue

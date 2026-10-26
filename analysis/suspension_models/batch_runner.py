@@ -6,7 +6,6 @@ import csv
 from datetime import datetime, timezone
 from functools import partial
 import hashlib
-from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -134,121 +133,18 @@ def simulate_case(suspension, state, road, model, config):
     return logger
 
 
-def save_animation(logger, path=None, fps=10, dpi=70):
-    """Save a GIF atomically, or return its bytes for an analysis artifact."""
-    # No GUI windows or external ffmpeg installation are required.
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from PIL import Image
-    if __package__:
-        from .data_visualization.Dynamic_Visualizer_quarter import Visualizer
-        from .data_visualization.Dynamic_Visualizer_roll import RollCarVisualizer
-        from .data_visualization.Dynamic_Visualizer_pitch import PitchCarVisualizer
-    else:
-        from data_visualization.Dynamic_Visualizer_quarter import Visualizer
-        from data_visualization.Dynamic_Visualizer_roll import RollCarVisualizer
-        from data_visualization.Dynamic_Visualizer_pitch import PitchCarVisualizer
-
-    config = logger.metadata["config"]
-    data = logger.result()
-    family = config["family"]
-    parameters = config["suspension_parameters"]
-    fig = None
-    try:
-        if family == "quarter":
-            viewer = Visualizer(data)
-        elif family == "LR":
-            # The uncoupled two-mass models do not integrate a body roll DOF.
-            # Display their corner-derived roll, while preserving raw PKL fields.
-            if not FAMILIES[family].models[config["model"]].supports_cornering:
-                data["roll"] = (data["left_zs"] - data["right_zs"]) / parameters["track"]
-                data["roll_rate"] = (data["left_vzs"] - data["right_vzs"]) / parameters["track"]
-            viewer = RollCarVisualizer(data, track_width=parameters["track"])
-        else:
-            viewer = PitchCarVisualizer(data, wheelbase=parameters["l"])
-        fig = viewer.fig
-        road_lines = []
-        road_channels = []
-        if family in {"LR", "FR"}:
-            if family == "LR":
-                x_positions = [-parameters["track"] / 2, parameters["track"] / 2]
-                road_channels = ["left_zr", "right_zr"]
-                road_offset = -0.025
-            else:
-                x_positions = [parameters["l"] / 2, -parameters["l"] / 2]
-                road_channels = ["front_zr", "rear_zr"]
-                road_offset = -0.2
-            for x in x_positions:
-                line, = viewer.ax.plot([x - 0.15, x + 0.15], [road_offset] * 2,
-                                       color="tab:orange", linewidth=3)
-                road_lines.append(line)
-        display_axis = viewer.ax_state if family == "quarter" else viewer.ax
-        time_label = display_axis.text(0.02, 0.95, "", transform=display_axis.transAxes)
-
-        def update_frame(index):
-            artists = list(viewer.update(index))
-            for line, channel in zip(road_lines, road_channels):
-                y = data[channel][index] + road_offset
-                line.set_ydata([y, y])
-            time_label.set_text(f"t = {data['t'][index]:.3f} s")
-            return artists + road_lines + [time_label]
-
-        fig.suptitle(
-            f"{family} / {config['model']} / {config['scenario']} | "
-            f"input starts {config['input_start_s']:.2f} s | {config['duration_s']:.1f} s simulation"
-        )
-        fig.subplots_adjust(top=0.89, bottom=0.08, hspace=0.65)
-        for axis in fig.axes:
-            if axis.get_legend() is not None:
-                axis.legend(loc="upper right", fontsize=7)
-        # Keep all numeric samples in PKL; only the animation is downsampled.
-        count = max(2, round(config["duration_s"] * fps))
-        frames = np.linspace(0, len(data["t"]) - 1, count, dtype=int)
-        # All signal curves are static. Cache them once instead of recomputing
-        # axes/legends/annotations for every GIF frame.
-        artists = update_frame(0)
-        for artist in artists:
-            artist.set_animated(True)
-        fig.set_dpi(dpi)
-        fig.canvas.draw()
-        background = fig.canvas.copy_from_bbox(fig.bbox)
-        images = []
-        for index in frames:
-            fig.canvas.restore_region(background)
-            for artist in update_frame(index):
-                artist.axes.draw_artist(artist)
-            images.append(Image.fromarray(np.asarray(fig.canvas.buffer_rgba()).copy()).convert("RGB"))
-        if path is None:
-            with BytesIO() as output:
-                images[0].save(output, format="GIF", save_all=True, append_images=images[1:],
-                               duration=round(1000 / fps), loop=0)
-                return output.getvalue()
-        path = Path(path)
-        temp = path.with_name("response.partial.gif")
-        try:
-            images[0].save(temp, save_all=True, append_images=images[1:],
-                           duration=round(1000 / fps), loop=0)
-            temp.replace(path)
-        finally:
-            temp.unlink(missing_ok=True)
-    finally:
-        if fig is not None:
-            plt.close(fig)
-
-
 def write_manifest(root, manifest):
     temp = root / "manifest.partial.json"
     temp.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
     temp.replace(root / "manifest.json")
-    columns = ["family", "model", "scenario", "status", "pkl", "gif", "error"]
+    columns = ["family", "model", "scenario", "status", "pkl", "error"]
     with (root / "summary.csv").open("w", newline="", encoding="utf-8-sig") as stream:
         writer = csv.DictWriter(stream, fieldnames=columns, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(manifest["cases"])
 
 
-def main(families=None, default_fps=10, default_dpi=70):
+def main(families=None):
     families = list(families or FAMILIES)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--models", nargs="+", help="Optional model-name filter")
@@ -256,16 +152,11 @@ def main(families=None, default_fps=10, default_dpi=70):
     parser.add_argument("--output", type=Path, help="Output directory; default: data/results/suspension_batch")
     parser.add_argument("--dt", type=float, default=DEFAULT_DT)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--fps", type=int, default=default_fps)
-    parser.add_argument("--dpi", type=int, default=default_dpi)
     parser.add_argument("--list", action="store_true", help="Show compatible cases without running")
-    parser.add_argument("--resume", action="store_true", help="Reuse matching PKL and existing GIF files")
-    modes = parser.add_mutually_exclusive_group()
-    modes.add_argument("--no-gif", action="store_true", help="Only simulate and save PKL")
-    modes.add_argument("--gif-only", action="store_true", help="Render GIF from matching saved PKL")
+    parser.add_argument("--resume", action="store_true", help="Reuse matching saved PKL data")
     args = parser.parse_args()
-    if not np.isfinite(args.dt) or args.dt <= 0 or args.fps < 1 or args.dpi < 1:
-        parser.error("dt, fps and dpi must be positive and finite")
+    if not np.isfinite(args.dt) or args.dt <= 0:
+        parser.error("dt must be positive and finite")
     if not all(np.isclose(t / args.dt, round(t / args.dt), rtol=0, atol=1e-8)
                for t in (INPUT_START, SIMULATION_TIME)):
         parser.error("dt must divide both 0.25 s and 2 s exactly")
@@ -282,10 +173,10 @@ def main(families=None, default_fps=10, default_dpi=70):
         return 0
 
     root = (args.output or DEFAULT_OUTPUT).resolve()
-    resume = args.resume or args.gif_only
+    resume = args.resume
     root.mkdir(parents=True, exist_ok=True)
     manifest = {"input_start_s": INPUT_START, "duration_s": SIMULATION_TIME,
-                "dt": args.dt, "fps": args.fps, "dpi": args.dpi,
+                "dt": args.dt,
                 "skipped_incompatible": skipped, "cases": []}
     # Preserve only current, unselected cases in the shared output directory.
     previous = root / "manifest.json"
@@ -295,7 +186,8 @@ def main(families=None, default_fps=10, default_dpi=70):
         valid = {(c["family"], c["model"], c["scenario"]) for c in current_cases}
         incompatible = {(c["family"], c["model"], c["scenario"]) for c in current_skipped}
         selected = {(c["family"], c["model"], c["scenario"]) for c in cases}
-        manifest["cases"] = [c for c in old.get("cases", [])
+        manifest["cases"] = [{key: value for key, value in c.items() if key != "gif"}
+                             for c in old.get("cases", [])
                              if (c["family"], c["model"], c["scenario"]) in valid - selected]
         seen = {(c["family"], c["model"], c["scenario"]) for c in skipped}
         manifest["skipped_incompatible"].extend(
@@ -307,8 +199,8 @@ def main(families=None, default_fps=10, default_dpi=70):
     for index, case in enumerate(cases, 1):
         directory = root / case["family"] / case["model"] / case["scenario"]
         directory.mkdir(parents=True, exist_ok=True)
-        pkl, gif = directory / "result.pkl", directory / "response.gif"
-        row = {**case, "status": "pending", "pkl": "", "gif": "", "error": ""}
+        pkl = directory / "result.pkl"
+        row = {**case, "status": "pending", "pkl": "", "error": ""}
         manifest["cases"].append(row)
         print(f"[{index}/{len(cases)}] {case['family']}/{case['model']}/{case['scenario']}", flush=True)
         try:
@@ -317,29 +209,13 @@ def main(families=None, default_fps=10, default_dpi=70):
                 logger = SimulationLogger.load(pkl)
                 if logger.metadata.get("config") != config:
                     raise ValueError("Saved configuration/source differs; select a new --output directory")
-            elif args.gif_only:
-                raise FileNotFoundError(f"No saved PKL: {pkl}")
             else:
                 logger = simulate_case(sus, state, road, model, config)
                 temp = pkl.with_suffix(".partial.pkl")
                 logger.save(temp)
                 temp.replace(pkl)
-                # A rerun invalidates animation files from the previous data.
-                gif.unlink(missing_ok=True)
-                (directory / "animation.json").unlink(missing_ok=True)
             row["pkl"] = pkl.relative_to(root).as_posix()
-            row["status"] = "data_only"
-            if not args.no_gif:
-                renderer_version = 3 if case["family"] == "quarter" else 2
-                animation_config = {"renderer_version": renderer_version, "fps": args.fps, "dpi": args.dpi,
-                                    "data_sha256": hashlib.sha256(pkl.read_bytes()).hexdigest()}
-                animation_info = directory / "animation.json"
-                cached = json.loads(animation_info.read_text(encoding="utf-8")) if animation_info.exists() else None
-                if not (resume and gif.exists() and cached == animation_config):
-                    save_animation(logger, gif, args.fps, args.dpi)
-                    animation_info.write_text(json.dumps(animation_config, indent=2), encoding="utf-8")
-                row["gif"] = gif.relative_to(root).as_posix()
-                row["status"] = "complete"
+            row["status"] = "complete"
             (directory / "error.txt").unlink(missing_ok=True)
         except Exception as exc:
             failures += 1

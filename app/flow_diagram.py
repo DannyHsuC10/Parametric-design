@@ -78,10 +78,12 @@ html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 #flow-toolbar button:hover { background: #505050; }
 #flow-zoom { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
 #flow-hint { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
-#flow-source-legend { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+#flow-source-legend, #flow-skipped-legend { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
   font-size: 12px; }
 #flow-source-legend > span { width: 13px; height: 13px; box-sizing: border-box;
   background: #fef3c7; border: 2px solid #d97706; border-radius: 3px; }
+#flow-skipped-legend > span { width: 13px; height: 13px; box-sizing: border-box;
+  background: #f1f1f1; border: 1px solid #b8b8b8; border-radius: 3px; opacity: 0.45; }
 #flow-viewport { position: absolute; inset: 40px 0 0; overflow: auto;
   overscroll-behavior: contain; touch-action: none; cursor: grab; }
 #flow-viewport.dragging, #flow-viewport.dragging .node { cursor: grabbing; user-select: none; }
@@ -91,6 +93,7 @@ html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 #flow-canvas .node > rect, #flow-canvas .cluster > rect {
   rx: 6px !important; ry: 6px !important;
 }
+#flow-canvas .node.flow-skipped { opacity: 0.45; }
 #flow-canvas .node:hover > rect, #flow-canvas .node:hover .label-container {
   fill: #dbeafe !important; stroke: #60a5fa !important;
 }
@@ -113,6 +116,7 @@ VIEWPORT_TOOLBAR = """<div id="flow-toolbar" role="toolbar" aria-label="流程�
 <button id="flow-zoom-in" title="放大" aria-label="放大">＋</button>
 <button id="flow-fit">符合視窗</button><button id="flow-reset">100%</button>
 <span id="flow-source-legend"><span></span>流程起點</span>
+<span id="flow-skipped-legend"><span></span>已跳過</span>
 <span id="flow-hint">滾輪縮放｜拖曳平移｜Shift＋滾輪水平捲動</span>
 </div>"""
 
@@ -126,6 +130,7 @@ VIEWPORT_SCRIPT = r"""<script>
   let svg = null, width = 0, height = 0, scale = 1, offsetX = padding, offsetY = padding;
   let clickTimer = null, drag = null, suppressClickUntil = 0;
   let selectedNodeId = null, pressedNode = null;
+  let skippedNodeIds = new Set();
 
   function nodeId(group) {
     const title = (group.textContent || '').replace(/\s+/g, ' ').trim();
@@ -137,11 +142,17 @@ VIEWPORT_SCRIPT = r"""<script>
       group.classList.toggle('flow-selected', id != null && nodeId(group) === id);
     });
   }
+  function setSkippedNodes(ids) {
+    skippedNodeIds = new Set(ids);
+    canvas.querySelectorAll('g.node').forEach(group => {
+      group.classList.toggle('flow-skipped', skippedNodeIds.has(nodeId(group)));
+    });
+  }
   function clearPressedNode() {
     if (pressedNode) pressedNode.classList.remove('flow-pressed');
     pressedNode = null;
   }
-  window.flowSelection = {select: selectNode};
+  window.flowSelection = {select: selectNode, setSkipped: setSkippedNodes};
 
   function layout() {
     const canvasWidth = Math.max(viewport.clientWidth, width * scale + 2 * padding);
@@ -183,6 +194,7 @@ VIEWPORT_SCRIPT = r"""<script>
     layout();
     viewport.scrollLeft = viewport.scrollTop = 0;
     selectNode(selectedNodeId);
+    setSkippedNodes(skippedNodeIds);
   }
   const observer = new MutationObserver(initialize);
   observer.observe(canvas, {childList: true, subtree: true});

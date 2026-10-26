@@ -6,7 +6,7 @@ from .full_suspension.workflow import METRICS, SCENARIOS, run
 
 PLUGIN_ID = "full_suspension"
 TITLE = "Full suspension"
-DESCRIPTION = "完整懸吊模型：road_acc 與 road_FL_bump，輸出四輪響應、姿態與 Dashboard GIF。"
+DESCRIPTION = "完整懸吊模型：road_acc 與 road_FL_bump，輸出四輪響應、姿態靜態圖與數據。"
 PARAMETERS = {
     # Values produced by the shared mass, tire, stiffness, damping, and RC analyses.
     **dict.fromkeys(("ms", "mu_front", "mu_rear",

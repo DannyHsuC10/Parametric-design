@@ -62,7 +62,9 @@ class PlotGalleryTests(unittest.TestCase):
             with TemporaryDirectory(dir=ROOT) as temporary:
                 destination = Path(temporary).resolve()
                 self.assertTrue(destination.is_relative_to(ROOT.resolve()))
+                result.artifacts["legacy_animation.gif"] = b"GIF89a"
                 save_analysis_result(destination, "psd", {}, result)
+                self.assertFalse((destination / "psd" / "legacy_animation.gif").exists())
                 (destination / "psd" / "old_combined_plot.png").write_bytes(b"old image")
                 choices = load_plot_choices(destination / "psd")
                 self.assertEqual([filename for _, filename in choices], [
@@ -108,6 +110,7 @@ class PlotGalleryTests(unittest.TestCase):
             self.assertTrue(folder.is_relative_to(ROOT.resolve()))
             for name in ("plot.png", "extra.png"):
                 (folder / name).write_bytes(b"saved image")
+            (folder / "legacy.gif").write_bytes(b"GIF89a")
             self.assertEqual(load_plot_choices(folder), [("主要結果", "plot.png"), ("extra", "extra.png")])
 
 
