@@ -6,7 +6,7 @@ from analysis.Pacejka_tire_model.model.api import CalculationInput, MF_Universal
 
 PSI_TO_PA = 6894.757293168
 PRESSURES_PSI = np.arange(8.0, 15.0)
-CAMBERS_DEG = np.array([-4.5, -3, -1.5, 0, 1.5, 3, 4.5])
+CAMBERS_DEG = np.linspace(-3.0, 3.0, 25)  # 0.25 deg intervals, including both endpoints.
 SLIP_RATIOS = np.linspace(-1, 1, 61)
 SLIP_ANGLES_DEG = np.linspace(-10, 10, 61)
 LOADS_N = np.linspace(0, 1400, 61)

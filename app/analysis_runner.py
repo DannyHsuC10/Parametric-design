@@ -51,7 +51,8 @@ class AnalysisRunner(QThread):
         self.results_dir = results_dir
         self.selected_node_id = selected_node_id
         self.incremental = incremental
-        self.node_settings = {node: NodeSettings(options.skip, options.manual, dict(options.parameters))
+        self.node_settings = {node: NodeSettings(skip=options.skip, manual=options.manual,
+                                               parameters=dict(options.parameters), nonessential=options.nonessential)
                               for node, options in (node_settings or {}).items()}
         self.error = None
         self.elapsed = 0.0

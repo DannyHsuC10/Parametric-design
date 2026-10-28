@@ -170,6 +170,29 @@ class FlowViewportTests(unittest.TestCase):
         self.assertEqual(self.requests, [("chosen", True)])
         self.assertEqual(self.js("document.querySelector('.flow-selected').textContent"), "Chosen")
 
+    def test_skip_green_and_nonessential_fade_are_independent_and_still_clickable(self):
+        for selected in (False, True):
+            for skip, nonessential in ((False, False), (True, False), (False, True), (True, True)):
+                with self.subTest(selected=selected, skip=skip, nonessential=nonessential):
+                    self.js("flowSelection.select(" + json.dumps("chosen" if selected else None) + ");"
+                            + "flowSelection.setSkipped(" + json.dumps(["chosen"] if skip else []) + ");"
+                            + "flowSelection.setNonessential(" + json.dumps(["chosen"] if nonessential else []) + ");")
+                    style = self.js("""(() => {
+                      const node = document.querySelector('g.node');
+                      return {fill:getComputedStyle(node.querySelector('rect')).fill,
+                              opacity:getComputedStyle(node).opacity,
+                              otherOpacity:getComputedStyle(document.querySelectorAll('g.node')[1]).opacity};
+                    })()""")
+                    self.assertEqual(style["fill"], "rgb(134, 239, 172)" if skip else
+                                     "rgb(191, 219, 254)" if selected else "rgb(241, 241, 241)")
+                    self.assertEqual(style["opacity"], "0.45" if nonessential else "1")
+                    self.assertEqual(style["otherOpacity"], "1")
+        QTest.mouseClick(self.view.focusProxy(), Qt.MouseButton.LeftButton, pos=QPoint(200, 200))
+        self.wait_for(lambda: self.requests)
+        self.assertEqual(self.requests, [("chosen", False)])
+        self.assertEqual(self.js("getComputedStyle(document.querySelector('.flow-selected rect')).fill"),
+                         "rgb(134, 239, 172)")
+
     def test_drag_pans_without_requesting_a_node(self):
         self.js("flowViewport.zoomTo(1); const v = document.getElementById('flow-viewport'); v.scrollLeft = 0; v.scrollTop = 0;")
         target = self.view.focusProxy()

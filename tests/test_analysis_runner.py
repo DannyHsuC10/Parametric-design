@@ -53,6 +53,13 @@ class AnalysisRunnerTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def tearDown(self):
+        # Dispose of closed test windows on the GUI thread before the next
+        # worker starts; deferred Qt objects must not be collected mid-analysis.
+        import gc
+        self.app.processEvents()
+        gc.collect()
+
     def wait_for(self, predicate, timeout=5):
         if predicate():
             return
@@ -348,6 +355,7 @@ class AnalysisRunnerTests(unittest.TestCase):
                 self.assertEqual(window.parameter_edits["gain"].text(), "3")
                 self.assertEqual(window.parameter_values, {"gain": "9"})
                 window.skip_analysis_checkbox.setChecked(True)
+                window.nonessential_analysis_checkbox.setChecked(True)
             finally:
                 window.close()
             restored = self.make_window(stack, folder, plugins)
@@ -355,10 +363,12 @@ class AnalysisRunnerTests(unittest.TestCase):
                 restored.show_node_parameters("Selected")
                 self.assertTrue(restored.manual_parameters_checkbox.isChecked())
                 self.assertTrue(restored.skip_analysis_checkbox.isChecked())
+                self.assertTrue(restored.nonessential_analysis_checkbox.isChecked())
                 self.assertEqual(restored.parameter_edits["ms"].text(), "100")
                 restored.show_node_parameters("Other")
                 self.assertEqual(restored.parameter_edits["ms"].text(), "500")
                 self.assertFalse(restored.skip_analysis_checkbox.isChecked())
+                self.assertFalse(restored.nonessential_analysis_checkbox.isChecked())
             finally:
                 restored.close()
 
@@ -366,25 +376,34 @@ class AnalysisRunnerTests(unittest.TestCase):
         plugins = [plugin("Source", MagicMock()), plugin("Selected", MagicMock())]
         with TemporaryDirectory(dir=ROOT) as temporary, ExitStack() as stack:
             folder = Path(temporary)
-            window = self.make_window(stack, folder, plugins)
             path = folder / "last.nodes.json"
+            # Settings from before the nonessential flag remain valid.
+            path.write_text(json.dumps({name: {"skip": False, "manual": False, "parameters": {}}
+                                        for name in ("Source", "Selected")}), encoding="utf-8")
+            window = self.make_window(stack, folder, plugins)
             try:
                 initial = json.loads(path.read_text(encoding="utf-8"))
                 self.assertEqual(set(initial), {"Source", "Selected"})
                 self.assertFalse(initial["Source"]["skip"])
                 self.assertFalse(initial["Selected"]["skip"])
                 window.show_node_parameters("Selected")
+                self.assertFalse(window.nonessential_analysis_checkbox.isChecked())
+                window.nonessential_analysis_checkbox.setChecked(True)
                 window.skip_analysis_checkbox.setChecked(True)
                 saved = load_node_settings(path)
                 self.assertTrue(saved["Selected"].skip)
+                self.assertTrue(saved["Selected"].nonessential)
                 self.assertFalse(saved["Source"].skip)
                 window.show_node_parameters("Source")
                 self.assertFalse(window.skip_analysis_checkbox.isChecked())
+                self.assertFalse(window.nonessential_analysis_checkbox.isChecked())
                 window.show_node_parameters("Selected")
                 self.assertTrue(window.skip_analysis_checkbox.isChecked())
+                self.assertTrue(window.nonessential_analysis_checkbox.isChecked())
                 self.assertTrue(load_node_settings(path)["Selected"].skip)
                 window.skip_analysis_checkbox.setChecked(False)
                 self.assertFalse(load_node_settings(path)["Selected"].skip)
+                self.assertTrue(load_node_settings(path)["Selected"].nonessential)
             finally:
                 window.close()
 
@@ -403,6 +422,7 @@ class AnalysisRunnerTests(unittest.TestCase):
                 try:
                     window.show_node_parameters("Selected")
                     window.manual_parameters_checkbox.setChecked(True)
+                    window.nonessential_analysis_checkbox.setChecked(True)
                     window.skip_analysis_checkbox.setChecked(True)
                     getattr(window, button).click()
                     self.assertIsNotNone(window.analysis_runner)
@@ -417,6 +437,38 @@ class AnalysisRunnerTests(unittest.TestCase):
                     self.assertEqual(result.read_text(encoding="utf-8"), "existing result")
                     self.assertIn("跳過：Selected", window.console.toPlainText())
                     self.assertIn("跳過 1 項", window.status_label.text())
+                finally:
+                    if window.analysis_runner is not None:
+                        window.analysis_runner.wait(5000)
+                        self.app.processEvents()
+                    window.close()
+
+    def test_nonessential_analyses_and_dependencies_still_execute_with_all_four_buttons(self):
+        from matplotlib.figure import Figure
+        from app.analysis_result import AnalysisResult
+
+        for button in ("run_button", "run_selected_button", "run_with_dependencies_button", "run_affected_button"):
+            with self.subTest(button=button), TemporaryDirectory(dir=ROOT) as temporary, ExitStack() as stack:
+                source = MagicMock(side_effect=lambda p: AnalysisResult(Figure(), {"source_value": 3}))
+                selected = MagicMock(side_effect=lambda p: AnalysisResult(Figure(), {"answer": p["source_value"] * 2}))
+                plugins = [plugin("Source", source, outputs={"source_value": "source"}),
+                           plugin("Selected", selected, parameters={"source_value": "float"}, outputs={"answer": "answer"})]
+                window = self.make_window(stack, Path(temporary), plugins)
+                try:
+                    window.parameter_values = {"source_value": "3"}
+                    for node_id in ("Source", "Selected"):
+                        window.show_node_parameters(node_id)
+                        window.nonessential_analysis_checkbox.setChecked(True)
+                        self.assertFalse(window.skip_analysis_checkbox.isChecked())
+                    getattr(window, button).click()
+                    self.assertIsNotNone(window.analysis_runner)
+                    runner = window.analysis_runner
+                    self.wait_for(lambda: window.analysis_runner is None)
+                    self.assertIsNone(runner.error)
+                    self.assertEqual(runner.skipped_count, 0)
+                    selected.assert_called_once_with({"source_value": 3.0})
+                    self.assertEqual(source.call_count, int(button != "run_selected_button"))
+                    self.assertEqual(window.output_values["answer"], 6)
                 finally:
                     if window.analysis_runner is not None:
                         window.analysis_runner.wait(5000)

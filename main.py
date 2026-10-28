@@ -200,15 +200,19 @@ class MainWindow(QWidget):
         self.parameter_title = QLabel("輸入參數（單擊流程節點以設定）")
         self.skip_analysis_checkbox = QCheckBox("跳過此分析（所有執行按鈕皆適用）")
         self.skip_analysis_checkbox.setToolTip("不執行此分析，也不因相依需求重跑它；保留既有結果供後續分析沿用。")
+        self.nonessential_analysis_checkbox = QCheckBox("非必要分析")
+        self.nonessential_analysis_checkbox.setToolTip("僅讓流程圖方塊變淡，不影響執行；只有勾選「跳過此分析」才會跳過。")
         self.manual_parameters_checkbox = QCheckBox("不套用前置分析結果，全部參數手動設定")
         self.manual_parameters_checkbox.setToolTip("顯示全部輸入參數；數值只儲存在此分析，不會改寫共用參數或前置結果。")
         self.parameter_options = QWidget()
         options_layout = QVBoxLayout(self.parameter_options)
         options_layout.setContentsMargins(0, 0, 0, 0)
         options_layout.addWidget(self.skip_analysis_checkbox)
+        options_layout.addWidget(self.nonessential_analysis_checkbox)
         options_layout.addWidget(self.manual_parameters_checkbox)
         self.parameter_options.setEnabled(False)
         self.skip_analysis_checkbox.toggled.connect(self.set_analysis_skipped)
+        self.nonessential_analysis_checkbox.toggled.connect(self.set_analysis_nonessential)
         self.manual_parameters_checkbox.toggled.connect(self.set_manual_parameters)
         self.console = QTextEdit()
         self.console.setReadOnly(True)
@@ -379,9 +383,11 @@ class MainWindow(QWidget):
 
     def _sync_flow_state(self, page=None):
         skipped = [node_id for node_id, options in self.node_settings.items() if options.skip]
+        nonessential = [node_id for node_id, options in self.node_settings.items() if options.nonessential]
         script = ("if (window.flowSelection) { window.flowSelection.select("
                   + json.dumps(self.active_node_id) + "); window.flowSelection.setSkipped("
-                  + json.dumps(skipped) + "); }")
+                  + json.dumps(skipped) + "); window.flowSelection.setNonessential("
+                  + json.dumps(nonessential) + "); }")
         for target in ([page] if page is not None else self.flow_pages.values()):
             target.runJavaScript(script)
 
@@ -529,6 +535,12 @@ class MainWindow(QWidget):
             self._sync_flow_state()
             self._save_node_settings()
 
+    def set_analysis_nonessential(self, checked):
+        if self.active_node_id is not None:
+            self.node_settings.setdefault(self.active_node_id, NodeSettings()).nonessential = checked
+            self._sync_flow_state()
+            self._save_node_settings()
+
     def _manual_parameter_defaults(self, row, plugin):
         """Seed private inputs from available values without changing shared state."""
         values = dict(self.parameter_values)
@@ -577,6 +589,7 @@ class MainWindow(QWidget):
         self.active_node_id = node_id
         options = self.node_settings.get(node_id, NodeSettings())
         for checkbox, checked in ((self.skip_analysis_checkbox, options.skip),
+                                  (self.nonessential_analysis_checkbox, options.nonessential),
                                   (self.manual_parameters_checkbox, options.manual)):
             checkbox.blockSignals(True)
             checkbox.setChecked(checked)

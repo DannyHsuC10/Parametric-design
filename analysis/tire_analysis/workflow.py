@@ -58,10 +58,14 @@ def run_optimization(p, *, camber=False):
     ax = surface.add_subplot(projection="3d")
     angles, loads = np.meshgrid(SLIP_ANGLES_DEG, LOADS_N)
     colors = ("red", "orange", "gold", "green", "blue", "indigo", "violet")
+    if camber:
+        colors = plt.get_cmap("turbo")(np.linspace(0, 1, len(candidates)))
     for values, color in zip(surfaces, colors):
         ax.plot_surface(loads, angles, values, color=color, alpha=0.25, linewidth=0)
     ax.legend(handles=[Patch(facecolor=color, label=f"{candidate:g} {'deg' if camber else 'psi'}")
-                       for candidate, color in zip(candidates, colors)])
+                       for candidate, color in zip(candidates, colors)],
+              ncol=3 if camber else 1, fontsize="small" if camber else "medium",
+              loc="upper right" if camber else "best")
     ax.set(xlabel="Normal load Fz [N]", ylabel="Slip angle [deg]", zlabel="Fy [N]",
            title=f"Magic Formula Tire Fy Surface vs {name}")
     surface.tight_layout()
