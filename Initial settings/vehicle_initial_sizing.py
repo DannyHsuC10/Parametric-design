@@ -1,6 +1,6 @@
-"""獨立的傾斜角、壓縮行程、Tire stiffness 與簧上／簧下自然頻率分析。
+"""車輛初步設計估算：懸吊、空力、轉向幾何、輪載、傳動與煞車。
 
-執行方式：python angle_stiffness.py。
+在專案主資料夾執行：python "Initial settings/vehicle_initial_sizing.py"。
 
 沿用 analysis/Aero_Stiffness.py 的小角度模型與等效線性剛性定義：
     s = (span / 2) * radians(angle)
@@ -27,7 +27,8 @@ Frequency vs mass 沿用 analysis/Frequency_mass.py 的未阻尼模態估算：
     f_sprung = sqrt(Kr / (ms / 4)) / (2 * pi)
     f_unsprung = sqrt((Kt + Kw) / mu) / (2 * pi)
 此項分析的 ms 為全車簧上質量，mu 為單輪簧下質量，均使用 kg。
-Heave 剛性反算固定 Ks_roll，將 Ks_pitch 視為 heave 剛性：
+use_tender = False 時跳過 Heave 反算與 Tender 設計，後續直接採用原 Heave 主簧剛性。
+use_tender = True 時，Heave 剛性反算固定 Ks_roll，將 Ks_pitch 視為 heave 剛性：
 與 analysis/Frequency_mass.py 相同，以調整前的簧下頻率除以 N 作為目標：
     f_target = f_unsprung_current / N
     Kr_target = (2 * pi * f_target)**2 * (ms / 4)
@@ -65,7 +66,7 @@ Roll 另依 HL 模型串聯各軸輪胎角剛性 Kt * track**2 / 2。
 Pitch 分別輸出串聯／純主簧、僅懸吊／含輪胎與 Anti dive；不取樣求斜率。
 Anti dive 使用與前 Roll Center 相同的正規化兩路模型，a 為 anti-dive 分流比例：
     c = K_chassis / K_suspension = rc_chassis_stiffness_ratio
-    alpha = c / (1 + c)  # 懸吊路徑比例，依「車體與懸吊剛性說明.md」的解析解
+    alpha = c / (1 + c)  # 懸吊路徑比例，依「roll_center_stiffness_derivation.md」的解析解
     K_eq / K_suspension = (1 - a)**2 + c * a**2
     anti_dive = 1 - alpha = 1 / (1 + c), normalized_min_stiffness = c / (1 + c)
 此為指定的類比模型設定值；幾何硬點與煞車力分配未在此模型中求解。
@@ -75,7 +76,7 @@ roll_center 沿用正規化等效剛性模型，r = h_rc / h_cog，c = Kc / Ks�
     K_eq / Ks = (1 - r)**2 + c * r**2
     r_min = 1 / (1 + c), K_eq_min / Ks = c / (1 + c)
     h_rc = r_min * h_cog
-前 RC 與 Anti dive 直接套用「車體與懸吊剛性說明.md」的解析解。
+前 RC 與 Anti dive 直接套用「roll_center_stiffness_derivation.md」的解析解。
 以前述解析解作為前輪 Roll Center 高度，再依指定比例計算後輪高度：
     h_rc_rear = h_rc_front * (wf / wr) * (tr / tf) * (kf / kr)
 FVSA 依指定過程固定以公尺數值計算，d = sus_travel、t 為各軸輪距：
@@ -166,14 +167,23 @@ Brake_ratio 使用無空力直線煞車，brake_ax 為正的減速度 g 倍數�
     B_total_required = B_front + B_rear
     brake_mechanical_advantage = B_total_required / brake_driver_force_N
 車手腳力初值為 500 N；此倍率以四輪接地總煞車力為輸出力。
-所有分析只進行計算並印出結果，不繪圖。
+所有分析計算後印出結果，並自動更新同資料夾的 vehicle_initial_sizing_report.md，不繪圖。
 """
 
 import math
+from pathlib import Path
+
+from vehicle_initial_sizing_report import write_markdown_report
+
+
+DEFAULT_REPORT_PATH = Path(__file__).with_name("vehicle_initial_sizing_report.md")
 
 
 # 可直接修改以下參數；初值參考目前專案設定與 COG 計算結果。
 # 本腳本只使用這裡的數值，不自動讀取 CSV 或執行其他分析。
+
+# 懸吊配置
+use_tender = True              # 是否使用 Tender；False：跳過 Heave 反算，直接使用原 Heave 主簧剛性
 
 # 初始layout 設定
 ms = 260.55                    # 全車簧上質量，kg 
@@ -525,7 +535,7 @@ def calculate_rate_chain(spring_rate, motion_ratio, tire_stiffness, sprung_mass_
 
 def calculate_rate_cases(sprung_mass, front_weight_ratio, motion_ratio, tire_stiffness,
                          front_roll_spring, rear_roll_spring, main_heave_spring, series_heave_spring):
-    """前後軸的四組指定 Ks；直接使用 (串聯 Heave + Roll)/2，不另除以 4。"""
+    """前後四組 Ks；series_heave_spring 接本次 Heave 剛性（關閉 Tender 時為主簧）。"""
     for name, value in (("sprung_mass", sprung_mass), ("front_roll_spring", front_roll_spring),
                         ("rear_roll_spring", rear_roll_spring), ("main_heave_spring", main_heave_spring)):
         if not math.isfinite(value) or value <= 0:
@@ -541,7 +551,7 @@ def calculate_rate_cases(sprung_mass, front_weight_ratio, motion_ratio, tire_sti
         rates = {
             "combined_average": (series_heave_spring + roll_spring) / 2
                                 if series_heave_spring is not None else None,
-            "heave_with_tender": series_heave_spring,
+            "heave_with_tender": series_heave_spring,  # 保留結果欄名；此列使用本次 Heave 剛性
             "roll": roll_spring,
             "heave_only": main_heave_spring,
         }
@@ -1158,7 +1168,9 @@ def calculate_cg_safety(cog_height, front_track, rear_track, safety_factor):
     return result
 
 
-def main():
+def main(*, report_path=None, write_report=True):
+    if not isinstance(use_tender, bool):
+        raise ValueError("use_tender 必須為布林值 True 或 False")
     wf, wr = calculate_weight_distribution(lf, lr)
     L = lf + lr
     steering_angle_deg = calculate_required_steering_angle(L, min_turn_radius_m)
@@ -1203,7 +1215,9 @@ def main():
     print(f"對照原 Aero_Cl_Cd 的 F = 0.5 * Cl * rho * A * v^2："
           f"Cl = 2 * C = {aero_result['standard_downforce_coefficient_Cl']:.6f}（下壓力為正）")
 
+    heave_result = None
     tender_result = None
+    compression_result = None
     pitch_k, pitch_s = calculate_stiffness(ms, abs(ax), h_cog, L, target_pitch_angle_deg)
     roll_k, roll_s = calculate_stiffness(ms, abs(ay), h_cog, t, target_roll_angle_deg)
     travel_pitch_k, travel_pitch_angle = calculate_compressed_travel(ms, abs(ax), h_cog, L, sus_travel)
@@ -1261,44 +1275,51 @@ def main():
     print(f"簧上自然頻率 = {mass_result['frequency_sprung_target_Hz']:.3f} Hz")
     print(f"簧下自然頻率（Wheel-hop）= {mass_result['frequency_unsprung_target_Hz']:.3f} Hz")
 
-    heave_result = calculate_heave_reduction(
-        ms, mu, MR, Kt, tire_result['Ks_pitch_N_per_m'], tire_result['Ks_roll_N_per_m'],
-        N
-    )
-    print("\nHeave 剛性反算（與 Frequency vs mass 相同的計算模式）：")
-    print(f"目標簧上自然頻率 = 目前簧下頻率 / N "
-          f"= {heave_result['current_unsprung_frequency_Hz']:.3f} / {N:g} "
-          f"= {heave_result['target_natural_frequency_Hz']:.3f} Hz")
-    print(f"固定 Roll Ks = {tire_result['Ks_roll_N_per_m']:,.2f} N/m")
-    print(f"目前簧上自然頻率 = {heave_result['current_sprung_frequency_Hz']:.3f} Hz")
-    if not heave_result['can_reach_target']:
-        print(heave_result['reason'])
+    if not use_tender:
+        print("\nTender 已關閉（use_tender = False）：跳過 Heave 反算與 Tender 可行性計算。")
+        print(f"直接使用原 Heave 主簧剛性 = {tire_result['Ks_pitch_N_per_m']:,.2f} N/m")
     else:
-        print(f"Heave Ks：{tire_result['Ks_pitch_N_per_m']:,.2f} "
-              f"→ {heave_result['Ks_required_target_frequency_N_per_m']:,.2f} N/m")
-        reduction = heave_result['heave_stiffness_reduction_N_per_m']
-        if reduction >= 0:
-            print(f"需降低 {reduction:,.2f} N/m "
-                  f"（{heave_result['heave_stiffness_reduction_percent']:.3f}%）")
+        heave_result = calculate_heave_reduction(
+            ms, mu, MR, Kt, tire_result['Ks_pitch_N_per_m'], tire_result['Ks_roll_N_per_m'],
+            N
+        )
+        print("\nHeave 剛性反算（與 Frequency vs mass 相同的計算模式）：")
+        print(f"目標簧上自然頻率 = 目前簧下頻率 / N "
+              f"= {heave_result['current_unsprung_frequency_Hz']:.3f} / {N:g} "
+              f"= {heave_result['target_natural_frequency_Hz']:.3f} Hz")
+        print(f"固定 Roll Ks = {tire_result['Ks_roll_N_per_m']:,.2f} N/m")
+        print(f"目前簧上自然頻率 = {heave_result['current_sprung_frequency_Hz']:.3f} Hz")
+        if not heave_result['can_reach_target']:
+            print(heave_result['reason'])
         else:
-            print(f"需增加 {-reduction:,.2f} N/m "
-                  f"（{-heave_result['heave_stiffness_reduction_percent']:.3f}%）")
-        print(f"新 heave 剛性 = 原剛性的 {heave_result['Ks_scale_target_frequency']:.6f} 倍")
-        print(f"調整後回算：簧上自然頻率 = {heave_result['adjusted_sprung_frequency_Hz']:.3f} Hz，"
-              f"簧下自然頻率 = {heave_result['adjusted_unsprung_frequency_Hz']:.3f} Hz")
+            print(f"Heave Ks：{tire_result['Ks_pitch_N_per_m']:,.2f} "
+                  f"→ {heave_result['Ks_required_target_frequency_N_per_m']:,.2f} N/m")
+            reduction = heave_result['heave_stiffness_reduction_N_per_m']
+            if reduction >= 0:
+                print(f"需降低 {reduction:,.2f} N/m "
+                      f"（{heave_result['heave_stiffness_reduction_percent']:.3f}%）")
+            else:
+                print(f"需增加 {-reduction:,.2f} N/m "
+                      f"（{-heave_result['heave_stiffness_reduction_percent']:.3f}%）")
+            print(f"新 heave 剛性 = 原剛性的 {heave_result['Ks_scale_target_frequency']:.6f} 倍")
+            print(f"調整後回算：簧上自然頻率 = {heave_result['adjusted_sprung_frequency_Hz']:.3f} Hz，"
+                  f"簧下自然頻率 = {heave_result['adjusted_unsprung_frequency_Hz']:.3f} Hz")
 
-        print("\n2_spring（主 heave 彈簧與 Tender 串聯）：")
-        if not 0 < heave_result['Ks_scale_target_frequency'] < 1:
-            print("目標 heave 剛性未低於主簧剛性，無法以有限正剛性的串聯 tender 達成。")
-        else:
-            tender_result = calculate_tender_stiffness(
-                tire_result['Ks_pitch_N_per_m'], heave_result['Ks_scale_target_frequency']
-            )
-            print(f"主 heave 彈簧 K_main = {tender_result['K_heave_main_N_per_m']:,.2f} N/m")
-            print(f"目標串聯剛性 K_series = {tender_result['K_series_target_N_per_m']:,.2f} N/m")
-            print(f"所需 Tender 剛性 = {tender_result['K_tender_required_N_per_m']:,.2f} N/m "
-                  f"= {tender_result['K_tender_required_N_per_m'] / 1000:.3f} N/mm")
-            print(f"Tender / 主簧剛性比 = {tender_result['tender_to_heave_stiffness_ratio']:.6f} 倍")
+            print("\n2_spring（主 heave 彈簧與 Tender 串聯）：")
+            if not 0 < heave_result['Ks_scale_target_frequency'] < 1:
+                print("目標 heave 剛性未低於主簧剛性，無法以有限正剛性的串聯 tender 達成。")
+            else:
+                tender_result = calculate_tender_stiffness(
+                    tire_result['Ks_pitch_N_per_m'], heave_result['Ks_scale_target_frequency']
+                )
+                print(f"主 heave 彈簧 K_main = {tender_result['K_heave_main_N_per_m']:,.2f} N/m")
+                print(f"目標串聯剛性 K_series = {tender_result['K_series_target_N_per_m']:,.2f} N/m")
+                print(f"所需 Tender 剛性 = {tender_result['K_tender_required_N_per_m']:,.2f} N/m "
+                      f"= {tender_result['K_tender_required_N_per_m'] / 1000:.3f} N/mm")
+                print(f"Tender / 主簧剛性比 = {tender_result['tender_to_heave_stiffness_ratio']:.6f} 倍")
+
+    series_heave = tender_result['K_heave_with_tender_N_per_m'] if tender_result is not None else None
+    active_heave = series_heave if use_tender else tire_result['Ks_pitch_N_per_m']
 
     anti_dive_result = calculate_anti_dive(rc_chassis_stiffness_ratio)
     print("\nAnti dive（與前 Roll Center 相同的正規化兩路模型）：")
@@ -1396,8 +1417,10 @@ def main():
           f"KPI = {kpi_deg:g} deg，固定正方向 delta = {steering_angle_deg:+.6f} deg。")
     print("delta 為公式中的前輪轉向角；方向盤角度需先依轉向比換算。公式內所有角度以 rad 計算。")
     print(f"方向驗證：固定較大的 Caster = {caster_direction_check_deg:g} deg；以下比較僅供查核，不修改設定。")
+    steering_checks = []
     for check_angle in (abs(steering_angle_deg), -abs(steering_angle_deg)):
         check_change = calculate_steering_camber(caster_direction_check_deg, kpi_deg, check_angle)
+        steering_checks.append({"steering_angle_deg": check_angle, "raw_camber_change_deg": check_change})
         print(f"  驗證 delta = {check_angle:+.6f} deg：原式 Delta camber = {check_change:+.6f} deg，"
               f"絕對值 = {abs(check_change):.6f} deg")
     print(f"轉向前 Camber = Roll + 輪胎 Roll - FVSA Camber 變化 "
@@ -1422,7 +1445,9 @@ def main():
         print("指定方向規則下無可行 Caster：" + caster_result['reason'])
 
     print("\nTender：所需下壓力造成的壓縮變形量（無煞車、下壓力前後均分）：")
-    if tender_result is None:
+    if not use_tender:
+        print("Tender 已關閉，略過 Tender 串聯壓縮計算。")
+    elif tender_result is None:
         print("前序 2_spring 沒有可行的 Tender 剛性，無法計算串聯壓縮量。")
     else:
         compression_result = calculate_tender_compression(
@@ -1551,10 +1576,11 @@ def main():
     damping_result = calculate_suspension_critical_damping(
         ms, wf, tire_result['Ks_roll_N_per_m'], tire_result['Ks_roll_N_per_m'] * kr / kf,
         tire_result['Ks_pitch_N_per_m'],
-        tender_result['K_heave_with_tender_N_per_m'] if tender_result is not None else None,
+        series_heave,
         MR, tf, tr, sprung_roll_inertia_kg_m2
     )
-    print("\n臨界阻尼：Roll、Heave + Tender、純 Heave 的前後阻尼器：")
+    print("\n臨界阻尼：Roll、Heave + Tender、純 Heave 的前後阻尼器：" if use_tender
+          else "\n臨界阻尼：Roll、純 Heave 的前後阻尼器：")
     print("每軸各一支 Heave 與一支 Roll 阻尼器；彈簧與阻尼器共用 MR，以下為阻尼器端係數。")
     print(f"前軸簧上質量 = ms * wf = {ms * wf:.6f} kg；"
           f"後軸簧上質量 = ms * wr = {ms * wr:.6f} kg；MR = {MR:g}")
@@ -1562,9 +1588,14 @@ def main():
     print(f"整車 Roll 剛性 = {damping_result['roll_total_stiffness_Nm_per_rad']:.6f} Nm/rad；"
           f"整車臨界角阻尼 = {damping_result['roll_total_critical_damping_Nms_per_rad']:.6f} Nm s/rad")
     print("Roll 的前後值按各軸角剛性比例分配同一整車模態的臨界角阻尼，再除以 (MR * track)^2。")
-    print("Heave + Tender 為串聯未併圈；純 Heave 為原主簧（Tender 併圈後），前後採相同彈簧剛性。")
+    if use_tender:
+        print("Heave + Tender 為串聯未併圈；純 Heave 為原主簧（Tender 併圈後），前後採相同彈簧剛性。")
+    else:
+        print("Tender 已關閉，Heave 直接使用原主簧剛性，前後採相同彈簧剛性。")
     print(f"{'模式':<20}{'前阻尼器 [N s/m]':>22}{'後阻尼器 [N s/m]':>22}")
     for label, mode in (("Roll", "roll"), ("Heave + Tender", "heave_with_tender"), ("純 Heave", "pure_heave")):
+        if mode == "heave_with_tender" and not use_tender:
+            continue
         values = damping_result[mode]
         if values is None:
             print(f"{label}：前序 Tender 無有限正剛性解，略過此工況的臨界阻尼。")
@@ -1575,17 +1606,17 @@ def main():
         print(f"  換算 N s/mm：前 = {front_c / 1000:.6f}，後 = {rear_c / 1000:.6f}")
     print("以上為固定輪端、剛性車體的單自由度臨界參考（zeta = 1），未加入輪胎及簧下動態。")
 
-    series_heave = tender_result['K_heave_with_tender_N_per_m'] if tender_result is not None else None
     rate_cases = calculate_rate_cases(
         ms, wf, MR, Kt, tire_result['Ks_roll_N_per_m'], tire_result['Ks_roll_N_per_m'] * kr / kf,
-        tire_result['Ks_pitch_N_per_m'], series_heave
+        tire_result['Ks_pitch_N_per_m'], active_heave
     )
     print("\nKs spring rate → Kw wheel rate → Kr ride rate：四種指定 Ks 的前後比較：")
-    print("各組 Ks 直接視為單輪等效輸入；組合值依指定採 (K_heave&tender + K_roll)/2。")
+    heave_label = "K_heave&tender" if use_tender else "K_heave"
+    print(f"各組 Ks 直接視為單輪等效輸入；組合值依指定採 ({heave_label} + K_roll)/2。")
     print("Kw = Ks * MR^2；Kr = Kw * Kt/(Kw + Kt)，Kt 為單輪輪胎剛性。")
     print("Ks 座標質量 = 每輪簧上質量/MR^2；Kw、Kr 使用每輪簧上質量，所以 f_Ks = f_Kw。")
-    case_labels = (("combined_average", "(K_heave&tender + K_roll)/2"),
-                   ("heave_with_tender", "K_heave&tender"), ("roll", "K_roll"), ("heave_only", "K_heaveonly"))
+    case_labels = (("combined_average", f"({heave_label} + K_roll)/2"),
+                   ("heave_with_tender", heave_label), ("roll", "K_roll"), ("heave_only", "K_heaveonly"))
     for axle, axle_label, fraction in (("front", "前軸", wf), ("rear", "後軸", wr)):
         print(f"{axle_label}每輪簧上質量 = ms * 軸重量比例/2 = {ms * fraction / 2:.6f} kg")
         for mode, label in case_labels:
@@ -1615,6 +1646,10 @@ def main():
     print(f"Roll gradient：僅懸吊 = {gradients['roll_gradient_suspension_deg_per_g']:.6f} deg/g；"
           f"含輪胎柔度 = {gradients['roll_gradient_with_tires_deg_per_g']:.6f} deg/g")
     for mode, label in (("heave_with_tender", "Heave + Tender（串聯未併圈）"), ("heave_only", "純 Heave（Tender 併圈後）")):
+        if not use_tender:
+            if mode == "heave_with_tender":
+                continue
+            label = "純 Heave（原主簧）"
         values = gradients['pitch'][mode]
         if values is None:
             print(f"Pitch gradient {label}：Tender 無可行解，略過此工況。")
@@ -1624,6 +1659,44 @@ def main():
               f"含輪胎及 Anti dive {anti_dive_result['anti_dive']:.3%} "
               f"= {values['gradient_with_tires_and_anti_dive_deg_per_g']:.6f} deg/g")
     print("Gradient 是各固定剛性階段的局部斜率；Anti dive 欄為煞車方向，僅降低懸吊變形，輪胎變形仍保留。")
+
+    parameter_names = (
+        "use_tender", "ms", "mu", "h_cog", "lf", "lr", "ax", "ay", "a_acc", "brake_ax", "target_lap_time_s",
+        "drive_target_speed_kmh", "sus_travel", "tf", "tr", "t", "A_air", "air_density_kg_per_m3",
+        "kf", "kr", "target_pitch_angle_deg", "target_roll_angle_deg", "kpi_deg", "min_turn_radius_m",
+        "caster_direction_check_deg", "MR", "sprung_roll_inertia_kg_m2", "Kt", "wl_mu_y", "mu_w",
+        "R_tire", "drive_motor_torque_Nm", "drive_motor_rpm", "N", "rc_chassis_stiffness_ratio",
+        "F_ref_ratio", "wl_aero_front_ratio", "cg_safety_factor", "brake_driver_force_N", "g",
+    )
+    parameters = {name: globals()[name] for name in parameter_names}
+    parameters.update(L=L, wf=wf, wr=wr, steering_angle_deg=steering_angle_deg,
+                      active_heave_spring_N_per_m=active_heave)
+    snapshot = {
+        "parameters": parameters, "cg": cg_result, "skidpad": skidpad_result, "aero": aero_result,
+        "angle_stiffness": {
+            "pitch": {"stiffness_N_per_m": pitch_k, "displacement_m": pitch_s},
+            "roll": {"stiffness_N_per_m": roll_k, "displacement_m": roll_s},
+        },
+        "compressed_travel": {
+            "pitch": {"stiffness_N_per_m": travel_pitch_k, "angle_deg": travel_pitch_angle},
+            "roll": {"stiffness_N_per_m": travel_roll_k, "angle_deg": travel_roll_angle},
+        },
+        "selected_stiffness": {
+            "pitch": {"stiffness_N_per_m": selected_pitch_k, "frequency_Hz": pitch_frequency},
+            "roll": {"stiffness_N_per_m": selected_roll_k, "frequency_Hz": roll_frequency},
+        },
+        "tire": tire_result, "frequency_mass": mass_result, "heave": heave_result,
+        "tender": tender_result, "anti_dive": anti_dive_result, "anti_scrub": anti_scrub_result,
+        "front_rc": rc_result, "rear_rc_height_m": rear_rc_height, "fvsa": fvsa_results,
+        "lateral_tire_roll": tire_roll_results, "caster": caster_result, "steering_checks": steering_checks,
+        "compression": compression_result, "wheel_loads": wheel_load_result, "tire_forces": force_result,
+        "gear": gear_result, "brake": brake_result, "brake_mechanical_advantage": mechanical_advantage_result,
+        "damping": damping_result, "rate_cases": rate_cases, "gradients": gradients,
+    }
+    if write_report:
+        destination = write_markdown_report(snapshot, report_path if report_path is not None else DEFAULT_REPORT_PATH)
+        print(f"\nMarkdown 計算報告已更新：{destination}")
+    return snapshot
 
 if __name__ == "__main__":
     main()

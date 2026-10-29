@@ -1,4 +1,6 @@
-# angle_stiffness.py 完整計算說明
+# 車輛初步設計估算：模型與計算說明
+
+> 最新執行結果與完整 LaTeX 數值代入見 [自動更新報告](vehicle_initial_sizing_report.md)。本文件保留模型說明與建立時的範例數值。
 
 ## 計算流程
 
@@ -13,7 +15,10 @@ graph TD
     E --> F["5. 各方向取較高剛性，計算 Frequency vs stiffness"]
     F --> G["6. Tire stiffness：輪胎柔度與彈簧剛性"]
     G --> H["7. Frequency vs mass：目前簧上／簧下頻率"]
-    H --> I["8. 固定 Roll，反算目標 Heave 剛性"]
+    H --> TS{"use_tender：是否使用 Tender？"}
+    TS -->|"是"| I["8. 固定 Roll，反算目標 Heave 剛性"]
+    TS -->|"否"| HM["直接使用原 Heave 主簧剛性"]
+    HM --> AD
     I --> J{"目標可由正 Heave 剛性達成？"}
     J -->|"是"| K{"目標／原 Heave 剛性倍率介於 0 與 1？"}
     J -->|"否"| L["列出無解原因，略過 Tender 剛性計算"]
@@ -43,11 +48,14 @@ graph TD
     DC --> SR["18. 四組 Ks → Kw → Kr：自然頻率與臨界阻尼"]
     SR --> GR["19. Roll 與 Pitch gradient：輪胎柔度及 Tender 階段"]
     GR --> S["完成數值輸出"]
+    S --> REPORT["以同次參數及結果自動重建 Markdown 報告"]
 ```
 
 實線表示目前 `main()` 的執行順序；虛線表示前面結果向後傳遞。CG 幾何檢查超限時會印出判定，接續執行其餘分析；輸入值不符合函式限制時，會拋出 `ValueError`。Heave 或 Tender 無可行解時，獨立的 Roll Center 等計算仍會執行。
 
-本文逐項對照 [angle_stiffness.py](angle_stiffness.py) 的現行公式。數值範例使用本文件建立時檔案開頭的參數，計算過程保留原始精度，表格僅為顯示而四捨五入。程式使用 Python 標準函式庫 `math`，只計算並 `print`，不繪圖，也不自動讀取 CSV 或重跑原專案流程。
+本文逐項對照 [vehicle_initial_sizing.py](vehicle_initial_sizing.py) 的現行公式。數值範例使用本文件建立時檔案開頭的參數，計算過程保留原始精度，表格僅為顯示而四捨五入。計算使用 Python 標準函式庫 `math`；保留 `print` 並在最後自動產生報告，不繪圖，也不自動讀取 CSV 或重跑原專案流程。報告產生器同樣只使用標準函式庫。
+
+腳本初始參數區的 `use_tender` 控制是否使用 Tender 彈簧，預設為 `True`。設為 `False` 時，跳過第 8 節 Heave 反算、第 9 節 Tender 可行性與串聯設計，以及 Tender 串聯壓縮計算。後續直接採用原 Heave 主簧 `Ks_pitch_N_per_m`：Heave & Roll 比較改用 `(K_heave_main + K_roll)/2`，Heave 阻尼與 Pitch gradient 使用純主簧結果。這是關閉 Tender 的模式，不會標記成「Tender 無可行解」。
 
 ## 0. 符號、輸入與單位
 
@@ -118,6 +126,7 @@ $k_f:k_r=55:45$ 是指定的比例值，用於後 Roll Center 高度公式；sus
 | `target_roll_angle_deg` | $\phi_{r,\deg}$ | 2.0° | 允許側傾角 |
 | `sus_travel` | $s_0$，亦為 FVSA 的 $d$ | 0.025 m | 目標壓縮行程與 FVSA 計算行程，即 25 mm |
 | `MR` | $MR$ | 1.0 | 運動比，採用 $K_w=K_sMR^2$ 的定義 |
+| `use_tender` | — | `True` | 是否使用 Tender；`False` 時直接採用原 Heave 主簧並跳過 Heave 反算與 Tender 設計 |
 | `sprung_roll_inertia_kg_m2` | $I_{xx,s}$ | 7.917820044730256 kg·m² | Roll 臨界阻尼使用的簧上 CG 轉動慣量；手動初值取既有 COG 結果 |
 | `Kt` | $K_t$ | 80,000 N/m | 單輪輪胎垂直剛性 |
 | `kpi_deg` | $K$ | 8° | Caster 反解使用的主銷內傾角 |
@@ -143,7 +152,7 @@ Gear_rate 的傳動參數獨立列在檔案開頭，以下轉速與車速初值�
 | `drive_motor_rpm` | 15,000 rpm | 馬達最高轉速 |
 | `drive_target_speed_kmh` | 110 km/h | 目標極速 |
 
-原 Skidpad 模型的固定直徑 $D=18.25$ m、需求係數 $\gamma=1.4$；一般彈簧搜尋範圍為 20,000～80,000 N/m，共 2,000 點。RC 與 Anti dive 依 [車體與懸吊剛性說明.md](車體與懸吊剛性說明.md) 直接套用解析解。
+原 Skidpad 模型的固定直徑 $D=18.25$ m、需求係數 $\gamma=1.4$；一般彈簧搜尋範圍為 20,000～80,000 N/m，共 2,000 點。RC 與 Anti dive 依 [roll_center_stiffness_derivation.md](roll_center_stiffness_derivation.md) 直接套用解析解。
 
 傾斜角與壓縮行程的需求剛性使用 `abs(ax)`、`abs(ay)`；sus_load 輪載及三向力保留加速度正負號。
 
@@ -666,6 +675,8 @@ $$
 
 對應函式：`calculate_heave_reduction()`。
 
+本節僅在 `use_tender = True` 時執行；`False` 時不呼叫此函式，也不使用頻率除數 `N` 設定新 Heave 剛性。
+
 ### 8.1 目標頻率
 
 目前採用與原 Frequency vs mass 相同的模式：
@@ -861,7 +872,7 @@ $$
 c=\frac{K_c}{K_s}=10
 $$
 
-依 [車體與懸吊剛性說明.md](車體與懸吊剛性說明.md)，令 $\alpha$ 為懸吊路徑比例、$1-\alpha$ 為車體幾何路徑比例。兩路能量模型為：
+依 [roll_center_stiffness_derivation.md](roll_center_stiffness_derivation.md)，令 $\alpha$ 為懸吊路徑比例、$1-\alpha$ 為車體幾何路徑比例。兩路能量模型為：
 
 $$
 U=\frac{1}{2}K_{eq}\theta^2,
@@ -1024,7 +1035,7 @@ $$
 
 ### 10.3 與參考文件的懸吊路徑比例對照
 
-依 [車體與懸吊剛性說明.md](車體與懸吊剛性說明.md)：
+依 [roll_center_stiffness_derivation.md](roll_center_stiffness_derivation.md)：
 
 $$
 \alpha=\frac{h-h_{\mathrm{RC,f}}}{h}
@@ -2053,6 +2064,8 @@ $$
 
 其中 Heave + Tender 是第 9 節未併圈的串聯剛性；Heave only 是原主簧剛性。前後 Heave 彈簧相同，後軸 Roll 彈簧使用前軸值乘 $k_r/k_f$。
 
+若 `use_tender = False`，前兩組中的 Heave 改為原主簧：$K_s^{(1)}=(K_{\mathrm{heaveonly}}+K_{\mathrm{roll}})/2$、$K_s^{(2)}=K_{\mathrm{heaveonly}}$，其餘兩組不變。為相容原結果結構，第二組的內部欄名仍保留 `heave_with_tender`，終端與報告改標示為 Heave。`parameters.active_heave_spring_N_per_m` 記錄本次採用的 Heave 剛性。
+
 本節直接採用這次指定的除以 **2**。第 7 節的 Frequency vs mass 使用除以 4 的另一個等效 Ks 定義；兩者輸出各自保留並標明計算模式。
 
 ### 18.1 質量與運動比座標
@@ -2342,7 +2355,9 @@ $$
 | `calculate_gear_rate` | 第 14 節 | a_acc 無空力直線加速齒比、極速齒比與算術平均減速比 |
 | `calculate_brake_ratio` | 第 15 節 | 2 g 理想煞車分配、摩擦與接地限制、可達工況及十點固定比回歸 |
 | `calculate_brake_mechanical_advantage` | 第 16 節 | 最大前後軸總煞車力需求除以車手腳力，求整體等效機械利益 |
-| `main` | 開頭流程圖 | 按順序執行、傳遞結果、處理無解分支及印出數值 |
+| `main` | 開頭流程圖、第 22 節 | 執行並印出分析，保存當次參數與結果，再產生報告；回傳同次計算快照 |
+| `render_markdown_report` | 第 22 節、vehicle_initial_sizing_report.py | 將計算快照轉成包含公式、數值代入與完整結果索引的 Markdown |
+| `write_markdown_report` | 第 22 節、vehicle_initial_sizing_report.py | 以 UTF-8 完整重建報告，完成後取代上一份檔案 |
 
 目前腳本沒有將這些階段組成反覆收斂的整車迭代：CG 使用輸入重心；Skidpad 求一次所需下壓力；Heave 以原簧下頻率求一次目標；Tender 再計算該下壓力下的行程。
 
@@ -2351,16 +2366,34 @@ $$
 在專案主資料夾執行：
 
 ```powershell
-.\.venv\Scripts\python.exe -B -X utf8 angle_stiffness.py
+.\.venv\Scripts\python.exe -B -X utf8 "Initial settings/vehicle_initial_sizing.py"
 ```
 
 或使用可用的 Python：
 
 ```powershell
-python angle_stiffness.py
+python "Initial settings/vehicle_initial_sizing.py"
 ```
 
-參數集中在 `angle_stiffness.py` 檔案開頭。修改參數後重新執行，輸出會依流程圖順序更新。原分析檔案與 CSV 的變更不會自動同步到這支獨立腳本；本文數值表也應在參數更新後重新核對。
+參數集中在 `vehicle_initial_sizing.py` 檔案開頭。修改參數後重新執行，終端輸出與 `vehicle_initial_sizing_report.md` 會同時更新。原分析檔案與 CSV 的變更不會自動同步到這支獨立腳本；本模型說明的範例數值是靜態參考，當次數值以自動報告為準。
 
 所有函式對受檢輸入使用有限數值檢查；NaN、無限大或不符合個別限制的數值會被拒絕。計算中間量使用未四捨五入數值，`print` 的格式只影響顯示精度。
+
+## 22. 自動更新 Markdown 計算報告
+
+正常執行 `python "Initial settings/vehicle_initial_sizing.py"` 時，最後會在腳本同一資料夾產生或覆寫 [vehicle_initial_sizing_report.md](vehicle_initial_sizing_report.md)。
+
+1. 修改腳本開頭的 `ms`、幾何尺寸、輪胎剛性等輸入。
+2. 重新執行腳本。
+3. 終端仍會印出分析，報告中的參數、公式代入、表格與計算結果一併重新生成。
+
+Markdown 本身不執行公式；數值更新由 Python 執行時完成，不需要手動修改報告數字。報告頂端標記產生時間，並註明自動產生內容會在下次執行時被覆寫。
+
+報告產生器位於 `vehicle_initial_sizing_report.py`。它使用 `main()` 已完成的同一份參數與結果快照，不再次呼叫分析模型，也不從本說明文件擷取或替換固定範例數字。報告包含流程圖、全部分析的符號公式與數值代入、主要結果、可行性判定，以及完整數值索引。
+
+Heave、Tender、Caster 無解或輪胎離地等狀態會原樣標記；缺少有效解的欄位顯示「無可用解」，不填成 0。改變車重會更新相依計算；`sprung_roll_inertia_kg_m2` 仍是獨立的手動慣量輸入，不會僅憑車重推估新慣量。
+
+報告以 UTF-8 寫入暫存檔，完整生成後才取代上一份報告。若參數檢查或計算失敗，上一份完成的報告保留。報告預設位置依腳本所在資料夾決定，不依啟動時所在目錄改變。
+
+從 Python 呼叫時可用 `main(report_path=...)` 指定路徑；`main(write_report=False)` 可只計算並印出。兩者都回傳當次計算快照，方便測試或其他程式接續使用。
 

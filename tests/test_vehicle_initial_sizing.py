@@ -3,12 +3,16 @@
 from contextlib import redirect_stdout
 from io import StringIO
 import math
+from pathlib import Path
+import sys
 import unittest
 from unittest.mock import patch
 
 import numpy as np
 
-import angle_stiffness as model
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Initial settings"))
+
+import vehicle_initial_sizing as model
 from analysis.wheel_load.models import Vehicle, wheel_load_stiffness
 
 
@@ -95,7 +99,7 @@ class SuspensionTireForceTests(unittest.TestCase):
         with (patch.multiple(model, ax=-1., ay=-1., lf=.6, lr=.93, F_ref_ratio=.5, wl_aero_front_ratio=.65),
               patch.object(model, 'calculate_suspension_wheel_loads', wraps=model.calculate_suspension_wheel_loads) as solver,
               redirect_stdout(StringIO()) as output):
-            model.main()
+            model.main(write_report=False)
         args = solver.call_args.args
         downforce = model.calculate_skidpad_downforce(model.ms, model.mu, model.wl_mu_y, model.target_lap_time_s)
         self.assertEqual(args[3:5], (.6, .93))
@@ -150,7 +154,7 @@ class LateralTireRollTests(unittest.TestCase):
         with (patch.multiple(model, ax=.8, ay=-1., lf=.6, lr=.93, F_ref_ratio=.25),
               patch.object(model, 'calculate_lateral_tire_roll', wraps=model.calculate_lateral_tire_roll) as solver,
               redirect_stdout(StringIO()) as output):
-            model.main()
+            model.main(write_report=False)
         calls = [call.args for call in solver.call_args_list]
         total_mass = model.ms + 4 * model.mu
         self.assertEqual(len(calls), 2)
@@ -190,7 +194,7 @@ class FVSATests(unittest.TestCase):
     def test_main_passes_travel_and_each_track_in_meters(self):
         with (patch.object(model, 'calculate_fvsa', wraps=model.calculate_fvsa) as solver,
               redirect_stdout(StringIO()) as output):
-            model.main()
+            model.main(write_report=False)
         self.assertEqual([call.args for call in solver.call_args_list],
                          [(model.sus_travel, model.tf), (model.sus_travel, model.tr)])
         self.assertIn('FVSA：最大 Roll 角', output.getvalue())
@@ -280,7 +284,7 @@ class CasterTests(unittest.TestCase):
                   patch.object(model, 'calculate_caster_for_zero_camber',
                                wraps=model.calculate_caster_for_zero_camber) as solver,
                   redirect_stdout(StringIO()) as output):
-                model.main()
+                model.main(write_report=False)
             calls.append(solver.call_args.args)
             self.assertIn('固定正方向 delta = +27.021582 deg', output.getvalue())
             self.assertIn('線性外推參考 Caster = 6.288860 deg', output.getvalue())
@@ -300,7 +304,7 @@ class CasterTests(unittest.TestCase):
                   patch.object(model, 'calculate_caster_for_zero_camber',
                                wraps=model.calculate_caster_for_zero_camber) as solver,
                   redirect_stdout(StringIO()) as output):
-                model.main()
+                model.main(write_report=False)
             solver.assert_called_once()
             args = solver.call_args.args
             self.assertAlmostEqual(args[0], 2.2906100426385296)
@@ -328,7 +332,7 @@ class CasterTests(unittest.TestCase):
                   patch.object(model, 'calculate_caster_for_zero_camber',
                                wraps=model.calculate_caster_for_zero_camber) as caster,
                   redirect_stdout(StringIO()) as output):
-                model.main()
+                model.main(write_report=False)
             steering.assert_called_once_with(front + rear, radius)
             used_angle = math.radians(caster.call_args.args[4])
             self.assertAlmostEqual((front + rear) / math.tan(used_angle), radius)
@@ -346,6 +350,51 @@ class CasterTests(unittest.TestCase):
         for wheelbase, radius in ((0., 3.), (1.53, 0.), (1.53, -3.), (math.nan, 3.), (1.53, math.inf)):
             with self.subTest(wheelbase=wheelbase, radius=radius), self.assertRaises(ValueError):
                 model.calculate_required_steering_angle(wheelbase, radius)
+
+
+class TenderSwitchTests(unittest.TestCase):
+    def test_disabled_tender_skips_design_and_uses_main_heave_in_downstream_results(self):
+        # N is only used by the skipped inverse design and must not affect this mode.
+        with (patch.multiple(model, use_tender=False, N=0., lf=.6, lr=.9, MR=.8),
+              patch.object(model, 'calculate_heave_reduction') as inverse,
+              patch.object(model, 'calculate_tender_stiffness') as tender,
+              patch.object(model, 'calculate_tender_compression') as compression,
+              redirect_stdout(StringIO()) as output):
+            result = model.main(write_report=False)
+        inverse.assert_not_called()
+        tender.assert_not_called()
+        compression.assert_not_called()
+        self.assertIsNone(result['heave'])
+        self.assertIsNone(result['tender'])
+        self.assertIsNone(result['compression'])
+        main = result['tire']['Ks_pitch_N_per_m']
+        self.assertEqual(result['parameters']['active_heave_spring_N_per_m'], main)
+        for axle, fraction in (('front', .6), ('rear', .4)):
+            rates = result['rate_cases'][axle]
+            roll = rates['roll']['spring_rate_N_per_m']
+            self.assertEqual(rates['combined_average']['spring_rate_N_per_m'], (main + roll) / 2)
+            self.assertEqual(rates['heave_with_tender'], rates['heave_only'])
+            heave = result['damping']['pure_heave'][axle]
+            expected_damping = 2 * math.sqrt(main * .8**2 * model.ms * fraction) / .8**2
+            self.assertAlmostEqual(heave['damper_critical_damping_Ns_per_m'], expected_damping)
+        pitch = result['gradients']['pitch']['heave_only']
+        self.assertAlmostEqual(pitch['pitch_suspension_stiffness_Nm_per_rad'], main * .8**2 * 1.5**2 / 2)
+        self.assertIsNone(result['damping']['heave_with_tender'])
+        self.assertIsNone(result['gradients']['pitch']['heave_with_tender'])
+        self.assertIn('Tender 已關閉', output.getvalue())
+        self.assertIn('(K_heave + K_roll)/2', output.getvalue())
+        self.assertNotIn('Tender 無可行解', output.getvalue())
+        self.assertNotIn('Tender 併圈後', output.getvalue())
+
+    def test_enabled_tender_keeps_inverse_design_and_series_stiffness(self):
+        with patch.object(model, 'use_tender', True), redirect_stdout(StringIO()):
+            result = model.main(write_report=False)
+        self.assertIsNotNone(result['heave'])
+        self.assertIsNotNone(result['tender'])
+        series = result['tender']['K_heave_with_tender_N_per_m']
+        self.assertLess(series, result['tire']['Ks_pitch_N_per_m'])
+        self.assertEqual(result['parameters']['active_heave_spring_N_per_m'], series)
+        self.assertEqual(result['rate_cases']['front']['heave_with_tender']['spring_rate_N_per_m'], series)
 
 
 class RateChainTests(unittest.TestCase):
@@ -394,7 +443,7 @@ class RateChainTests(unittest.TestCase):
             with (self.subTest(divisor=divisor), patch.multiple(model, N=divisor, lf=.6, lr=.9),
                   patch.object(model, 'calculate_rate_chain', wraps=model.calculate_rate_chain) as solver,
                   redirect_stdout(StringIO()) as output):
-                model.main()
+                model.main(write_report=False)
             self.assertEqual(solver.call_count, expected_count)
             self.assertAlmostEqual(solver.call_args_list[0].args[3], model.ms * .6 / 2)
             self.assertAlmostEqual(solver.call_args_list[-1].args[3], model.ms * .4 / 2)
@@ -502,7 +551,7 @@ class CriticalDampingTests(unittest.TestCase):
               patch.object(model, 'calculate_suspension_critical_damping',
                            wraps=model.calculate_suspension_critical_damping) as solver,
               redirect_stdout(StringIO()) as output):
-            model.main()
+            model.main(write_report=False)
         solver.assert_called_once()
         args = solver.call_args.args
         self.assertEqual(args[0], model.ms)
@@ -519,7 +568,7 @@ class CriticalDampingTests(unittest.TestCase):
         self.assertGreater(result['roll']['front']['damper_critical_damping_Ns_per_m'], 0.)
         self.assertGreater(result['pure_heave']['rear']['damper_critical_damping_Ns_per_m'], 0.)
         with patch.object(model, 'N', 3.), redirect_stdout(StringIO()) as output:
-            model.main()
+            model.main(write_report=False)
         self.assertIn('Heave + Tender：前序 Tender 無有限正剛性解', output.getvalue())
         self.assertIn('純 Heave', output.getvalue())
 
@@ -570,7 +619,7 @@ class AntiDiveTests(unittest.TestCase):
         with (patch.multiple(model, N=3., rc_chassis_stiffness_ratio=10.),
               patch.object(model, 'calculate_anti_scrub', wraps=model.calculate_anti_scrub) as scrub,
               redirect_stdout(StringIO()) as output):
-            model.main()
+            model.main(write_report=False)
         self.assertAlmostEqual(scrub.call_args.args[0], 1 / 11)
         anti_text = output.getvalue().split('Anti dive（')[1].split('Anti-Scrub（')[0]
         self.assertIn('9.091%', anti_text)
@@ -642,7 +691,7 @@ class GearRateTests(unittest.TestCase):
         with (patch.multiple(model, a_acc=1.2, ax=1.6, ay=1.4, F_ref_ratio=.25),
               patch.object(model, 'calculate_gear_rate', wraps=model.calculate_gear_rate) as solver,
               redirect_stdout(StringIO()) as output):
-            model.main()
+            model.main(write_report=False)
         self.assertEqual(solver.call_args.args[5], 1.2)
         text = output.getvalue().split('Gear_rate：無空力加速與極速齒比：')[1]
         self.assertIn('ax = a_acc = 1.2 g，ay = 0 g，空力下壓力 = 0 N', text)
@@ -719,7 +768,7 @@ class BrakeRatioTests(unittest.TestCase):
         with (patch.multiple(model, brake_ax=2., mu_w=2.2, ax=1.6, ay=1.4, F_ref_ratio=.25),
               patch.object(model, 'calculate_brake_ratio', wraps=model.calculate_brake_ratio) as solver,
               redirect_stdout(StringIO()) as output):
-            model.main()
+            model.main(write_report=False)
         self.assertEqual(solver.call_args.args[5:], (2., 2.2))
         text = output.getvalue().split('Brake_ratio：極限煞車工況的前後煞車比：')[1]
         self.assertIn('車身 ax = -2 g', text)
