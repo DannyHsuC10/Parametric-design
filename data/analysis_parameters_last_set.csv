@@ -71,8 +71,8 @@ full_body_twist_stiffness_Nm_per_rad,180000.0
 wl_downforce_N,0.0
 wl_aero_front_ratio,0.5
 wl_grid_points,81
-t,1.25
 zeta_frame,0.5
+t,1.25
 k_frame_to_roll_ratio,10.0
 hl_front_roll_motion_ratio,1
 hl_rear_roll_motion_ratio,1

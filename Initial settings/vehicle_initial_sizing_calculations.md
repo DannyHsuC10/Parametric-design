@@ -1,6 +1,6 @@
 # 車輛初步設計估算：模型與計算說明
 
-> 最新執行結果與完整 LaTeX 數值代入見 [自動更新報告](vehicle_initial_sizing_report.md)。本文件保留模型說明與建立時的範例數值。
+> 最新執行結果與完整 LaTeX 數值代入見 [自動更新主報告](vehicle_initial_sizing_report/README.md)，由主報告連結全部分類報告。本文件保留模型說明與建立時的範例數值。
 
 ## 計算流程
 
@@ -2357,7 +2357,8 @@ $$
 | `calculate_brake_mechanical_advantage` | 第 16 節 | 最大前後軸總煞車力需求除以車手腳力，求整體等效機械利益 |
 | `main` | 開頭流程圖、第 22 節 | 執行並印出分析，保存當次參數與結果，再產生報告；回傳同次計算快照 |
 | `render_markdown_report` | 第 22 節、vehicle_initial_sizing_report.py | 將計算快照轉成包含公式、數值代入與完整結果索引的 Markdown |
-| `write_markdown_report` | 第 22 節、vehicle_initial_sizing_report.py | 以 UTF-8 完整重建報告，完成後取代上一份檔案 |
+| `split_markdown_report` | 第 22 節、vehicle_initial_sizing_report.py | 保留原章節全文，拆為主報告與 10 份分類 Markdown，加入導覽連結 |
+| `write_markdown_report` | 第 22 節、vehicle_initial_sizing_report.py | 以 UTF-8 重建主報告與全部分類，完成暫存後先更新分類，再更新主報告 |
 
 目前腳本沒有將這些階段組成反覆收斂的整車迭代：CG 使用輸入重心；Skidpad 求一次所需下壓力；Heave 以原簧下頻率求一次目標；Tender 再計算該下壓力下的行程。
 
@@ -2375,13 +2376,13 @@ $$
 python "Initial settings/vehicle_initial_sizing.py"
 ```
 
-參數集中在 `vehicle_initial_sizing.py` 檔案開頭。修改參數後重新執行，終端輸出與 `vehicle_initial_sizing_report.md` 會同時更新。原分析檔案與 CSV 的變更不會自動同步到這支獨立腳本；本模型說明的範例數值是靜態參考，當次數值以自動報告為準。
+參數集中在 `vehicle_initial_sizing.py` 檔案開頭。修改參數後重新執行，終端輸出與 `vehicle_initial_sizing_report/` 內的主報告、分類報告會同時更新。原分析檔案與 CSV 的變更不會自動同步到這支獨立腳本；本模型說明的範例數值是靜態參考，當次數值以自動報告為準。
 
 所有函式對受檢輸入使用有限數值檢查；NaN、無限大或不符合個別限制的數值會被拒絕。計算中間量使用未四捨五入數值，`print` 的格式只影響顯示精度。
 
 ## 22. 自動更新 Markdown 計算報告
 
-正常執行 `python "Initial settings/vehicle_initial_sizing.py"` 時，最後會在腳本同一資料夾產生或覆寫 [vehicle_initial_sizing_report.md](vehicle_initial_sizing_report.md)。
+正常執行 `python "Initial settings/vehicle_initial_sizing.py"` 時，最後會在腳本旁的 `vehicle_initial_sizing_report/` 子資料夾產生或覆寫 [主報告 README.md](vehicle_initial_sizing_report/README.md) 與全部 10 份分類報告。主報告保留計算流程與更新方式，並連結各類報告；分類內保留所有原章節、公式、數值代入、表格與完整結果索引，各篇提供返回主報告及前後篇連結。舊的 [vehicle_initial_sizing_report.md](vehicle_initial_sizing_report.md) 保留為主報告入口。
 
 1. 修改腳本開頭的 `ms`、幾何尺寸、輪胎剛性等輸入。
 2. 重新執行腳本。
@@ -2393,7 +2394,7 @@ Markdown 本身不執行公式；數值更新由 Python 執行時完成，不需
 
 Heave、Tender、Caster 無解或輪胎離地等狀態會原樣標記；缺少有效解的欄位顯示「無可用解」，不填成 0。改變車重會更新相依計算；`sprung_roll_inertia_kg_m2` 仍是獨立的手動慣量輸入，不會僅憑車重推估新慣量。
 
-報告以 UTF-8 寫入暫存檔，完整生成後才取代上一份報告。若參數檢查或計算失敗，上一份完成的報告保留。報告預設位置依腳本所在資料夾決定，不依啟動時所在目錄改變。
+主報告與所有分類以 UTF-8 完整寫入暫存檔後，才先更新分類檔案，最後更新主報告。若參數檢查、計算、報告生成或章節分類檢查失敗，上一份完成的報告保留。報告預設位置依腳本所在資料夾決定，不依啟動時所在目錄改變。
 
-從 Python 呼叫時可用 `main(report_path=...)` 指定路徑；`main(write_report=False)` 可只計算並印出。兩者都回傳當次計算快照，方便測試或其他程式接續使用。
+從 Python 呼叫時可用 `main(report_path=...)` 指定主報告路徑，各分類 Markdown 會寫入主報告所在資料夾；`main(write_report=False)` 可只計算並印出。兩者都回傳當次計算快照，方便測試或其他程式接續使用。
 

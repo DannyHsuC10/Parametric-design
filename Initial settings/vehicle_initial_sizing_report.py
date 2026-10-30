@@ -2,9 +2,11 @@
 
 from datetime import datetime, timedelta, timezone
 import math
+import os
 from pathlib import Path
 import re
 import tempfile
+from urllib.parse import quote
 
 
 def _number(value):
@@ -742,22 +744,102 @@ def _render_modes(r, s):
            "Pitch 每軸一組彈簧，與第 18 節單輪等效案例的座標及彈簧數量不同。")
 
 
-def write_markdown_report(snapshot, output_path):
-    """Write a complete current-run report atomically, including all numerical substitutions."""
-    destination = Path(output_path).resolve()
+REPORT_CHAPTERS = (
+    ("01_inputs_cg.md", "輸入參數、質量與重心", ("0", "1")),
+    ("02_skidpad_aero.md", "Skidpad 與空力需求", ("2", "2.4")),
+    ("03_suspension_stiffness.md", "懸吊剛性、自然頻率與彈簧", ("3", "4", "5", "6", "7", "8", "9")),
+    ("04_geometry_steering.md", "Anti、Roll Center 與轉向幾何", ("9.3", "10", "11.1", "11.2", "11.3")),
+    ("05_aero_wheel_loads.md", "空力壓縮與四輪受力", ("12", "13")),
+    ("06_drivetrain_braking.md", "傳動齒比與煞車設計", ("14", "15", "16")),
+    ("07_critical_damping.md", "前後軸臨界阻尼", ("17",)),
+    ("08_spring_rate_cases.md", "四種 Ks、Kw、Kr 比較", ("18",)),
+    ("09_roll_pitch_gradients.md", "Roll 與 Pitch gradient", ("19",)),
+    ("10_results_index.md", "完整結果索引", ("20",)),
+)
+
+
+def split_markdown_report(content, main_filename="README.md"):
+    """Keep every source section intact and add an index and chapter navigation."""
+    chapter_names = {filename for filename, _, _ in REPORT_CHAPTERS}
+    if Path(main_filename).name != main_filename or main_filename in chapter_names:
+        raise ValueError("主報告檔名必須是獨立檔名，且不能與分類檔名相同。")
+    headings = list(re.finditer(r"^## ([^\n]+)(?:\n|$)", content, re.MULTILINE))
+    sections = {}
+    for index, heading in enumerate(headings):
+        title = heading.group(1)
+        number = re.match(r"^(\d+(?:\.\d+)?)(?:\.(?=\s)|(?=\s))", title)
+        key = number.group(1) if number else title
+        if key in sections:
+            raise ValueError(f"報告章節重複：{key}")
+        end = headings[index + 1].start() if index + 1 < len(headings) else len(content)
+        sections[key] = content[heading.start():end]
+    expected = {key for _, _, keys in REPORT_CHAPTERS for key in keys} | {"計算流程", "21"}
+    if sections.keys() != expected:
+        raise ValueError(f"報告章節不符，缺少：{sorted(expected - sections.keys())}；"
+                         f"未分類：{sorted(sections.keys() - expected)}")
+
+    main = MarkdownReport()
+    main.text("## 分類報告")
+    main.text("原報告依主題拆為以下 10 份 Markdown，所有原章節、公式、數值代入、表格、判定與完整結果均保留。"
+              "各篇保留原章節編號，並提供返回主報告及前後篇連結。重新執行腳本會更新本主報告與全部分類檔案。")
+    main.table(["分類報告", "原章節"], (
+        (f"[{title}]({filename})", "、".join(keys)) for filename, title, keys in REPORT_CHAPTERS
+    ))
+    main.text("原第 9.3 節同時包含 9.4 Anti-Scrub；原第 10 節同時包含第 11 節後 Roll Center。")
+    documents = {
+        main_filename: content[:headings[0].start()] + sections["計算流程"]
+        + "".join(main.parts) + sections["21"],
+    }
+    for index, (filename, title, keys) in enumerate(REPORT_CHAPTERS):
+        navigation = [f"[返回主報告]({quote(main_filename)})"]
+        if index:
+            previous_name, previous_title, _ = REPORT_CHAPTERS[index - 1]
+            navigation.append(f"[上一篇：{previous_title}]({previous_name})")
+        if index + 1 < len(REPORT_CHAPTERS):
+            next_name, next_title, _ = REPORT_CHAPTERS[index + 1]
+            navigation.append(f"[下一篇：{next_title}]({next_name})")
+        links = " · ".join(navigation)
+        documents[filename] = (f"# {title}\n\n{links}\n\n"
+                               + "".join(sections[key] for key in keys)
+                               + f"---\n\n{links}\n")
+    return documents
+
+
+def _write_report_documents(documents, destination):
+    """Stage the complete bundle before publishing chapters and then the main report."""
     destination.parent.mkdir(parents=True, exist_ok=True)
-    content = render_markdown_report(snapshot)
-    temporary = None
+    staged = {}
     try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n",
-                                         dir=destination.parent, prefix="." + destination.name + ".",
-                                         suffix=".tmp", delete=False) as handle:
-            temporary = Path(handle.name)
-            handle.write(content)
-        temporary.replace(destination)
+        for filename, content in documents.items():
+            target = destination.parent / filename
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n",
+                                             dir=destination.parent, prefix="." + filename + ".",
+                                             suffix=".tmp", delete=False) as handle:
+                staged[target] = Path(handle.name)
+                handle.write(content)
+        for target, temporary in staged.items():
+            if target != destination:
+                temporary.replace(target)
+        staged[destination].replace(destination)
     finally:
-        if temporary is not None and temporary.exists():
-            temporary.unlink()
+        for temporary in staged.values():
+            if temporary.exists():
+                temporary.unlink()
+
+
+def write_markdown_report(snapshot, output_path):
+    """Write the main report and all chapters from the same calculation snapshot."""
+    destination = Path(output_path).resolve()
+    documents = split_markdown_report(render_markdown_report(snapshot), destination.name)
+    calculations = Path(__file__).with_name("vehicle_initial_sizing_calculations.md")
+    try:
+        calculations_link = quote(Path(os.path.relpath(calculations, destination.parent)).as_posix())
+    except ValueError:  # Different Windows drives cannot form a relative path.
+        calculations_link = calculations.as_uri()
+    documents = {name: content.replace(
+        "[計算說明](vehicle_initial_sizing_calculations.md)", f"[計算說明]({calculations_link})"
+    ) for name, content in documents.items()}
+    _write_report_documents(documents, destination)
     return destination
 
 

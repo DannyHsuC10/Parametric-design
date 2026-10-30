@@ -167,7 +167,7 @@ Brake_ratio 使用無空力直線煞車，brake_ax 為正的減速度 g 倍數�
     B_total_required = B_front + B_rear
     brake_mechanical_advantage = B_total_required / brake_driver_force_N
 車手腳力初值為 500 N；此倍率以四輪接地總煞車力為輸出力。
-所有分析計算後印出結果，並自動更新同資料夾的 vehicle_initial_sizing_report.md，不繪圖。
+所有分析計算後印出結果，並自動更新 vehicle_initial_sizing_report/ 的主報告與分類 Markdown，不繪圖。
 """
 
 import math
@@ -176,7 +176,7 @@ from pathlib import Path
 from vehicle_initial_sizing_report import write_markdown_report
 
 
-DEFAULT_REPORT_PATH = Path(__file__).with_name("vehicle_initial_sizing_report.md")
+DEFAULT_REPORT_PATH = Path(__file__).with_name("vehicle_initial_sizing_report") / "README.md"
 
 
 # 可直接修改以下參數；初值參考目前專案設定與 COG 計算結果。

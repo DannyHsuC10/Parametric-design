@@ -107,7 +107,7 @@ Print out 的 `[開啟結果]` 訊息會分別顯示雙擊事件等待、圖片�
 - `main.py`：桌面介面的啟動入口。
 - `app/`：介面與分析流程共用工具。`analysis_*.py` 負責參數、背景執行、快取與結果儲存；`markdown_*.py` 與 `document_theme.py` 負責說明顯示與配色；`flow_diagram.py` 負責流程圖；`plugin_loader.py` 負責載入分析模組。
 - `analysis/`：各項車輛動態分析與模型。
-- `Initial settings/`：獨立的車輛初步設計估算；執行 [vehicle_initial_sizing.py](<Initial settings/vehicle_initial_sizing.py>)，參閱[模型與計算說明](<Initial settings/vehicle_initial_sizing_calculations.md>)及[計算報告](<Initial settings/vehicle_initial_sizing_report.md>)。
+- `Initial settings/`：獨立的車輛初步設計估算；執行 [vehicle_initial_sizing.py](<Initial settings/vehicle_initial_sizing.py>)，參閱[模型與計算說明](<Initial settings/vehicle_initial_sizing_calculations.md>)及[主報告與 10 份分類報告](<Initial settings/vehicle_initial_sizing_report/README.md>)。
 - `data/`：流程設定、輸入資料與分析結果。
 - `tests/`：回歸測試。
 - `spider/`：資料蒐集與統計工具。

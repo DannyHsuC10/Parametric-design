@@ -9,19 +9,125 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+from urllib.parse import unquote, urlsplit
+from urllib.request import url2pathname
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "Initial settings"))
 
 import vehicle_initial_sizing as model
-from vehicle_initial_sizing_report import render_markdown_report, write_markdown_report
+from vehicle_initial_sizing_report import render_markdown_report, split_markdown_report, write_markdown_report
+
+
+REPORT_CHAPTERS = {
+    "01_inputs_cg.md": ("0.", "1."),
+    "02_skidpad_aero.md": ("2.", "2.4"),
+    "03_suspension_stiffness.md": ("3.", "4.", "5.", "6.", "7.", "8.", "9."),
+    "04_geometry_steering.md": ("9.3", "10.", "11.1", "11.2", "11.3"),
+    "05_aero_wheel_loads.md": ("12.", "13."),
+    "06_drivetrain_braking.md": ("14.", "15.", "16."),
+    "07_critical_damping.md": ("17.",),
+    "08_spring_rate_cases.md": ("18.",),
+    "09_roll_pitch_gradients.md": ("19.",),
+    "10_results_index.md": ("20.",),
+}
 
 
 class MarkdownReportTests(unittest.TestCase):
+    def read_report_bundle(self, path):
+        files = {path.name: path.read_text(encoding="utf-8")}
+        files.update((name, (path.parent / name).read_text(encoding="utf-8")) for name in REPORT_CHAPTERS)
+        return files
+
     def run_report(self, path):
         output = StringIO()
         with redirect_stdout(output):
             snapshot = model.main(report_path=path)
-        return snapshot, path.read_text(encoding="utf-8"), output.getvalue()
+        return snapshot, "\n".join(self.read_report_bundle(path).values()), output.getvalue()
+
+    def test_split_preserves_every_original_section_once_in_its_category(self):
+        for enabled, divisor in ((True, 5.), (False, 0.), (True, 3.)):
+            with (self.subTest(use_tender=enabled, N=divisor),
+                  patch.multiple(model, use_tender=enabled, N=divisor),
+                  redirect_stdout(StringIO())):
+                original = render_markdown_report(model.main(write_report=False))
+            files = split_markdown_report(original)
+            self.assertEqual(set(files), {"README.md", *REPORT_CHAPTERS})
+            complete = "\n".join(files.values())
+            first_section = original.index("## 0.")
+            self.assertIn(original[:first_section], files["README.md"])
+            sections = list(re.finditer(r"^## (\d+(?:\.\d+)?\.?) .*$", original, re.MULTILINE))
+            expected = {number: filename for filename, numbers in REPORT_CHAPTERS.items() for number in numbers}
+            expected["21."] = "README.md"
+            self.assertEqual({match.group(1) for match in sections}, set(expected))
+            for index, match in enumerate(sections):
+                end = sections[index + 1].start() if index + 1 < len(sections) else len(original)
+                section = original[match.start():end]
+                self.assertIn(section, files[expected[match.group(1)]])
+                self.assertEqual(complete.count(section), 1, match.group(0))
+            for name, text in files.items():
+                self.assertEqual(text.count("$$") % 2, 0, name)
+                self.assertEqual(text.count("```") % 2, 0, name)
+            self.assertLess(len(files["README.md"]), len(original) // 8)
+
+    def test_split_rejects_unclassified_and_duplicate_sections(self):
+        with redirect_stdout(StringIO()):
+            original = render_markdown_report(model.main(write_report=False))
+        for extra in ("## 22. 未分類章節\n\n保留內容\n\n", "## 0. 重複輸入\n\n重複內容\n\n",
+                      "## 22. 未分類章節", "## 0. 重複輸入"):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                split_markdown_report(original + extra)
+
+    def test_main_report_and_chapter_links_work_for_custom_nested_output(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "自訂 目錄" / "nested" / "主報告.md"
+            self.run_report(path)
+            files = self.read_report_bundle(path)
+            self.assertEqual(set(child.name for child in path.parent.iterdir()), set(files))
+            self.assertIn("graph TD", files[path.name])
+            self.assertIn("## 21. 更新方式", files[path.name])
+            self.assertNotIn("## 0.", files[path.name])
+            source = Path(model.__file__).with_name("vehicle_initial_sizing_calculations.md").resolve()
+            links_to_model = []
+            for name, text in files.items():
+                links = re.findall(r"\[[^\]]*\]\((?:<([^>]+)>|([^\)]+))\)", text)
+                resolved = []
+                for angle_target, plain_target in links:
+                    target = angle_target or plain_target
+                    parsed = urlsplit(target)
+                    if parsed.scheme == "file":
+                        destination = Path(url2pathname(parsed.path)).resolve()
+                    elif parsed.scheme or parsed.netloc or not parsed.path:
+                        continue
+                    else:
+                        self.assertFalse(Path(unquote(parsed.path)).is_absolute(), target)
+                        destination = (path.parent / unquote(parsed.path)).resolve()
+                    self.assertTrue(destination.exists(), f"{name}: {target}")
+                    resolved.append(destination)
+                    if destination == source:
+                        links_to_model.append((name, target))
+                if name == path.name:
+                    for chapter in REPORT_CHAPTERS:
+                        self.assertIn((path.parent / chapter).resolve(), resolved)
+                else:
+                    self.assertIn(path.resolve(), resolved, name)
+            self.assertTrue(links_to_model)
+
+    def test_default_report_is_written_into_a_dedicated_subdirectory(self):
+        self.assertEqual(model.DEFAULT_REPORT_PATH,
+                         Path(model.__file__).with_name("vehicle_initial_sizing_report") / "README.md")
+
+    def test_model_explanation_link_is_relative_on_the_same_drive(self):
+        source_directory = Path(model.__file__).parent
+        with TemporaryDirectory(dir=source_directory) as directory:
+            path = Path(directory) / "nested" / "deeper" / "README.md"
+            self.run_report(path)
+            text = path.read_text(encoding="utf-8")
+            links = re.findall(r"\[計算說明\]\((?:<([^>]+)>|([^\)]+))\)", text)
+            self.assertEqual(len(links), 1)
+            target = next(value for value in links[0] if value)
+            self.assertFalse(urlsplit(target).scheme)
+            self.assertEqual((path.parent / unquote(target)).resolve(),
+                             (source_directory / "vehicle_initial_sizing_calculations.md").resolve())
 
     def test_generated_equations_keep_latex_spacing_commands_separate(self):
         for enabled, divisor in ((True, 5.), (False, 0.), (True, 3.)):
@@ -61,10 +167,13 @@ class MarkdownReportTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "report.md"
             original, old_text, _ = self.run_report(path)
-            path.write_text(old_text + "\nOUTDATED_SENTINEL", encoding="utf-8")
+            for name, content in self.read_report_bundle(path).items():
+                (path.parent / name).write_text(content + "\nOUTDATED_SENTINEL", encoding="utf-8")
             with patch.multiple(model, ms=300., lf=.7, lr=.8, min_turn_radius_m=2.7):
                 changed, text, _ = self.run_report(path)
             self.assertNotIn("OUTDATED_SENTINEL", text)
+            for name, content in self.read_report_bundle(path).items():
+                self.assertNotIn("OUTDATED_SENTINEL", content, name)
             self.assertNotEqual(old_text, text)
             self.assertIn("| ms | 300 |", text)
             self.assertIn(r"M=300+4\cdot14.4=357.6", text)
@@ -77,6 +186,7 @@ class MarkdownReportTests(unittest.TestCase):
                 self.assertIn(format(changed[group][key], ".12g"), text)
             self.assertEqual(original["parameters"]["ms"], 260.55)
             self.assertEqual(changed["parameters"]["ms"], 300.)
+            self.assertEqual(list(path.parent.glob("*.tmp")), [])
 
     def test_unavailable_tender_is_explicit_and_independent_results_are_kept(self):
         with TemporaryDirectory() as directory, patch.object(model, "N", 3.):
@@ -133,14 +243,21 @@ class MarkdownReportTests(unittest.TestCase):
     def test_invalid_parameters_or_render_failure_preserve_last_completed_report(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "report.md"
-            path.write_text("LAST_COMPLETE_REPORT", encoding="utf-8")
+            self.run_report(path)
+            previous = self.read_report_bundle(path)
             with patch.object(model, "min_turn_radius_m", 0.), self.assertRaises(ValueError):
                 model.main(report_path=path)
-            self.assertEqual(path.read_text(encoding="utf-8"), "LAST_COMPLETE_REPORT")
+            self.assertEqual(self.read_report_bundle(path), previous)
             with patch("vehicle_initial_sizing_report.render_markdown_report", side_effect=ValueError("render failed")):
                 with self.assertRaises(ValueError):
                     write_markdown_report({}, path)
-            self.assertEqual(path.read_text(encoding="utf-8"), "LAST_COMPLETE_REPORT")
+            self.assertEqual(self.read_report_bundle(path), previous)
+            with patch("vehicle_initial_sizing_report.split_markdown_report", side_effect=ValueError("split failed")):
+                with self.assertRaises(ValueError):
+                    with redirect_stdout(StringIO()):
+                        model.main(report_path=path)
+            self.assertEqual(self.read_report_bundle(path), previous)
+            self.assertEqual(set(child.name for child in path.parent.iterdir()), set(previous))
 
 
 if __name__ == "__main__":
