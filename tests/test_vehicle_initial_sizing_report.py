@@ -189,15 +189,81 @@ class MarkdownReportTests(unittest.TestCase):
             self.assertEqual(list(path.parent.glob("*.tmp")), [])
 
     def test_unavailable_tender_is_explicit_and_independent_results_are_kept(self):
-        with TemporaryDirectory() as directory, patch.object(model, "N", 3.):
+        with TemporaryDirectory() as directory, patch.multiple(model, N=3., target_pitch_angle_deg=1.):
             snapshot, text, _ = self.run_report(Path(directory) / "report.md")
         self.assertIsNone(snapshot["tender"])
+        self.assertEqual(set(snapshot["anti"]), {"heave_only"})
+        self.assertIsNotNone(snapshot["anti"]["heave_only"])
         self.assertIn("Tender 無可行解", text)
         self.assertIn("| front.combined_average | —（無可用解） |", text)
         self.assertIn("| rear.heave_with_tender | —（無可用解） |", text)
         self.assertIn("後軸：Kheaveonly", text)
         self.assertIn("Roll 與 Pitch gradient", text)
         self.assertIn(format(snapshot["gradients"]["roll_gradient_with_tires_deg_per_g"], ".12g"), text)
+
+    def test_report_uses_each_axles_stiffness_anti_and_refreshes_independent_chassis_inputs(self):
+        with (TemporaryDirectory() as directory,
+              patch.multiple(model, use_tender=True, anti_front_chassis_stiffness_N_per_m=400000.,
+                             anti_rear_chassis_stiffness_N_per_m=800000.)):
+            path = Path(directory) / "report.md"
+            original, text, output = self.run_report(path)
+            files = self.read_report_bundle(path)
+            geometry = files["04_geometry_steering.md"]
+            self.assertIn("## 9.3 前 Anti-dive 與 9.4 AntiScrub／前後 Anti-lift", geometry)
+            self.assertIn("| anti_front_chassis_stiffness_N_per_m | 400000 |", text)
+            self.assertIn("| anti_rear_chassis_stiffness_N_per_m | 800000 |", text)
+            self.assertIn("AntiScrub", text)
+            self.assertIn("heave_only.anti_scrub_ratio", files["10_results_index.md"])
+            self.assertNotIn("### anti_dive", text)
+            self.assertIn("AntiScrub", output)
+            self.assertEqual(set(original["anti"]), {"heave_only"})
+            anti_section = geometry.split("## 9.3 ", 1)[1].split("## 10.", 1)[0]
+            self.assertNotIn("### Heave + Tender", anti_section)
+            for axle in ("front", "rear"):
+                anti = original["anti"]["heave_only"][axle]
+                self.assertIn(format(anti["anti_ratio"], ".12g"), geometry)
+                self.assertIn(f"heave_only.{axle}.anti_ratio", files["10_results_index.md"])
+                self.assertNotIn(f"heave_with_tender.{axle}.anti_ratio", files["10_results_index.md"])
+            mapping = original["anti"]["heave_only"]
+            self.assertNotEqual(mapping["front"]["anti_ratio"], mapping["rear"]["anti_ratio"])
+            self.assertEqual(mapping["rear_anti_lift_ratio"], mapping["front_anti_dive_ratio"])
+            self.assertEqual(mapping["front_anti_lift_ratio"], mapping["anti_scrub_ratio"])
+            for name in ("front_anti_dive", "rear_anti_lift", "anti_scrub", "front_anti_lift"):
+                self.assertIn(f"heave_only.{name}_ratio", files["10_results_index.md"])
+                self.assertIn(format(mapping[f"{name}_ratio"], ".12g"), geometry)
+            values = original["gradients"]["pitch"]["heave_only"]
+            self.assertIn(r"(1-\mathrm{AntiDive}_f)G_{s,f}+(1-\mathrm{AntiLift}_r)G_{s,r}",
+                          files["09_roll_pitch_gradients.md"])
+            self.assertIn(format(values["gradient_with_tires_and_anti_deg_per_g"], ".12g"),
+                          files["09_roll_pitch_gradients.md"])
+            series_values = original["gradients"]["pitch"]["heave_with_tender"]
+            self.assertNotIn("gradient_with_tires_and_anti_deg_per_g", series_values)
+            series_pitch = files["09_roll_pitch_gradients.md"].split("### Pitch：Heave + Tender", 1)[1]
+            series_pitch = series_pitch.split("### Pitch：純 Heave", 1)[0]
+            self.assertIn(format(series_values["gradient_with_tires_deg_per_g"], ".12g"), series_pitch)
+            self.assertNotIn(r"G_{\mathrm{pitch,anti}}", series_pitch)
+
+            # Existing chapter files from the previous format must lose their series Anti rows on rerun.
+            stale = "\nLEGACY_SERIES_ANTI\n| heave_with_tender.front.anti_ratio | 0.25 |\n"
+            for filename in ("04_geometry_steering.md", "09_roll_pitch_gradients.md", "10_results_index.md"):
+                (path.parent / filename).write_text(files[filename] + stale, encoding="utf-8")
+            with patch.object(model, "anti_rear_chassis_stiffness_N_per_m", 1200000.):
+                changed, updated, _ = self.run_report(path)
+            self.assertEqual(set(changed["anti"]), {"heave_only"})
+            self.assertEqual(changed["anti"]["heave_only"]["front"], original["anti"]["heave_only"]["front"])
+            self.assertLess(changed["anti"]["heave_only"]["rear"]["anti_ratio"],
+                            original["anti"]["heave_only"]["rear"]["anti_ratio"])
+            for field in ("front_anti_dive_ratio", "rear_anti_lift_ratio"):
+                self.assertEqual(changed["anti"]["heave_only"][field], mapping[field])
+            for field in ("anti_scrub_ratio", "front_anti_lift_ratio"):
+                self.assertLess(changed["anti"]["heave_only"][field], mapping[field])
+            self.assertEqual(changed["gradients"]["pitch"]["heave_only"]["gradient_with_tires_and_anti_deg_per_g"],
+                             values["gradient_with_tires_and_anti_deg_per_g"])
+            self.assertEqual(changed["gradients"]["pitch"]["heave_with_tender"], series_values)
+            self.assertNotIn("LEGACY_SERIES_ANTI", updated)
+            self.assertNotIn("heave_with_tender.front.anti_ratio", updated)
+            self.assertIn("| anti_rear_chassis_stiffness_N_per_m | 1200000 |", updated)
+            self.assertNotEqual(self.read_report_bundle(path)["04_geometry_steering.md"], geometry)
 
     def test_contact_flags_and_failed_caster_are_not_rendered_as_physical_zero_solutions(self):
         with redirect_stdout(StringIO()):
@@ -225,6 +291,8 @@ class MarkdownReportTests(unittest.TestCase):
             with patch.multiple(model, use_tender=False, N=0.):
                 snapshot, text, output = self.run_report(path)
         main = snapshot["tire"]["Ks_pitch_N_per_m"]
+        self.assertEqual(set(snapshot["anti"]), {"heave_only"})
+        self.assertIsNotNone(snapshot["anti"]["heave_only"])
         self.assertIn("| use_tender | 否 |", text)
         self.assertIn("Tender 已關閉", text)
         self.assertIn("Tender 已關閉", output)

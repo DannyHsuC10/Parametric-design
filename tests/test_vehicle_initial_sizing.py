@@ -1,6 +1,7 @@
 """Standalone wheel loads match sus_load and preserve the requested force totals."""
 
 from contextlib import redirect_stdout
+from copy import deepcopy
 from io import StringIO
 import math
 from pathlib import Path
@@ -95,15 +96,16 @@ class SuspensionTireForceTests(unittest.TestCase):
             with self.subTest(loads=loads), self.assertRaises(ValueError):
                 model.calculate_tire_force_demands(loads, 120., 1., 1.)
 
-    def test_main_connects_computed_aero_springs_and_signed_accelerations(self):
-        with (patch.multiple(model, ax=-1., ay=-1., lf=.6, lr=.93, F_ref_ratio=.5, wl_aero_front_ratio=.65),
+    def test_main_connects_computed_aero_springs_and_lateral_direction(self):
+        # ax is now also the positive reference magnitude for AntiScrub; signed ax remains tested above.
+        with (patch.multiple(model, ax=1., ay=-1., lf=.6, lr=.93, F_ref_ratio=.5, wl_aero_front_ratio=.65),
               patch.object(model, 'calculate_suspension_wheel_loads', wraps=model.calculate_suspension_wheel_loads) as solver,
               redirect_stdout(StringIO()) as output):
             model.main(write_report=False)
         args = solver.call_args.args
         downforce = model.calculate_skidpad_downforce(model.ms, model.mu, model.wl_mu_y, model.target_lap_time_s)
         self.assertEqual(args[3:5], (.6, .93))
-        self.assertEqual(args[7:9], (-1., -1.))
+        self.assertEqual(args[7:9], (1., -1.))
         self.assertAlmostEqual(args[9], .5 * downforce['skidpad_required_aero_downforce_N'])
         self.assertEqual(args[10], .65)
         self.assertAlmostEqual(args[12] / args[11], model.kr / model.kf * (model.tr / model.tf)**2)
@@ -381,6 +383,13 @@ class TenderSwitchTests(unittest.TestCase):
         self.assertAlmostEqual(pitch['pitch_suspension_stiffness_Nm_per_rad'], main * .8**2 * 1.5**2 / 2)
         self.assertIsNone(result['damping']['heave_with_tender'])
         self.assertIsNone(result['gradients']['pitch']['heave_with_tender'])
+        self.assertEqual(set(result['anti']), {'heave_only'})
+        for axle in ('front', 'rear'):
+            anti = result['anti']['heave_only'][axle]
+            self.assertAlmostEqual(anti['suspension_stiffness_N_per_m'], main * .8**2)
+            chassis = result['parameters'][f'anti_{axle}_chassis_stiffness_N_per_m']
+            self.assertEqual(anti['chassis_stiffness_N_per_m'], chassis)
+            self.assertAlmostEqual(anti['anti_ratio'], main * .8**2 / (main * .8**2 + chassis))
         self.assertIn('Tender 已關閉', output.getvalue())
         self.assertIn('(K_heave + K_roll)/2', output.getvalue())
         self.assertNotIn('Tender 無可行解', output.getvalue())
@@ -395,6 +404,15 @@ class TenderSwitchTests(unittest.TestCase):
         self.assertLess(series, result['tire']['Ks_pitch_N_per_m'])
         self.assertEqual(result['parameters']['active_heave_spring_N_per_m'], series)
         self.assertEqual(result['rate_cases']['front']['heave_with_tender']['spring_rate_N_per_m'], series)
+        self.assertEqual(set(result['anti']), {'heave_only'})
+        for axle in ('front', 'rear'):
+            main_anti = result['anti']['heave_only'][axle]
+            self.assertAlmostEqual(main_anti['suspension_stiffness_N_per_m'],
+                                   result['tire']['Ks_pitch_N_per_m'] * model.MR**2)
+        series_pitch = result['gradients']['pitch']['heave_with_tender']
+        self.assertGreater(series_pitch['gradient_with_tires_deg_per_g'], 0.)
+        for field in ('front_anti_dive_ratio', 'rear_anti_lift_ratio', 'gradient_with_tires_and_anti_deg_per_g'):
+            self.assertNotIn(field, series_pitch)
 
 
 class RateChainTests(unittest.TestCase):
@@ -440,7 +458,8 @@ class RateChainTests(unittest.TestCase):
 
     def test_main_evaluates_all_cases_and_keeps_independent_cases_without_tender(self):
         for divisor, expected_count in ((5., 8), (3., 4)):
-            with (self.subTest(divisor=divisor), patch.multiple(model, N=divisor, lf=.6, lr=.9),
+            with (self.subTest(divisor=divisor),
+                  patch.multiple(model, N=divisor, lf=.6, lr=.9, target_pitch_angle_deg=1.),
                   patch.object(model, 'calculate_rate_chain', wraps=model.calculate_rate_chain) as solver,
                   redirect_stdout(StringIO()) as output):
                 model.main(write_report=False)
@@ -452,12 +471,18 @@ class RateChainTests(unittest.TestCase):
 
 
 class AttitudeGradientTests(unittest.TestCase):
+    def anti_modes(self, main=140000., motion_ratio=.8):
+        return {'heave_only': model.calculate_anti_assignments(
+                    main * motion_ratio**2, main * motion_ratio**2, 400000., 200000., 1.2, 2.)}
+
     def gradients(self, **overrides):
         values = dict(total_mass=320., cog_height=.3, front_distance=.6, rear_distance=.9,
                       front_track=1.25, rear_track=1.24, motion_ratio=.8, tire_stiffness=80000.,
                       front_roll_spring=100000., rear_roll_spring=80000., main_heave_spring=140000.,
-                      series_heave_spring=40000., front_roll_center=.02, rear_roll_center=.04, anti_dive=.4)
+                      series_heave_spring=40000., front_roll_center=.02, rear_roll_center=.04)
         values.update(overrides)
+        if 'anti' not in overrides:
+            values['anti'] = self.anti_modes(values['main_heave_spring'], values['motion_ratio'])
         return model.calculate_roll_pitch_gradients(**values)
 
     def test_roll_axis_interpolation_and_static_moment_balance(self):
@@ -470,20 +495,83 @@ class AttitudeGradientTests(unittest.TestCase):
         self.assertGreater(result['roll_gradient_with_tires_deg_per_g'],
                            result['roll_gradient_suspension_deg_per_g'])
 
-    def test_pitch_matches_axle_force_balance_and_anti_dive_keeps_tire_deformation(self):
+    def test_pitch_applies_front_dive_and_rear_lift_to_their_own_compliance(self):
         result = self.gradients()
         transfer = 320. * model.g * .3 / 1.5
         tire_angle = (2 * transfer / (2 * 80000.)) / 1.5
         for mode, spring in (('heave_with_tender', 40000.), ('heave_only', 140000.)):
             values = result['pitch'][mode]
             spring_angle = (2 * transfer / (spring * .8**2)) / 1.5
+            axle_gradient = math.degrees(spring_angle / 2)
+            front_anti = spring * .8**2 / (spring * .8**2 + 400000.)
+            rear_anti = front_anti
             self.assertAlmostEqual(values['gradient_suspension_deg_per_g'], math.degrees(spring_angle))
             self.assertAlmostEqual(values['gradient_with_tires_deg_per_g'], math.degrees(spring_angle + tire_angle))
-            self.assertAlmostEqual(values['gradient_with_tires_and_anti_dive_deg_per_g'],
-                                   math.degrees(.6 * spring_angle + tire_angle))
-        full_anti = self.gradients(anti_dive=1.)
-        self.assertAlmostEqual(full_anti['pitch']['heave_only']['gradient_with_tires_and_anti_dive_deg_per_g'],
+            self.assertAlmostEqual(values['front_suspension_gradient_deg_per_g'], axle_gradient)
+            self.assertAlmostEqual(values['rear_suspension_gradient_deg_per_g'], axle_gradient)
+            self.assertNotIn('gradient_with_tires_and_anti_dive_deg_per_g', values)
+            if mode == 'heave_with_tender':
+                for field in ('front_anti_dive_ratio', 'rear_anti_lift_ratio',
+                              'gradient_with_tires_and_anti_deg_per_g'):
+                    self.assertNotIn(field, values)
+            else:
+                self.assertAlmostEqual(values['front_anti_dive_ratio'], front_anti)
+                self.assertAlmostEqual(values['rear_anti_lift_ratio'], rear_anti)
+                self.assertAlmostEqual(values['gradient_with_tires_and_anti_deg_per_g'],
+                                       (1 - front_anti) * axle_gradient + (1 - rear_anti) * axle_gradient
+                                       + math.degrees(tire_angle))
+
+        no_anti = self.gradients(anti=None)
+        all_anti = self.anti_modes()
+        all_anti['heave_only']['front_anti_dive_ratio'] = 1.
+        all_anti['heave_only']['rear_anti_lift_ratio'] = 1.
+        full_anti = self.gradients(anti=all_anti)
+        values = no_anti['pitch']['heave_only']
+        self.assertEqual(values['front_anti_dive_ratio'], 0.)
+        self.assertEqual(values['rear_anti_lift_ratio'], 0.)
+        self.assertAlmostEqual(values['gradient_with_tires_and_anti_deg_per_g'],
+                               values['gradient_with_tires_deg_per_g'])
+        self.assertAlmostEqual(full_anti['pitch']['heave_only']['gradient_with_tires_and_anti_deg_per_g'],
                                math.degrees(tire_angle))
+        self.assertEqual(no_anti['pitch']['heave_with_tender'], result['pitch']['heave_with_tender'])
+        self.assertEqual(full_anti['pitch']['heave_with_tender'], result['pitch']['heave_with_tender'])
+
+    def test_anti_metadata_cannot_silently_apply_another_mode_or_invalid_ratio(self):
+        baseline = self.anti_modes()
+        wrong_mode = deepcopy(baseline)
+        wrong_mode['heave_only'] = model.calculate_anti_assignments(40000. * .8**2, 40000. * .8**2,
+                                                                  400000., 200000., 1.2, 2.)
+        missing_rear = deepcopy(baseline)
+        del missing_rear['heave_only']['rear']
+        missing_assignment = deepcopy(baseline)
+        del missing_assignment['heave_only']['rear_anti_lift_ratio']
+        invalid_cases = [wrong_mode, missing_rear, missing_assignment, {}]
+        for ratio in (-.01, 1.01, math.nan):
+            for field in ('front_anti_dive_ratio', 'rear_anti_lift_ratio'):
+                invalid = deepcopy(baseline)
+                invalid['heave_only'][field] = ratio
+                invalid_cases.append(invalid)
+        for anti in invalid_cases:
+            with self.subTest(anti=anti), self.assertRaises(ValueError):
+                self.gradients(anti=anti)
+
+    def test_braking_pitch_uses_assignments_and_not_rear_raw_stiffness_or_scrub(self):
+        baseline_anti = self.anti_modes()
+        baseline = self.gradients(anti=baseline_anti)['pitch']['heave_only']
+        kz = 140000. * .8**2
+        for rear_chassis, acceleration in ((800000., 1.2), (200000., 10.)):
+            anti = {'heave_only': model.calculate_anti_assignments(kz, kz, 400000., rear_chassis,
+                                                                  acceleration, 2.)}
+            values = self.gradients(anti=anti)['pitch']['heave_only']
+            for field in ('front_anti_dive_ratio', 'rear_anti_lift_ratio',
+                          'gradient_with_tires_and_anti_deg_per_g'):
+                self.assertEqual(values[field], baseline[field])
+        front_changed = {'heave_only': model.calculate_anti_assignments(kz, kz, 800000., 200000., 1.2, 2.)}
+        values = self.gradients(anti=front_changed)['pitch']['heave_only']
+        self.assertLess(values['front_anti_dive_ratio'], baseline['front_anti_dive_ratio'])
+        self.assertLess(values['rear_anti_lift_ratio'], baseline['rear_anti_lift_ratio'])
+        self.assertGreater(values['gradient_with_tires_and_anti_deg_per_g'],
+                           baseline['gradient_with_tires_and_anti_deg_per_g'])
 
     def test_zero_moment_arm_unavailable_tender_and_invalid_inputs(self):
         result = self.gradients(cog_height=0., front_roll_center=0., rear_roll_center=0., series_heave_spring=None)
@@ -491,7 +579,7 @@ class AttitudeGradientTests(unittest.TestCase):
         self.assertIsNone(result['pitch']['heave_with_tender'])
         self.assertEqual(result['pitch']['heave_only']['gradient_with_tires_deg_per_g'], 0.)
         for invalid in (dict(total_mass=0.), dict(front_distance=0.), dict(tire_stiffness=math.nan),
-                        dict(anti_dive=1.1), dict(series_heave_spring=-1.), dict(rear_roll_center=math.inf)):
+                        dict(series_heave_spring=-1.), dict(rear_roll_center=math.inf)):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 self.gradients(**invalid)
 
@@ -567,7 +655,7 @@ class CriticalDampingTests(unittest.TestCase):
         self.assertIsNone(result['heave_with_tender'])
         self.assertGreater(result['roll']['front']['damper_critical_damping_Ns_per_m'], 0.)
         self.assertGreater(result['pure_heave']['rear']['damper_critical_damping_Ns_per_m'], 0.)
-        with patch.object(model, 'N', 3.), redirect_stdout(StringIO()) as output:
+        with patch.multiple(model, N=3., target_pitch_angle_deg=1.), redirect_stdout(StringIO()) as output:
             model.main(write_report=False)
         self.assertIn('Heave + Tender：前序 Tender 無有限正剛性解', output.getvalue())
         self.assertIn('純 Heave', output.getvalue())
@@ -584,54 +672,146 @@ class CriticalDampingTests(unittest.TestCase):
                 self.damping(**overrides)
 
 
-class AntiDiveTests(unittest.TestCase):
-    def test_normalized_optimum_matches_front_roll_center_model(self):
-        for ratio in (1., 10., 20.):
-            with self.subTest(ratio=ratio):
-                anti = model.calculate_anti_dive(ratio)
-                rc = model.calculate_roll_center(.3, ratio)
-                self.assertAlmostEqual(anti['anti_dive'], rc['rc_normalized_optimal_ratio'])
-                self.assertAlmostEqual(anti['anti_dive_normalized_min_stiffness'],
-                                       rc['rc_normalized_min_stiffness'])
-                alpha = anti['anti_dive_suspension_fraction']
-                self.assertAlmostEqual(alpha, rc['rc_suspension_fraction'])
-                self.assertAlmostEqual(alpha + anti['anti_dive'], 1.)
-                self.assertAlmostEqual(rc['rc_normalized_optimal_height_m'], .3 * (1 - alpha))
-                suspension_stiffness, chassis_stiffness = 1000., ratio * 1000.
-                self.assertAlmostEqual(2 * alpha * suspension_stiffness
-                                       - 2 * (1 - alpha) * chassis_stiffness, 0.)
-                equivalent = alpha**2 * suspension_stiffness + (1 - alpha)**2 * chassis_stiffness
-                self.assertAlmostEqual(equivalent / suspension_stiffness,
-                                       anti['anti_dive_normalized_min_stiffness'])
-                self.assertFalse(any('grid' in key for key in anti))
-                self.assertFalse(any('grid' in key for key in rc))
-                optimum = anti['anti_dive']
+class AxleAntiTests(unittest.TestCase):
+    def test_stiffness_solution_is_the_minimum_of_the_two_path_energy(self):
+        for suspension, chassis in ((40000., 400000.), (80000., 200000.), (100000., 100000.)):
+            with self.subTest(suspension=suspension, chassis=chassis):
+                anti = model.calculate_anti_from_stiffness(suspension, chassis)
+                self.assertEqual(anti['suspension_stiffness_N_per_m'], suspension)
+                self.assertEqual(anti['chassis_stiffness_N_per_m'], chassis)
+                self.assertAlmostEqual(anti['chassis_to_suspension_stiffness_ratio'], chassis / suspension)
+                ratio, alpha = anti['anti_ratio'], anti['suspension_fraction']
+                self.assertAlmostEqual(alpha + ratio, 1.)
+                self.assertAlmostEqual(anti['anti_percent'], 100 * ratio)
+                self.assertAlmostEqual(2 * alpha * suspension - 2 * ratio * chassis, 0.)
+                energy = alpha**2 * suspension + ratio**2 * chassis
+                self.assertAlmostEqual(anti['equivalent_stiffness_N_per_m'], energy)
+                self.assertAlmostEqual(anti['normalized_min_stiffness'], energy / suspension)
                 for offset in (-.01, .01):
-                    nearby = optimum + offset
-                    self.assertGreater((1 - nearby)**2 + ratio * nearby**2,
-                                       anti['anti_dive_normalized_min_stiffness'])
-        anti = model.calculate_anti_dive(10.)
-        self.assertAlmostEqual(anti['anti_dive_percent'], 100 / 11)
-        scrub = model.calculate_anti_scrub(anti['anti_dive'], 1.2, 2.)
-        self.assertAlmostEqual(scrub['anti_scrub_percent'], 60 / 11)
+                    trial = ratio + offset
+                    self.assertGreater((1 - trial)**2 * suspension + trial**2 * chassis, energy)
 
-    def test_main_uses_normalized_anti_without_a_feasible_tender(self):
-        with (patch.multiple(model, N=3., rc_chassis_stiffness_ratio=10.),
-              patch.object(model, 'calculate_anti_scrub', wraps=model.calculate_anti_scrub) as scrub,
+    def test_each_axle_uses_its_own_suspension_and_chassis_stiffness(self):
+        anti = model.calculate_axle_anti(40000., 80000., 400000., 200000.)
+        self.assertEqual(set(anti), {'front', 'rear'})
+        self.assertAlmostEqual(anti['front']['anti_ratio'], 1 / 11)
+        self.assertAlmostEqual(anti['rear']['anti_ratio'], 2 / 7)
+        changed_front = model.calculate_axle_anti(80000., 80000., 400000., 200000.)
+        self.assertGreater(changed_front['front']['anti_ratio'], anti['front']['anti_ratio'])
+        self.assertEqual(changed_front['rear'], anti['rear'])
+        stiffer_chassis = model.calculate_axle_anti(40000., 80000., 800000., 200000.)
+        self.assertLess(stiffer_chassis['front']['anti_ratio'], anti['front']['anti_ratio'])
+        self.assertEqual(stiffer_chassis['rear'], anti['rear'])
+        # Acceleration targets and the Roll Center ratio are not inputs to this solver.
+        with patch.multiple(model, ax=math.nan, a_acc=math.nan, rc_chassis_stiffness_ratio=math.nan):
+            self.assertEqual(model.calculate_axle_anti(40000., 80000., 400000., 200000.), anti)
+
+    def test_assignments_use_rear_raw_for_scrub_and_front_raw_for_rear_lift(self):
+        with patch.object(model, 'calculate_axle_anti', wraps=model.calculate_axle_anti) as solver:
+            anti = model.calculate_anti_assignments(40000., 80000., 400000., 200000., 1.2, 2.)
+        solver.assert_called_once_with(40000., 80000., 400000., 200000.)
+        self.assertAlmostEqual(anti['front']['anti_ratio'], 1 / 11)
+        self.assertAlmostEqual(anti['rear']['anti_ratio'], 2 / 7)
+        self.assertAlmostEqual(anti['acceleration_ratio'], .6)
+        self.assertAlmostEqual(anti['front_anti_dive_ratio'], 1 / 11)
+        self.assertAlmostEqual(anti['rear_anti_lift_ratio'], 1 / 11)
+        self.assertAlmostEqual(anti['anti_scrub_ratio'], 2 / 7 * .6)
+        self.assertAlmostEqual(anti['front_anti_lift_ratio'], 2 / 7 * .6)
+        for name in ('front_anti_dive', 'rear_anti_lift', 'anti_scrub', 'front_anti_lift'):
+            self.assertAlmostEqual(anti[f'{name}_percent'], 100 * anti[f'{name}_ratio'])
+
+        rear_changed = model.calculate_anti_assignments(40000., 80000., 400000., 800000., 1.2, 2.)
+        front_changed = model.calculate_anti_assignments(40000., 80000., 800000., 200000., 1.2, 2.)
+        for name in ('front_anti_dive_ratio', 'rear_anti_lift_ratio'):
+            self.assertEqual(rear_changed[name], anti[name])
+            self.assertLess(front_changed[name], anti[name])
+        for name in ('anti_scrub_ratio', 'front_anti_lift_ratio'):
+            self.assertLess(rear_changed[name], anti[name])
+            self.assertEqual(front_changed[name], anti[name])
+
+    def test_acceleration_scaling_allows_zero_and_over_one_without_clipping(self):
+        zero = model.calculate_anti_assignments(40000., 80000., 400000., 200000., 0., 2.)
+        self.assertEqual(zero['anti_scrub_ratio'], 0.)
+        self.assertEqual(zero['front_anti_lift_ratio'], 0.)
+        large = model.calculate_anti_assignments(40000., 80000., 400000., 200000., 10., 1.)
+        self.assertAlmostEqual(large['anti_scrub_ratio'], 20 / 7)
+        self.assertAlmostEqual(large['front_anti_lift_ratio'], 20 / 7)
+        self.assertGreater(large['anti_scrub_percent'], 100.)
+        self.assertEqual(zero['front_anti_dive_ratio'], large['front_anti_dive_ratio'])
+        self.assertEqual(zero['rear_anti_lift_ratio'], large['rear_anti_lift_ratio'])
+        for acceleration, reference in ((-1., 2.), (math.nan, 2.), (math.inf, 2.),
+                                        (1., 0.), (1., -2.), (1., math.nan), (1., math.inf),
+                                        (1e308, 1e-308)):
+            with self.subTest(acceleration=acceleration, reference=reference), self.assertRaises(ValueError):
+                model.calculate_anti_assignments(40000., 80000., 400000., 200000., acceleration, reference)
+
+    def test_main_acceleration_changes_scrub_but_not_raw_stiffness_or_braking_pitch(self):
+        with (patch.multiple(model, use_tender=False, anti_front_chassis_stiffness_N_per_m=400000.,
+                             anti_rear_chassis_stiffness_N_per_m=800000., a_acc=1.2),
               redirect_stdout(StringIO()) as output):
-            model.main(write_report=False)
-        self.assertAlmostEqual(scrub.call_args.args[0], 1 / 11)
-        anti_text = output.getvalue().split('Anti dive（')[1].split('Anti-Scrub（')[0]
-        self.assertIn('9.091%', anti_text)
-        self.assertIn('最小正規化等效剛性', anti_text)
-        self.assertIn('懸吊路徑比例 alpha', anti_text)
-        self.assertNotIn('無法計算', anti_text)
-        self.assertNotIn('300 點搜尋', output.getvalue())
+            original = model.main(write_report=False)
+            with patch.multiple(model, a_acc=.8, kf=.4, kr=.6):
+                changed = model.main(write_report=False)
+        before, after = original['anti']['heave_only'], changed['anti']['heave_only']
+        for field in ('front', 'rear', 'front_anti_dive_ratio', 'rear_anti_lift_ratio'):
+            self.assertEqual(after[field], before[field])
+        for field in ('anti_scrub_ratio', 'front_anti_lift_ratio'):
+            self.assertAlmostEqual(after[field], before[field] * .8 / 1.2)
+        for field in ('front_anti_dive_ratio', 'rear_anti_lift_ratio', 'gradient_with_tires_and_anti_deg_per_g'):
+            self.assertEqual(changed['gradients']['pitch']['heave_only'][field],
+                             original['gradients']['pitch']['heave_only'][field])
+        self.assertNotIn('anti_dive', original)
+        self.assertNotIn('anti_scrub', original)
+        self.assertEqual(set(original['anti']), {'heave_only'})
+        anti = original['anti']['heave_only']
+        spring = original['tire']['Ks_pitch_N_per_m'] * model.MR**2
+        self.assertAlmostEqual(anti['front']['anti_ratio'], spring / (spring + 400000.))
+        self.assertAlmostEqual(anti['rear']['anti_ratio'], spring / (spring + 800000.))
+        self.assertNotEqual(anti['front']['anti_ratio'], anti['rear']['anti_ratio'])
+        self.assertEqual(anti['rear_anti_lift_ratio'], anti['front_anti_dive_ratio'])
+        self.assertAlmostEqual(anti['anti_scrub_ratio'], anti['rear']['anti_ratio'] * 1.2 / model.ax)
+        self.assertEqual(anti['front_anti_lift_ratio'], anti['anti_scrub_ratio'])
+        self.assertIn('AntiScrub', output.getvalue())
+        self.assertIn('Anti-dive', output.getvalue())
+        self.assertIn('Anti-lift', output.getvalue())
 
-    def test_invalid_chassis_stiffness_ratios_are_rejected(self):
-        for ratio in (0., -1., math.nan, math.inf):
-            with self.subTest(ratio=ratio), self.assertRaises(ValueError):
-                model.calculate_anti_dive(ratio)
+    def test_main_solves_anti_once_and_is_independent_of_tender_switch_and_feasibility(self):
+        baseline_anti = baseline_pitch = None
+        for enabled, divisor in ((True, 5.), (True, 3.), (False, 0.)):
+            with (self.subTest(use_tender=enabled, N=divisor),
+                  patch.multiple(model, use_tender=enabled, N=divisor, target_pitch_angle_deg=1.),
+                  patch.object(model, 'calculate_axle_anti', wraps=model.calculate_axle_anti) as solver,
+                  redirect_stdout(StringIO())):
+                result = model.main(write_report=False)
+            solver.assert_called_once()
+            spring = result['tire']['Ks_pitch_N_per_m'] * model.MR**2
+            solver.assert_called_once_with(spring, spring,
+                                           model.anti_front_chassis_stiffness_N_per_m,
+                                           model.anti_rear_chassis_stiffness_N_per_m)
+            self.assertEqual(set(result['anti']), {'heave_only'})
+            main_pitch = result['gradients']['pitch']['heave_only']
+            if baseline_anti is None:
+                baseline_anti, baseline_pitch = result['anti'], main_pitch
+                self.assertIsNotNone(result['tender'])
+            else:
+                self.assertEqual(result['anti'], baseline_anti)
+                self.assertEqual(main_pitch, baseline_pitch)
+                self.assertIsNone(result['tender'])
+                self.assertIsNone(result['gradients']['pitch']['heave_with_tender'])
+            self.assertGreater(main_pitch['gradient_with_tires_and_anti_deg_per_g'], 0.)
+
+    def test_nonpositive_or_nonfinite_rates_are_rejected_for_either_axle(self):
+        for invalid in (0., -1., math.nan, math.inf):
+            for index in (0, 1):
+                values = [40000., 400000.]
+                values[index] = invalid
+                with self.subTest(values=values), self.assertRaises(ValueError):
+                    model.calculate_anti_from_stiffness(*values)
+            for index in range(4):
+                values = [40000., 80000., 400000., 200000.]
+                values[index] = invalid
+                with self.subTest(values=values), self.assertRaises(ValueError):
+                    model.calculate_axle_anti(*values)
 
 
 class GearRateTests(unittest.TestCase):
