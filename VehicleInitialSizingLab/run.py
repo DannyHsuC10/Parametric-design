@@ -13,25 +13,11 @@ from tkinter import filedialog, messagebox, ttk
 from dynamics_export import build_dynamics_export
 from project import FIELDS, PROJECT_FORMAT, SCHEMA, FieldError, default_project, read_project, validate_inputs
 from vehicle_initial_sizing import solve
-from vehicle_initial_sizing_report import render_csv_results, render_markdown_report
+from vehicle_initial_sizing_report import build_report, render_csv_results
 
 
 WEB = Path(__file__).resolve().with_name("web")
 PROJECTS = WEB.parent / "projects"
-
-
-def build_report(snapshot):
-    p = snapshot["parameters"]
-    return {
-        "markdown": render_markdown_report(snapshot),
-        "summary": [
-            {"label": "整車總質量", "value": f"{snapshot['frequency_mass']['m_total_vehicle_kg']:.2f}", "unit": "kg"},
-            {"label": "前軸靜態重量分配", "value": f"{p['wf'] * 100:.1f}", "unit": "%"},
-            {"label": "Skidpad 所需下壓力", "value": f"{snapshot['skidpad']['skidpad_required_aero_downforce_N']:.1f}", "unit": "N"},
-            {"label": "Roll gradient（含輪胎）",
-             "value": f"{snapshot['gradients']['roll_gradient_with_tires_deg_per_g']:.3f}", "unit": "°/g"},
-        ],
-    }
 
 
 def write_text(path, content, encoding="utf-8"):

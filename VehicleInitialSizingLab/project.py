@@ -112,7 +112,11 @@ def validate_inputs(values):
 
 
 def read_project(path):
-    project = json.loads(path.read_text(encoding="utf-8-sig"))
+    return parse_project(path.read_text(encoding="utf-8-sig"))
+
+
+def parse_project(text):
+    project = json.loads(text)
     if (not isinstance(project, dict) or project.get("application") != PROJECT_FORMAT
             or type(project.get("schema_version")) is not int or project["schema_version"] != 1):
         raise ValueError("請選擇 VehicleInitialSizingLab 的版本 1 專案 JSON。")

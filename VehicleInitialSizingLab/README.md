@@ -2,7 +2,33 @@
 
 車輛初步設計工作台。左側設定參數，右側顯示當次求解產生的 Markdown 報告，包含表格、公式、數值代入與完整結果索引。
 
-## 使用方式
+## 網頁版
+
+網頁版使用 HTML/CSS 介面，並透過 Pyodide 在瀏覽器內執行與桌面版共用的 Python 求解器。首次開啟需連線至 jsDelivr 以載入 Pyodide。匯入的專案和輸入參數在瀏覽器內處理，下載專案可保存參數供下次載入。求解後可下載 Markdown、CSV 和供 SuspensionDynamicsLab 使用的 JSON。
+
+### 本機預覽
+
+在儲存庫根目錄執行下列命令，再開啟 [本機網頁](http://127.0.0.1:8000/)。Windows 也可以使用 `py -3` 代替 `python`。
+
+```powershell
+python -m http.server 8000 --bind 127.0.0.1 --directory VehicleInitialSizingLab
+```
+
+若桌面版使用 Codex 隨附的 Python，也可以在 PowerShell 用同一個執行環境啟動預覽。
+
+```powershell
+& "$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m http.server 8000 --bind 127.0.0.1 --directory VehicleInitialSizingLab
+```
+
+### 發布到 GitHub Pages
+
+1. 在 GitHub 儲存庫的 **Settings → Pages** 將 **Source** 設為 **GitHub Actions**。
+2. 把變更推送或合併到 `main`。如果先推送才啟用 Pages，請到 **Actions → Deploy Vehicle Initial Sizing Lab**，選 `main` 手動執行 **Run workflow**。
+3. 部署完成後，在工作流程的 `github-pages` 環境連結開啟網站。工作流程會挑選網頁、求解模組及預設範本，並將網頁版 `index.html` 放在站點根目錄。
+
+要改版面，可編輯 `index.html` 與 `web/workbench.css`。參數欄位定義在 `project.py`，預設數值在 `default_project.json`，網頁版會直接讀取這兩份檔案。
+
+## 桌面版使用方式
 
 1. 雙擊 `Start-VehicleInitialSizingLab.bat`，開啟獨立桌面視窗。
 2. 點左側上方的頁籤切換車輛、性能、懸吊、輪胎和馬達設定。拖曳中間的分隔線可調整輸入區寬度。煞車減速度留空時沿用 `ax`。

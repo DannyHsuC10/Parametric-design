@@ -1,0 +1,44 @@
+name: Deploy Vehicle Initial Sizing Lab
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/pages.yml
+      - VehicleInitialSizingLab/index.html
+      - VehicleInitialSizingLab/*.py
+      - VehicleInitialSizingLab/*.json
+      - VehicleInitialSizingLab/web/**
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v5
+      - name: Prepare static files
+        run: |
+          app=VehicleInitialSizingLab
+          mkdir -p dist/web
+          cp "$app"/{index.html,browser_app.py,project.py,vehicle_initial_sizing.py,vehicle_initial_sizing_report.py,dynamics_export.py,default_project.json,dynamics_template.json} dist/
+          cp "$app"/web/{lab.css,lab.js,workbench.css,workbench.js,solver-worker.js} dist/web/
+          cp -r "$app/web/vendor" dist/web/
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - uses: actions/deploy-pages@v4
+        id: deployment

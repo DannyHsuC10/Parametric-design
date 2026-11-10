@@ -93,28 +93,34 @@ async function renderResult(result) {
   overview.replaceChildren(...metrics);
   overview.hidden = false;
   byId("placeholder").hidden = true;
-  window.scrollTo(0, 0);
   await math.typesetPromise([report]);
-  return headings.map((heading) => heading.textContent);
+  const formulas = report.querySelectorAll(".equation");
+  return {
+    chapters: headings.map((heading) => heading.textContent),
+    ok: !report.querySelector("[data-mjx-error]") &&
+      [...formulas].every((formula) => formula.querySelector("mjx-container > svg")),
+  };
 }
 
-const desktop = window.chrome.webview;
-desktop.addEventListener("message", async ({data}) => {
+function clearResult() {
+  window.MathJax.typesetClear?.([report]);
+  report.replaceChildren();
+  byId("summary").replaceChildren();
+  byId("summary").hidden = true;
+  byId("placeholder").hidden = false;
+}
+
+const desktop = window.chrome?.webview;
+desktop?.addEventListener("message", async ({data}) => {
   if (data.event === "chapter") {
     byId("chapter-" + data.index)?.scrollIntoView({block: "start"});
   } else if (data.event === "clear") {
-    window.MathJax.typesetClear?.([report]);
-    report.replaceChildren();
-    byId("summary").replaceChildren();
-    byId("summary").hidden = true;
-    byId("placeholder").hidden = false;
+    clearResult();
     window.scrollTo(0, 0);
   } else if (data.event === "render") {
     try {
-      const chapters = await renderResult(data.report);
-      const formulas = report.querySelectorAll(".equation");
-      const ok = !report.querySelector("[data-mjx-error]") &&
-        [...formulas].every((formula) => formula.querySelector("mjx-container > svg"));
+      window.scrollTo(0, 0);
+      const {chapters, ok} = await renderResult(data.report);
       desktop.postMessage({event: "rendered", chapters, ok});
     } catch (error) {
       console.error(error);
@@ -122,4 +128,4 @@ desktop.addEventListener("message", async ({data}) => {
     }
   }
 });
-desktop.postMessage({event: "ready"});
+desktop?.postMessage({event: "ready"});

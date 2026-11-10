@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="設定車輛、懸吊與性能參數，在瀏覽器求解並匯出完整分析。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+  <title>Vehicle Initial Sizing Lab · 車輛初步設計</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23122539'/%3E%3Cpath d='M8 21 12 11l4 10 4-10 4 10' stroke='%239cdee3' stroke-width='2' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="web/lab.css">
+  <link rel="stylesheet" href="web/workbench.css">
+  <script defer src="web/vendor/marked.js"></script>
+  <script defer src="web/lab.js"></script>
+  <script defer src="web/vendor/tex-svg.js"></script>
+  <script defer src="web/workbench.js"></script>
+</head>
+<body class="workbench">
+  <header class="workbench-header">
+    <div class="workbench-width">
+      <p class="workbench-brand" lang="en">Vehicle Initial Sizing Lab</p>
+      <h1>車輛初步設計</h1>
+      <p>設定設計條件，查看車輛與懸吊的求解報告。</p>
+    </div>
+  </header>
+
+  <main class="workbench-width workbench-layout">
+    <section class="workbench-panel settings-panel" aria-labelledby="settings-title">
+      <div class="panel-header">
+        <h2 id="settings-title">參數設定</h2>
+        <p id="project-name" class="project-name">預設參數</p>
+      </div>
+      <form id="parameters" novalidate>
+        <fieldset id="controls" disabled>
+          <legend class="sr-only">車輛參數</legend>
+          <div class="action-row">
+            <button type="button" id="open-project">匯入專案</button>
+            <button type="button" id="save-project">下載專案</button>
+            <button type="button" id="reset-project">恢復預設</button>
+            <input type="file" id="project-file" accept=".json,application/json" hidden>
+          </div>
+          <nav id="parameter-groups" aria-label="參數分類"></nav>
+          <div id="parameter-fields"></div>
+          <button class="primary-button" type="submit">求解</button>
+        </fieldset>
+      </form>
+      <p id="status" role="status">正在載入計算引擎…</p>
+      <button id="retry" type="button" hidden>重新載入計算引擎</button>
+      <noscript><p>請啟用 JavaScript 後重新開啟此頁。</p></noscript>
+    </section>
+
+    <section id="results" class="workbench-panel results-panel" aria-labelledby="results-title">
+      <div class="panel-header result-header">
+        <h2 id="results-title">求解報告</h2>
+        <label class="sr-only" for="chapters">跳至章節</label>
+        <select id="chapters" disabled>
+          <option value="">跳至章節</option>
+        </select>
+      </div>
+      <div class="action-row" aria-label="報告匯出">
+        <button type="button" id="download-markdown" disabled>下載 Markdown</button>
+        <button type="button" id="download-csv" disabled>匯出 CSV</button>
+        <button type="button" id="download-dynamics" disabled>匯出 Dynamics JSON</button>
+      </div>
+      <div id="placeholder" class="report-placeholder">
+        <p>設定參數後按「求解」，即可查看摘要、公式和數值代入。</p>
+      </div>
+      <dl id="summary" class="summary" aria-label="重點結果" hidden></dl>
+      <article id="report" class="report"></article>
+    </section>
+  </main>
+</body>
+</html>
