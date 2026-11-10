@@ -29,13 +29,13 @@ let lastResult;
 let staleResult = false;
 let busy = false;
 let dirty = false;
-const staleMessage = "參數已變更。右側顯示上次結果，請重新求解後再匯出。";
+const staleMessage = "Parameters changed. The report shows the previous results. Solve again to export updated results.";
 
 function request(action, payload = null) {
   const activeWorker = (worker ??= new Worker(workerURL, {type: "module"}));
   return new Promise((resolve, reject) => {
     const timer = action === "initialize" ? setTimeout(() => {
-      fail("載入計算引擎逾時。請確認網路連線後再試。");
+      fail("The solver took too long to load. Check your connection and try again.");
     }, 60000) : undefined;
 
     function fail(message) {
@@ -52,7 +52,7 @@ function request(action, payload = null) {
     };
     activeWorker.onerror = (error) => {
       console.error(error);
-      fail("無法啟動計算引擎。請重新整理頁面後再試。");
+      fail("Could not start the solver. Reload the page and try again.");
     };
     activeWorker.postMessage({action, payload});
   });
@@ -154,7 +154,7 @@ function setProject(values, filename) {
     input.removeAttribute("aria-invalid");
   }
   projectFile = filename;
-  byId("project-name").textContent = filename ?? "預設參數";
+  byId("project-name").textContent = filename ?? "Default Parameters";
   dirty = false;
   lastResult = null;
   staleResult = false;
@@ -180,7 +180,7 @@ form.addEventListener("input", (event) => {
   event.target.removeAttribute("aria-invalid");
   dirty = true;
   staleResult = Boolean(lastResult);
-  setStatus(staleResult ? staleMessage : "參數已變更，可以重新求解或下載專案。");
+  setStatus(staleResult ? staleMessage : "Parameters changed. You can solve or download the project.");
   updateControls();
 });
 
@@ -189,54 +189,55 @@ fileInput.addEventListener("change", () => {
   const [file] = fileInput.files;
   fileInput.value = "";
   if (!file) return;
-  runTask("正在讀取專案…", async () => {
+  runTask("Opening project…", async () => {
     const values = await request("import", await file.text());
-    if (dirty && !window.confirm("要用匯入的專案取代目前尚未下載的參數嗎？")) {
-      setStatus("已保留目前參數。");
+    if (dirty && !window.confirm("Replace the current unsaved parameters with the imported project?")) {
+      setStatus("Kept the current parameters.");
       return;
     }
     setProject(values, file.name);
-    setStatus("已匯入專案，可以開始求解。");
+    setStatus("Project imported. Ready to solve.");
   });
 });
 
-byId("save-project").addEventListener("click", () => runTask("正在準備專案…", async () => {
+byId("save-project").addEventListener("click", () => runTask("Preparing project download…", async () => {
   const content = await request("save", parameters());
   const name = projectFile ?? "vehicle_project.json";
   download(/\.json$/i.test(name) ? name : name + ".json", "application/json", content);
   dirty = false;
-  setStatus("已開始下載專案 JSON。");
+  setStatus("Project JSON download started.");
 }));
 
 async function renderSelectedReport() {
   chapterSelect.length = 1;
   try {
     const {chapters, ok} = await renderResult(lastResult.reports[reportLanguage.value]);
-    chapters.forEach((chapter, index) => chapterSelect.add(new Option(chapter, index)));
-    setStatus(ok ? (staleResult ? staleMessage : "求解完成。") : "部分公式排版失敗，可下載 Markdown 查看原文。", !ok);
+    chapters.forEach((chapter, index) => {
+      const option = new Option(chapter, index);
+      option.lang = reportLanguage.value === "en" ? "en" : "zh-Hant";
+      chapterSelect.add(option);
+    });
+    setStatus(ok ? (staleResult ? staleMessage : "Solve complete.") : "Some formulas could not be displayed. Download the Markdown to see them.", !ok);
   } catch (error) {
     console.error(error);
-    setStatus("報告排版失敗，可下載 Markdown 查看原文。", true);
+    setStatus("The report could not be displayed. Download the Markdown to read it.", true);
   }
   reportContent.scrollTop = 0;
 }
 
 reportLanguage.addEventListener("change", () => {
-  const english = reportLanguage.value === "en";
-  chapterSelect.lang = english ? "en" : "zh-Hant";
-  chapterSelect.options[0].textContent = english ? "Jump to section" : "跳至章節";
-  if (lastResult) runTask("正在切換報告語言…", renderSelectedReport);
+  if (lastResult) runTask("Switching report language…", renderSelectedReport);
 });
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  runTask("正在求解…", async () => {
+  runTask("Solving…", async () => {
     lastResult = await request("solve", {
       parameters: parameters(),
-      name: projectFile?.replace(/\.json$/i, "") ?? "車輛初步設計",
+      name: projectFile?.replace(/\.json$/i, "") ?? "Vehicle Initial Sizing",
     });
     staleResult = false;
-    setStatus("正在排版報告…");
+    setStatus("Rendering report…");
     await renderSelectedReport();
     if (getComputedStyle(reportContent).overflowY === "visible") byId("results").scrollIntoView();
   });
@@ -254,12 +255,12 @@ for (const [id, name, type, content] of downloads) {
 
 async function start() {
   byId("retry").hidden = true;
-  await runTask("正在載入計算引擎…", async () => {
+  await runTask("Loading the solver…", async () => {
     const initial = await request("initialize");
     buildForm(initial.schema);
     setProject(initial.parameters);
     initialized = true;
-    setStatus("已載入預設參數，可以開始求解。");
+    setStatus("Default parameters loaded. Ready to solve.");
   });
   byId("retry").hidden = initialized;
 }

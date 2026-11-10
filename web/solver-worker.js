@@ -40,7 +40,7 @@ self.onmessage = async ({data: {action, payload}}) => {
   } catch (error) {
     console.error(error);
     self.postMessage({error: action === "initialize"
-      ? "無法載入計算引擎。請確認網路連線後再試。"
-      : "計算引擎處理失敗，請重新整理頁面後再試。"});
+      ? "Could not load the solver. Check your connection and try again."
+      : "The solver could not complete this action. Reload the page and try again."});
   }
 };

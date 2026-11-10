@@ -6,10 +6,10 @@
 
 ## 網頁版使用方式
 
-1. 網頁開啟後會載入預設參數。也可按「匯入專案」載入先前保存的專案 JSON。
-2. 在左側切換車輛、性能、懸吊、輪胎或馬達頁籤，調整設計參數。煞車減速度採用縱向加速度 `ax` 的輸入值。
-3. 按「求解」後，右側會直接顯示英文報告。右側的語言選單可在求解前改選「繁體中文」，也可在求解後用同一組結果切換語言。
-4. 用 **Jump to section**（中文報告的「跳至章節」）查看各項分析，並下載所需的報告或結果。修改參數後，重新求解即可匯出更新後的結果。
+1. 英文網頁開啟後會載入預設參數。也可按 **Import Project** 載入先前保存的專案 JSON。
+2. 在左側切換 **Vehicle**、**Performance**、**Suspension**、**Tires** 或 **Motors** 頁籤，調整設計參數。煞車減速度採用縱向加速度 `ax` 的輸入值。
+3. 按 **Solve** 後，右側預設顯示英文報告。報告語言選單可在求解前改選 **Traditional Chinese**，也可在求解後用同一組結果切換語言。
+4. 用 **Jump to section** 查看各項分析，並下載所需的報告或結果。修改參數後，重新求解即可匯出更新後的結果。
 
 雙欄版面的右側報告可獨立捲動，結果摘要、章節選單和匯出按鈕固定在報告上方。左側欄位放不下時，可在欄位清單內捲動。手機版使用單欄版面。
 
@@ -19,11 +19,11 @@
 
 | 網頁版操作 | 預設檔名 | 內容 |
 | --- | --- | --- |
-| 下載專案 | `vehicle_project.json` | 保存輸入參數，供「匯入專案」重新載入。 |
-| 下載 Markdown | `vehicle_initial_sizing_report.md` | 保存右側目前語言的報告，包含公式、數值代入和重點結果。 |
-| 匯出 CSV | `vehicle_initial_sizing_results.csv` | 完整輸入與結果，包含 `section`、`field`、`value` 三欄。採 UTF-8 BOM，無可用數值的項目留空。 |
-| 下載 Excel | `vehicle_initial_sizing_results.xlsx` | 完整輸入與結果，附分類、欄位、數值／狀態、單位和中文說明。首列凍結並可篩選，無可用數值顯示「無可用解」。布林狀態與負輪載可直接查閱。 |
-| 匯出 Dynamics JSON | `Vehicle_initial_settings.json` | 供 SuspensionDynamicsLab 使用的懸吊動態、幾何與車輛參數。 |
+| Download Project | `vehicle_project.json` | 保存輸入參數，供 **Import Project** 重新載入。 |
+| Download Markdown | `vehicle_initial_sizing_report.md` | 保存右側目前語言的報告，包含公式、數值代入和重點結果。 |
+| Export CSV | `vehicle_initial_sizing_results.csv` | 完整輸入與結果，包含 `section`、`field`、`value` 三欄。採 UTF-8 BOM，無可用數值的項目留空。 |
+| Download Excel | `vehicle_initial_sizing_results.xlsx` | 完整輸入與結果，附分類、欄位、數值／狀態、單位和中文說明。首列凍結並可篩選，無可用數值顯示「無可用解」。布林狀態與負輪載可直接查閱。 |
+| Export Dynamics JSON | `Vehicle_initial_settings.json` | 供 SuspensionDynamicsLab 使用的懸吊動態、幾何與車輛參數。 |
 
 ## 桌面版使用方式
 
@@ -44,7 +44,7 @@
 
 ## 匯出至 SuspensionDynamicsLab
 
-在左側 **懸吊** 頁籤設定目標阻尼比。求解後，網頁版按「匯出 Dynamics JSON」，桌面版按「匯出json」。`Vehicle_initial_settings.json` 包含 `dynamics`（懸吊動態）、`geometry`（懸吊幾何）與 `vehicle`（車輛參數）。匯入 SuspensionDynamicsLab 後，可補填車架扭轉剛性、扭轉阻尼與傳力阻尼。舊版參數專案的目標阻尼比會在匯入時移到懸吊設定。
+在左側懸吊頁籤（網頁版為 **Suspension**）設定目標阻尼比。求解後，網頁版按 **Export Dynamics JSON**，桌面版按「匯出json」。`Vehicle_initial_settings.json` 包含 `dynamics`（懸吊動態）、`geometry`（懸吊幾何）與 `vehicle`（車輛參數）。匯入 SuspensionDynamicsLab 後，可補填車架扭轉剛性、扭轉阻尼與傳力阻尼。舊版參數專案的目標阻尼比會在匯入時移到懸吊設定。
 
 - 前後每輪簧下質量採同一個 `mu`，前軸驅動比例為 0.5，前軸煞車比例採理想分配擬合值。`anti_front` 與 `anti_rear` 分別採用報告的前、後軸最終 Anti 比例（1 = 100%）。
 - 前後 Heave 採純主簧，簧率和阻尼係數除以 4 轉為 Dynamics 的雙輪位移總和通道。前後 Roll 採用估算值。中央 Roll 與直推的剛性和阻尼為零。
