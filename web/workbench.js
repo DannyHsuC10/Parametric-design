@@ -7,6 +7,9 @@ const reportLanguage = byId("report-language");
 const parameterFields = byId("parameter-fields");
 const reportContent = byId("report-content");
 const fileInput = byId("project-file");
+const workbenchURL = new URL(document.currentScript.src);
+const workerURL = new URL("solver-worker.js", workbenchURL);
+workerURL.search = workbenchURL.search;
 const groupButtons = [];
 const groupPanels = [];
 const inputs = new Map();
@@ -29,19 +32,29 @@ let dirty = false;
 const staleMessage = "參數已變更。右側顯示上次結果，請重新求解後再匯出。";
 
 function request(action, payload = null) {
-  worker ??= new Worker("web/solver-worker.js", {type: "module"});
+  const activeWorker = (worker ??= new Worker(workerURL, {type: "module"}));
   return new Promise((resolve, reject) => {
-    worker.onmessage = ({data}) => {
+    const timer = action === "initialize" ? setTimeout(() => {
+      fail("載入計算引擎逾時。請確認網路連線後再試。");
+    }, 60000) : undefined;
+
+    function fail(message) {
+      clearTimeout(timer);
+      activeWorker.terminate();
+      worker = null;
+      reject(new Error(message));
+    }
+
+    activeWorker.onmessage = ({data}) => {
+      clearTimeout(timer);
       if (data.error) reject(Object.assign(new Error(data.error), {field: data.field}));
       else resolve(data.result);
     };
-    worker.onerror = (error) => {
+    activeWorker.onerror = (error) => {
       console.error(error);
-      worker.terminate();
-      worker = null;
-      reject(new Error("無法啟動計算引擎。請重新整理頁面後再試。"));
+      fail("無法啟動計算引擎。請重新整理頁面後再試。");
     };
-    worker.postMessage({action, payload});
+    activeWorker.postMessage({action, payload});
   });
 }
 
