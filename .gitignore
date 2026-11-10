@@ -1,22 +1,9 @@
-# 可由分析程式重新產生的結果，包含 results 根目錄與所有子資料夾。
-/data/results/**/*.html
-/data/results/**/*.png
-/data/results/**/*.csv
-/data/results/**/*.json
-/data/results/**/*.npz
-/data/results/**/*.pkl
-/data/results/**/*.gif
-/data/results/**/*.log
-
-# Markdown 說明及 data/ 下的流程、輸入參數 CSV 維持版本追蹤。
-
-# Python bytecode caches
 __pycache__/
-*.py[co]
-
-# Python virtual environment
+*.py[cod]
+*.log
 .venv/
-
-# Local execution options and private manual inputs.
-/data/analysis_parameters_last_set.nodes.json
-/data/analysis_parameters_last_set.nodes.json.tmp
+build/
+dist/
+*.spec
+.test-output/
+.test-tmp/

@@ -1,0 +1,60 @@
+body {
+  margin: 0;
+  padding: 16px 20px 28px;
+  font-family: "Segoe UI", "Microsoft JhengHei UI", sans-serif;
+  color: #0f172a;
+  background: white;
+  --muted: #475569;
+  --line: #dbe2ea;
+  --surface: #f1f5f9;
+  --blue: #255889;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.placeholder { padding: 14px 0; color: var(--muted); font-size: 14px; }
+.placeholder h1 { font-size: 18px; color: #0f172a; }
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin: 0 0 19px;
+}
+.metric { padding: 10px 12px; border: 1px solid #d9e5f1; background: var(--surface); border-radius: 3px; }
+.metric dt { font-size: 12px; color: var(--muted); }
+.metric dd { margin: 4px 0 0; font-weight: 750; font-size: 21px; font-variant-numeric: tabular-nums; }
+.metric dd span { margin-left: 4px; font-size: 11px; color: var(--muted); font-weight: 600; }
+.report { font-size: 14px; line-height: 1.64; overflow-wrap: anywhere; }
+.report h1 { font-size: 24px; margin: 0 0 10px; }
+.report h2 { font-size: 19px; padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-top: 25px; }
+.report h3 { font-size: 15px; margin: 18px 0 8px; }
+.report p { margin: 10px 0; }
+.table-scroll { overflow-x: auto; margin: 12px 0; }
+.report table { border-collapse: collapse; width: 100%; }
+.report :is(td, th) { text-align: left; vertical-align: top; padding: 6px 9px; border: 1px solid var(--line); }
+.report th { background: #eaf1f8; }
+.report tr:nth-child(even) td { background: var(--surface); }
+.report pre, .equation { padding: 6px 12px; background: var(--surface); border-radius: 6px; margin: 7px 0; }
+.report pre { overflow-x: auto; }
+.equation { background: #fff; }
+.equation mjx-container[display="true"] {
+  width: 100%;
+  margin: 0.35em 0;
+}
+.equation mjx-container > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+.flow { padding: 9px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.flow summary { font-weight: 650; color: var(--blue); }
+.flow-level { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
+.flow-level + .flow-level { margin-top: 19px; position: relative; }
+.flow-level + .flow-level::before { content: "↓"; position: absolute; top: -21px; left: 50%; color: var(--muted); }
+.flow-level:first-of-type { margin-top: 9px; }
+.flow-node { background: white; border: 1px solid #c8daed; border-radius: 5px; padding: 3px 9px; }
+.flow-node b { color: var(--blue); margin-right: 6px; }
+
+@media (max-width: 1050px) {
+  .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

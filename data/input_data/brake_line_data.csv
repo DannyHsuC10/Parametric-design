@@ -1,7 +1,0 @@
-﻿type,pressure_MPa,expansion_mm3_per_m
-Low,6.9,1080
-Low,10.3,1380
-Low,20.0,2000
-High,6.9,2170
-High,10.3,2590
-High,20.0,4000
