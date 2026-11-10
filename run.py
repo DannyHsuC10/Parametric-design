@@ -117,7 +117,7 @@ class WorkbenchWindow(tk.Tk):
         self.chapters.pack(side="left", fill="x", expand=True)
         self.chapters.bind("<<ComboboxSelected>>", self.jump_chapter)
         self.report_language = ttk.Combobox(result_tools, values=("繁體中文", "English"), state="readonly", width=9)
-        self.report_language.current(0)
+        self.report_language.current(1)
         self.report_language.pack(side="right", padx=(6, 0))
         self.report_language.bind("<<ComboboxSelected>>", self.change_report_language)
         tabs = ttk.Notebook(right)

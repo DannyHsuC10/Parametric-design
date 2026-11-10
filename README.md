@@ -1,50 +1,50 @@
 # Vehicle Initial Sizing Lab
 
-車輛初步設計工作台。左側設定參數，右側顯示當次求解產生的中英文 Markdown 報告，包含表格、公式與數值代入。
+車輛初步設計工作台，可估算重量分配、空力下壓力、懸吊剛性與自然頻率、四輪受力、齒比、煞車和阻尼。右側報告提供繁體中文與英文版本，包含公式、數值代入及重點結果。
 
-## 網頁版
+[開啟 GitHub Pages 網頁版](https://dannyhsuc10.github.io/Parametric-design/)
 
-網頁版使用 HTML/CSS 介面，並透過 Pyodide 在瀏覽器內執行與桌面版共用的 Python 求解器。首次開啟需連線至 jsDelivr 以載入 Pyodide。匯入的專案和輸入參數在瀏覽器內處理，下載專案可保存參數供下次載入。
+## 網頁版使用方式
 
-在報告區選擇「繁體中文」或「English」，可在求解前設定語言，也可在求解後直接切換右側報告。下載的 Markdown 使用目前選擇的語言。完整結果可匯出為 CSV 或 Excel，也可匯出供 SuspensionDynamicsLab 使用的 JSON。
+1. 網頁開啟後會載入預設參數。也可按「匯入專案」載入先前保存的專案 JSON。
+2. 在左側切換車輛、性能、懸吊、輪胎或馬達頁籤，調整設計參數。煞車減速度留空時沿用縱向加速度 `ax`。
+3. 按「求解」後，右側會直接顯示英文報告。右側的語言選單可在求解前改選「繁體中文」，也可在求解後用同一組結果切換語言。
+4. 用 **Jump to section**（中文報告的「跳至章節」）查看各項分析，並下載所需的報告或結果。修改參數後，重新求解即可匯出更新後的結果。
 
-### 本機預覽
+雙欄版面的右側報告可獨立捲動，結果摘要、章節選單和匯出按鈕固定在報告上方。左側欄位放不下時，可在欄位清單內捲動。手機版使用單欄版面。
 
-在儲存庫根目錄執行下列命令，再開啟 [本機網頁](http://127.0.0.1:8000/)。Windows 也可以使用 `py -3` 代替 `python`。
+首次開啟需連線至 jsDelivr 以載入 Pyodide。專案匯入、求解與檔案匯出都在瀏覽器內處理。
 
-```powershell
-python -m http.server 8000 --bind 127.0.0.1
-```
+## 下載與匯出
 
-若桌面版使用 Codex 隨附的 Python，也可以在 PowerShell 用同一個執行環境啟動預覽。
-
-```powershell
-& "$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m http.server 8000 --bind 127.0.0.1
-```
-
-### 發布到 GitHub Pages
-
-1. 在 GitHub 儲存庫的 **Settings → Pages** 將 **Source** 設為 **GitHub Actions**。
-2. 把變更推送或合併到 `main`。如果先推送才啟用 Pages，請到 **Actions → Deploy Vehicle Initial Sizing Lab**，選 `main` 手動執行 **Run workflow**。
-3. 部署完成後，在工作流程的 `github-pages` 環境連結開啟網站。工作流程會挑選網頁、求解模組及預設範本，並將網頁版 `index.html` 放在站點根目錄。
-
-要改版面，可編輯 `index.html` 與 `web/workbench.css`。參數欄位定義在 `project.py`，預設數值在 `default_project.json`，網頁版會直接讀取這兩份檔案。
+| 網頁版操作 | 預設檔名 | 內容 |
+| --- | --- | --- |
+| 下載專案 | `vehicle_project.json` | 保存輸入參數，供「匯入專案」重新載入。 |
+| 下載 Markdown | `vehicle_initial_sizing_report.md` | 保存右側目前語言的報告，包含公式、數值代入和重點結果。 |
+| 匯出 CSV | `vehicle_initial_sizing_results.csv` | 完整輸入與結果，包含 `section`、`field`、`value` 三欄。採 UTF-8 BOM，無可用數值的項目留空。 |
+| 下載 Excel | `vehicle_initial_sizing_results.xlsx` | 完整輸入與結果，附分類、欄位、數值／狀態、單位和中文說明。首列凍結並可篩選，無可用數值顯示「無可用解」。布林狀態與負輪載可直接查閱。 |
+| 匯出 Dynamics JSON | `Vehicle_initial_settings.json` | 供 SuspensionDynamicsLab 使用的懸吊動態、幾何與車輛參數。 |
 
 ## 桌面版使用方式
 
-1. 雙擊 `Start-VehicleInitialSizingLab.bat`，開啟獨立桌面視窗。
+1. 在 Windows x64 安裝 Python 3.10 以上版本（含 Tkinter）及 Microsoft Edge WebView2 Runtime，再雙擊 [Start-VehicleInitialSizingLab.bat](Start-VehicleInitialSizingLab.bat)。
 2. 點左側上方的頁籤切換車輛、性能、懸吊、輪胎和馬達設定。拖曳中間的分隔線可調整輸入區寬度。煞車減速度留空時沿用 `ax`。
 3. 按上方「儲存」或 `Ctrl+S` 保存參數專案，預設位置為本工具的 `projects/` 資料夾。按「匯入」或 `Ctrl+O` 載入 JSON，按「另存」保存另一份。
-4. 按「求解」、`F5` 或 `Ctrl+Enter`。在右側「求解報告」頁籤查看 Markdown 表格及 LaTeX 公式。報告區的選單可切換繁體中文與英文，也可跳至指定章節。按右下角「儲存 Markdown」可另存目前語言的報告。專案 JSON 保存輸入參數，載入後可重新求解。
-5. 關閉桌面視窗即可結束。
+4. 按「求解」、`F5` 或 `Ctrl+Enter`，右側預設顯示英文報告。可切換報告語言或跳至指定章節。右下角可儲存目前語言的 Markdown，或匯出 CSV、Excel 和 Dynamics JSON。
 
-「匯出 CSV」位於右下角，會輸出當次求解的輸入參數和完整結果。欄位為 `section`、`field`、`value`，無可用數值的項目留空。CSV 使用 UTF-8 BOM，可用 Excel 開啟。
+### 首次建置 WebView2 檢視器
 
-「下載 Excel」會將相同的輸入與結果存成 `.xlsx`，附上分類、單位及中文欄位說明。首列可用來篩選，布林值和負輪載保留原本的資料型別。
+啟動檔會在檢視器尚未建置時嘗試使用 Visual Studio 隨附的 WebView2 SDK。也可在儲存庫根目錄開啟 PowerShell 手動建置。
+
+```powershell
+.\Build-WebView2Host.ps1
+```
+
+若使用由 NuGet 解壓的 `Microsoft.Web.WebView2` SDK，請加上 `-SdkRoot` 指定 SDK 資料夾。建置產物位於 `build/webview2/`。桌面報告使用隨附的 Markdown 和 LaTeX 資源，可離線顯示。
 
 ## 匯出至 SuspensionDynamicsLab
 
-在左側 **懸吊** 頁籤設定目標阻尼比。求解後，按右下角 **匯出json**，預設檔名為 `Vehicle_initial_settings.json`。匯出資料分成 `dynamics`（懸吊動態）、`geometry`（懸吊幾何）與 `vehicle`（車輛參數）。SuspensionDynamicsLab 可匯入這份 JSON，並補填車架扭轉剛性、扭轉阻尼與傳力阻尼。舊版 Initial Sizing 專案會將原阻尼比移到懸吊設定。
+在左側 **懸吊** 頁籤設定目標阻尼比。求解後，網頁版按「匯出 Dynamics JSON」，桌面版按「匯出json」。`Vehicle_initial_settings.json` 包含 `dynamics`（懸吊動態）、`geometry`（懸吊幾何）與 `vehicle`（車輛參數）。匯入 SuspensionDynamicsLab 後，可補填車架扭轉剛性、扭轉阻尼與傳力阻尼。舊版參數專案的目標阻尼比會在匯入時移到懸吊設定。
 
 - 前後每輪簧下質量採同一個 `mu`，前軸驅動比例為 0.5，前軸煞車比例採理想分配擬合值。`anti_front` 與 `anti_rear` 分別採用報告的前、後軸最終 Anti 比例（1 = 100%）。
 - 前後 Heave 採純主簧，簧率和阻尼係數除以 4 轉為 Dynamics 的雙輪位移總和通道。前後 Roll 採用估算值。中央 Roll 與直推的剛性和阻尼為零。
@@ -57,20 +57,36 @@ python -m http.server 8000 --bind 127.0.0.1
 
 ## 預設參數
 
-啟動、新增專案和恢復預設時，工具會讀取 [default_project.json](default_project.json) 的 `parameters`。可直接修改 JSON 裡的數值，或在介面將一組參數另存成這個檔案。將 `brake_ax` 設為 `null` 代表求解時沿用 `ax`。
+預設值來自 [default_project.json](default_project.json) 的 `parameters`。網頁版開啟時和桌面版的「新增專案」都使用這組預設值。可直接修改 JSON，或用介面保存的參數專案更新這個檔案。將 `brake_ax` 設為 `null` 代表求解時沿用 `ax`。
 
-## 首次安裝
+## 本機預覽與部署
 
-需要 Windows x64、Python 3.10+（含 Tkinter）與 Microsoft Edge WebView2 Runtime。此電腦已建置檢視器，可直接啟動。
+### 本機預覽網頁版
 
-在其他電腦首次建置時，在本資料夾開啟 PowerShell。建置腳本會先使用 Visual Studio 隨附的 WebView2 SDK。若使用從 NuGet 解壓的 `Microsoft.Web.WebView2` SDK，可用 `-SdkRoot` 指定其資料夾。
+在儲存庫根目錄執行下列命令，再開啟 [本機預覽](http://127.0.0.1:8000/)。Windows 也可以使用 `py -3` 代替 `python`。
 
 ```powershell
-.\Build-WebView2Host.ps1
+python -m http.server 8000 --bind 127.0.0.1
 ```
 
-工具列、參數頁籤和章節選單使用 Tkinter／ttk 的 `clam` 主題。右側的 WebView2 讀取隨附的本機資源，Markdown 排版和 LaTeX 渲染可離線完成。建置產物位於 `build/webview2/`。
+若桌面版使用 Codex 隨附的 Python，也可在 PowerShell 使用同一個執行環境。
 
-求解公式見 [vehicle_initial_sizing.py](vehicle_initial_sizing.py)。報告中的模型假設、公式和數值代入由 [vehicle_initial_sizing_report.py](vehicle_initial_sizing_report.py) 產生。
+```powershell
+& "$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m http.server 8000 --bind 127.0.0.1
+```
 
-Markdown 與公式分別使用隨附的 Marked 17.0.5 與 MathJax 3.2.2 排版。授權檔在 `web/vendor/`。
+### 發布到 GitHub Pages
+
+1. 在儲存庫的 **Settings → Pages** 將 **Source** 設為 **GitHub Actions**。
+2. 將網頁、Python 模組、根目錄 JSON 或部署流程的變更推送到 `main`。也可到 **Actions → Deploy Vehicle Initial Sizing Lab**，選擇 `main` 並按 **Run workflow** 手動發布。
+3. 部署完成後，從工作流程的 `github-pages` 環境連結開啟網站。工作流程會將網頁版入口、求解模組和範本打包到站點根目錄。 [部署工作流程](.github/workflows/pages.yml)
+
+## 主要程式
+
+- [index.html](index.html) 與 [web/workbench.css](web/workbench.css) 定義網頁版介面。
+- [project.py](project.py) 定義參數欄位、驗證規則與專案格式。
+- [vehicle_initial_sizing.py](vehicle_initial_sizing.py) 包含網頁版和桌面版共用的求解公式。
+- [vehicle_initial_sizing_report.py](vehicle_initial_sizing_report.py) 產生報告與 CSV，[report_english.py](report_english.py) 提供英文報告文字。
+- [excel_results.py](excel_results.py) 產生附欄位說明的 Excel，[dynamics_export.py](dynamics_export.py) 產生 Dynamics JSON。
+
+Markdown 與 LaTeX 公式分別由隨附的 Marked 17.0.5 與 MathJax 3.2.2 排版。授權檔位於 [web/vendor](web/vendor/)。

@@ -20,7 +20,7 @@ const downloads = [
 ];
 
 let worker;
-let defaults;
+let initialized = false;
 let projectFile;
 let lastResult;
 let staleResult = false;
@@ -51,7 +51,7 @@ function setStatus(message, isError = false) {
 }
 
 function updateControls() {
-  controls.disabled = busy || !defaults;
+  controls.disabled = busy || !initialized;
   chapterSelect.disabled = busy || chapterSelect.options.length < 2;
   reportLanguage.disabled = busy;
   for (const [id] of downloads) byId(id).disabled = busy || !lastResult || staleResult;
@@ -195,12 +195,6 @@ byId("save-project").addEventListener("click", () => runTask("正在準備專案
   setStatus("已開始下載專案 JSON。");
 }));
 
-byId("reset-project").addEventListener("click", () => {
-  if (dirty && !window.confirm("要用預設值取代目前尚未下載的參數嗎？")) return;
-  setProject(defaults);
-  setStatus("已恢復預設參數。");
-});
-
 async function renderSelectedReport() {
   chapterSelect.length = 1;
   try {
@@ -250,11 +244,11 @@ async function start() {
   await runTask("正在載入計算引擎…", async () => {
     const initial = await request("initialize");
     buildForm(initial.schema);
-    defaults = initial.parameters;
-    setProject(defaults);
+    setProject(initial.parameters);
+    initialized = true;
     setStatus("已載入預設參數，可以開始求解。");
   });
-  byId("retry").hidden = Boolean(defaults);
+  byId("retry").hidden = initialized;
 }
 
 byId("retry").addEventListener("click", start);

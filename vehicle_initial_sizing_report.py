@@ -8,6 +8,7 @@ import re
 
 from dynamics_export import damping_coefficients, frame_parameters
 from report_english import ENGLISH
+from vehicle_initial_sizing import calculate_roll_axle_stiffness
 
 
 def build_report(snapshot, language="zh"):
@@ -792,16 +793,14 @@ def _render_modes(r, s):
          r"h_\phi=@h@-@axis@=@arm@\ \mathrm{m}",
          wf=p["wf"], front=s["front_rc"]["rc_normalized_optimal_height_m"], wr=p["wr"], rear=s["rear_rc_height_m"],
          axis=gr["roll_axis_height_at_cg_m"], h=p["h_cog"], arm=gr["roll_moment_arm_m"])
-    r.eq(r"K_{\phi s,i}=K_{s,i}(MRt_i)^2,\quad K_{\phi t,i}=\frac{K_tt_i^2}{2},\quad{}"
+    r.eq(r"K_{\phi s,i}=K_{s,i}\left(\frac{MRt_i}{2}\right)^2,\quad K_{\phi t,i}=\frac{K_tt_i^2}{2},\quad{}"
          r"K_{\phi r,i}=\frac{K_{\phi s,i}K_{\phi t,i}}{K_{\phi s,i}+K_{\phi t,i}}")
     for axle, track in (("front", p["tf"]), ("rear", p["tr"])):
         spring = s["damping"]["roll"][axle]["spring_stiffness_N_per_m"]
-        suspension = s["damping"]["roll"][axle]["angular_stiffness_Nm_per_rad"]
-        tire = p["Kt"] * track**2 / 2
-        ride = suspension * tire / (suspension + tire)
+        suspension, tire, ride = calculate_roll_axle_stiffness(spring, p["MR"], track, p["Kt"])
         r.text("前軸" if axle == "front" else "後軸")
         r.eq(r"K_{\phi s,i},\quad K_{\phi t,i},\quad K_{\phi r,i}",
-             r"K_{\phi s,i}=@Ks@(@mr@\cdot@t@)^2=@s@,\quad{}"
+             r"K_{\phi s,i}=@Ks@\left(\frac{@mr@\cdot@t@}{2}\right)^2=@s@,\quad{}"
              r"K_{\phi t,i}=\frac{@Kt@\cdot@t@^2}{2}=@tire@,\quad{}"
              r"K_{\phi r,i}=\frac{@s@\cdot@tire@}{@s@+@tire@}=@ride@\ \mathrm{Nm/rad}",
              Ks=spring, mr=p["MR"], t=track, s=suspension, Kt=p["Kt"], tire=tire, ride=ride)

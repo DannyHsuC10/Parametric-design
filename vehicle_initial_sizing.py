@@ -61,7 +61,8 @@ Kr 臨界阻尼為 ride 等效 SDOF 參考，不直接代表實體阻尼器係�
 Gradient 使用整車慣性力及最終前後彈簧，單位為 deg/g：
     h_roll_axis_at_CG = wf * RC_front + wr * RC_rear
     roll_gradient = degrees(M * g * (h_cog - h_roll_axis_at_CG) / K_phi_total)
-Roll 另依 HL 模型串聯各軸輪胎角剛性 Kt * track**2 / 2。
+Roll gradient 以各軸左右行程半差換算懸吊角剛性 Ks * (MR * track / 2)**2，
+再串聯各軸輪胎角剛性 Kt * track**2 / 2。
 前後相同 Heave 彈簧的 Pitch 角剛性為 K_spring * MR**2 * L**2 / 2。
 Pitch 分別輸出串聯／純主簧的僅懸吊／含輪胎結果；前後 Anti 僅用純主簧求解。
 前後軸的剛性基準比例沿用兩路能量類比模型，剛性均為軸端垂向 N/m：
@@ -496,6 +497,15 @@ def calculate_rate_cases(sprung_mass, front_weight_ratio, motion_ratio, tire_sti
     return result
 
 
+def calculate_roll_axle_stiffness(spring_rate, motion_ratio, track, tire_stiffness):
+    """由單軸 Roll 彈簧與單輪輪胎剛性，回傳懸吊、輪胎及串聯角剛性。"""
+    half_track = track / 2
+    suspension = spring_rate * (motion_ratio * half_track)**2
+    tire = 2 * tire_stiffness * half_track**2
+    ride = suspension * tire / (suspension + tire)
+    return suspension, tire, ride
+
+
 def calculate_roll_pitch_gradients(total_mass, cog_height, front_distance, rear_distance,
                                    front_track, rear_track, motion_ratio, tire_stiffness,
                                    front_roll_spring, rear_roll_spring, main_heave_spring,
@@ -521,10 +531,9 @@ def calculate_roll_pitch_gradients(total_mass, cog_height, front_distance, rear_
     roll_lever = cog_height - roll_axis_height
     roll_suspension, roll_ride = 0., 0.
     for spring, track in ((front_roll_spring, front_track), (rear_roll_spring, rear_track)):
-        suspension = spring * (motion_ratio * track)**2
-        tire = tire_stiffness * track**2 / 2
+        suspension, _, ride = calculate_roll_axle_stiffness(spring, motion_ratio, track, tire_stiffness)
         roll_suspension += suspension
-        roll_ride += suspension * tire / (suspension + tire)
+        roll_ride += ride
     roll_moment_per_g = total_mass * g * roll_lever
     result = {
         "roll_axis_height_at_cg_m": roll_axis_height,

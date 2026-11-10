@@ -35,7 +35,6 @@
           <div class="action-row">
             <button type="button" id="open-project">匯入專案</button>
             <button type="button" id="save-project">下載專案</button>
-            <button type="button" id="reset-project">恢復預設</button>
             <input type="file" id="project-file" accept=".json,application/json" hidden>
           </div>
           <nav id="parameter-groups" aria-label="參數分類"></nav>
@@ -52,15 +51,15 @@
       <div class="panel-header result-header">
         <h2 id="results-title">求解報告</h2>
         <label class="sr-only" for="chapters">跳至章節</label>
-        <select id="chapters" disabled>
-          <option value="">跳至章節</option>
+        <select id="chapters" lang="en" disabled>
+          <option value="">Jump to section</option>
         </select>
       </div>
       <div class="action-row" aria-label="報告匯出">
         <label class="sr-only" for="report-language">報告語言 / Report language</label>
         <select id="report-language">
           <option value="zh">繁體中文</option>
-          <option value="en" lang="en">English</option>
+          <option value="en" lang="en" selected>English</option>
         </select>
         <button type="button" id="download-markdown" disabled>下載 Markdown</button>
         <button type="button" id="download-csv" disabled>匯出 CSV</button>
