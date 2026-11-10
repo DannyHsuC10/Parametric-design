@@ -150,8 +150,8 @@ class WorkbenchWindow(tk.Tk):
         content.columnconfigure(1, weight=1)
         ttk.Label(content, text=group["title"], font=("Microsoft JhengHei UI", 10, "bold")).grid(
             row=0, columnspan=2, sticky="w", pady=(0, 6))
-        fields = [field for field in group["fields"] if field["name"] != "brake_ax"]
-        for row, field in enumerate(fields, start=1):
+        row = 1
+        for field in group["fields"]:
             label = f"{field['label']} ({field['unit']})" if field["unit"] else field["label"]
             ttk.Label(content, text=label, wraplength=172).grid(row=row, column=0, sticky="w", padx=(0, 6), pady=3)
             if field["kind"] == "checkbox":
@@ -163,9 +163,11 @@ class WorkbenchWindow(tk.Tk):
             widget.grid(row=row, column=1, sticky="ew", pady=3)
             variable.trace_add("write", self.mark_pending)
             self.inputs[field["name"]] = (variable, widget, page)
+            row += 1
             if field.get("hint"):
-                ttk.Label(content, text=field["hint"], foreground="#475569").grid(
-                    row=len(fields) + 1, columnspan=2, sticky="w", pady=(6, 0))
+                ttk.Label(content, text=field["hint"], foreground="#475569", wraplength=300).grid(
+                    row=row, columnspan=2, sticky="w", pady=(0, 3))
+                row += 1
 
         def wheel(event):
             if str(event.widget).startswith(str(page) + "."):
@@ -294,8 +296,6 @@ class WorkbenchWindow(tk.Tk):
 
     def apply_project(self, values, path):
         self.set_inputs(values)
-        # Keep explicit braking targets from imported projects. None uses ax.
-        self.brake_ax = values["brake_ax"]
         self.project_path = path
         self.saved_inputs = self.input_snapshot()
         self.update_title()
@@ -369,10 +369,8 @@ class WorkbenchWindow(tk.Tk):
         return True
 
     def values(self):
-        values = {"brake_ax": self.brake_ax}
+        values = {}
         for name in FIELDS:
-            if name == "brake_ax":
-                continue
             variable, _, _ = self.inputs[name]
             value = variable.get()
             if isinstance(variable, tk.BooleanVar):

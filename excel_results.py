@@ -65,7 +65,7 @@ UNIT_SUFFIXES = (
 
 FIELD_UNITS = {
     "g": "m/s²", "L": "m", "t": "m", "Ks": "N/m", "F_ref": "N", "v_ref": "m/s",
-    "FL": "N", "FR": "N", "RL": "N", "RR": "N",
+    "FL": "N", "FR": "N", "RL": "N", "RR": "N", "brake_ax": "g",
 }
 
 # Keys omit the unit suffix. Nested paths supply the axle, wheel or calculation case.
@@ -75,6 +75,11 @@ FIELD_LABELS = {
     "t": "前後輪距的平均值",
     "wf": "前軸靜態重量占比",
     "wr": "後軸靜態重量占比",
+    "kr": "後軸剛性權重，由 1 − kf 計算",
+    "brake_ax": "煞車減速度，採用縱向加速度 ax 的輸入值",
+    "cg_safety_factor": "重心高度幾何檢查採用的固定安全係數 1",
+    "anti_front_chassis_stiffness": "前 Anti 車體等效剛性，為共用剛性比乘以前軸純 Heave 垂向剛性",
+    "anti_rear_chassis_stiffness": "後 Anti 車體等效剛性，為共用剛性比乘以後軸純 Heave 垂向剛性",
     "steering_angle": "達到指定最小轉彎半徑的轉向角",
     "active_heave_spring": "本次計算採用的 Heave 彈簧剛性",
     "cg_min_track": "前後輪距中較小的值",

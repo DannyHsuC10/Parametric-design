@@ -66,10 +66,10 @@ Roll gradient 以各軸左右行程半差換算懸吊角剛性 Ks * (MR * track 
 前後相同 Heave 彈簧的 Pitch 角剛性為 K_spring * MR**2 * L**2 / 2。
 Pitch 分別輸出串聯／純主簧的僅懸吊／含輪胎結果；前後 Anti 僅用純主簧求解。
 前後軸的剛性基準比例沿用兩路能量類比模型，剛性均為軸端垂向 N/m：
-    Kz_i = K_heave_i * MR**2
+    Kz_i = K_heave_i * MR**2, Kc_i = c * Kz_i
     K_eq_i = (1 - a_i)**2 * Kz_i + a_i**2 * Kc_i
     a_i = Kz_i / (Kz_i + Kc_i), alpha_i = 1 - a_i
-前後車體等效剛性 Kc_i 為獨立、固定輸入，不隨 Tender 工況縮放。
+前後 Anti 與 Roll Center 共用車體／懸吊剛性比 c。
 Anti 僅用純 Heave 主簧，依指定規則設定：
     front_anti_dive = a_f
     rear_anti_lift = front_anti_dive
@@ -84,7 +84,7 @@ roll_center 沿用正規化等效剛性模型，r = h_rc / h_cog，c = Kc / Ks�
     K_eq / Ks = (1 - r)**2 + c * r**2
     r_min = 1 / (1 + c), K_eq_min / Ks = c / (1 + c)
     h_rc = r_min * h_cog
-前 RC 直接套用「roll_center_stiffness_derivation.md」的解析解；Anti 使用各軸獨立剛性。
+前 RC 直接套用「roll_center_stiffness_derivation.md」的解析解。
 以前述解析解作為前輪 Roll Center 高度，再依指定比例計算後輪高度：
     h_rc_rear = h_rc_front * (wf / wr) * (tr / tf) * (kf / kr)
 FVSA 依指定過程固定以公尺數值計算，d = sus_travel、t 為各軸輪距：
@@ -111,7 +111,7 @@ Caster 反解使用前軸最大 Roll + 輪胎 Roll - FVSA 最大 Camber 變化�
 以 caster = 10 deg 比較 ±delta 只印出方向驗證，不修改求解用的正轉角。
 公式內所有角度均用 rad，KPI = 8 deg；求解中不選邊、不依結果正負變號。
 原式值另外保留；接地失效時只印線性外推參考。
-wf、wr 為前後重量比例，tf、tr 為前後輪距，kf、kr 為前後剛性比例。
+wf、wr 為前後重量比例，tf、tr 為前後輪距，kf 為前軸剛性比例，後軸 kr = 1 - kf。
 重量比例由重心到前軸距離 lf、到後軸距離 lr 的靜態力矩平衡計算：
     L = lf + lr
     wf = lr / L, wr = lf / L
@@ -131,7 +131,7 @@ Tender 壓縮量沿用 analysis/tender.py 的無煞車工況，前後各一組�
     s_total = s_main + s_tender
 行程以原平衡位置為零點，只計下壓力造成的增量，輸出換算為 mm。
 原 Tender 分析將此下壓力工況設為 tender 壓實的設計切換點。
-CG 沿用 analysis/CG.py，以前後較小輪距檢查 45、60 度傾斜幾何上限：
+CG 沿用 analysis/CG.py，以前後較小輪距和固定安全係數 1 檢查 45、60 度傾斜幾何上限：
     h_max = min(tf, tr) / (2 * tan(angle) * cg_safety_factor)
     margin = h_max - h_cog
 正餘裕為通過；零餘裕為臨界；負餘裕為超過上限。
@@ -162,7 +162,7 @@ Gear_rate 使用無空力直線加速工況，ax = a_acc、ay = 0、下壓力 = 
     i_avg = (i_acc + i_speed) / 2
 沿用 Gear_rate 的輪端扭矩與齒比公式；前後軸配重依本腳本的 wf、wr 定義。
 每軸需求力由兩輪均分，每輪對應一顆馬達，未計傳動效率及行駛阻力。
-Brake_ratio 使用無空力直線煞車，brake_ax 為正的減速度 g 倍數（車身 ax = -brake_ax）：
+Brake_ratio 使用無空力直線煞車，brake_ax 採用輸入 ax 作為正的減速度 g 倍數（車身加速度 = -brake_ax）：
     N_front = m * g * wf + m * brake_ax * g * h_cog / L
     N_rear = m * g * wr - m * brake_ax * g * h_cog / L
     B_front = brake_ax * N_front, B_rear = brake_ax * N_rear
@@ -180,7 +180,7 @@ Brake_ratio 使用無空力直線煞車，brake_ax 為正的減速度 g 倍數�
 
 import math
 
-from project import FIELDS, default_project, validate_inputs
+from project import FIELDS, LEGACY_DERIVED_FIELDS, default_project, validate_inputs
 
 
 g = 9.81                       # 重力加速度，m/s^2
@@ -1100,7 +1100,7 @@ def calculate_brake_ratio(mass, unsprung_mass, cog_height, front_distance, rear_
 
     requested = point(deceleration_g)
     if requested['rear_axle_load_N'] < 0:
-        raise ValueError("此 brake_ax 會造成後軸離地，無法使用兩軸接地的理想煞車分配模型")
+        raise ValueError("指定的煞車減速度會造成後軸離地，無法使用兩軸接地的理想煞車分配模型")
     achievable_limit = min(tire_friction, lift_limit)
     design_limit = min(deceleration_g, achievable_limit)
     limit_point = point(design_limit)
@@ -1175,6 +1175,8 @@ def calculate_cg_safety(cog_height, front_track, rear_track, safety_factor):
 
 def solve(*, emit=lambda message: None, **overrides):
     """Solve using project defaults for inputs omitted by the caller."""
+    for name in LEGACY_DERIVED_FIELDS:
+        overrides.pop(name, None)
     validate_inputs(overrides)
     values = overrides if overrides.keys() == FIELDS.keys() else default_project() | overrides
     return _solve(**values, emit=emit)
@@ -1182,20 +1184,20 @@ def solve(*, emit=lambda message: None, **overrides):
 
 def _solve(
     *, use_tender, ms, mu, h_cog, lf, lr, ax, ay, a_acc,
-    brake_ax, target_lap_time_s, drive_target_speed_kmh,
+    target_lap_time_s, drive_target_speed_kmh,
     sus_travel, tf, tr, A_air, air_density_kg_per_m3,
-    kf, kr, target_pitch_angle_deg, target_roll_angle_deg,
+    kf, target_pitch_angle_deg, target_roll_angle_deg,
     kpi_deg, min_turn_radius_m,
     MR, zeta, sprung_roll_inertia_kg_m2, Kt, wl_mu_y, mu_w,
     R_tire, drive_motor_torque_Nm, drive_motor_rpm, N,
     rc_chassis_stiffness_ratio,
-    anti_front_chassis_stiffness_N_per_m,
-    anti_rear_chassis_stiffness_N_per_m,
-    F_ref_ratio, wl_aero_front_ratio, cg_safety_factor,
+    F_ref_ratio, wl_aero_front_ratio,
     brake_driver_force_N, emit=lambda message: None,
 ):
     """Solve one independent input set and return the full report snapshot."""
-    brake_ax = ax if brake_ax is None else brake_ax
+    brake_ax = ax
+    cg_safety_factor = 1.0
+    kr = 1 - kf
     t = tf
     if not isinstance(use_tender, bool):
         raise ValueError("use_tender 必須為布林值 True 或 False")
@@ -1350,13 +1352,14 @@ def _solve(
     active_heave = series_heave if use_tender else tire_result['Ks_pitch_N_per_m']
 
     main_axle_stiffness = tire_result['Ks_pitch_N_per_m'] * MR**2
+    chassis_stiffness = rc_chassis_stiffness_ratio * main_axle_stiffness
     anti_result = {"heave_only": calculate_anti_assignments(
         main_axle_stiffness, main_axle_stiffness,
-        anti_front_chassis_stiffness_N_per_m, anti_rear_chassis_stiffness_N_per_m,
+        chassis_stiffness, chassis_stiffness,
         a_acc, ax,
     )}
     emit("\nAnti 設定（前後剛性基準、後 Anti-squat 與前後 Anti-lift）：")
-    emit("Anti 僅使用純 Heave 主簧剛性。")
+    emit(f"Anti 使用純 Heave 主簧剛性 Kz，Kc = c × Kz，與 Roll Center 共用 c = {rc_chassis_stiffness_ratio:g}。")
     emit("K_eq_i = (1 - a_i)^2 Kz_i + a_i^2 Kc_i；a_i = Kz_i / (Kz_i + Kc_i)")
     for axle, axle_label in (("front", "前軸剛性基準"), ("rear", "後軸剛性基準（後 Anti-squat 來源）")):
         values = anti_result['heave_only'][axle]
@@ -1709,13 +1712,14 @@ def _solve(
         "kf", "kr", "target_pitch_angle_deg", "target_roll_angle_deg", "kpi_deg", "min_turn_radius_m",
         "MR", "zeta", "sprung_roll_inertia_kg_m2", "Kt", "wl_mu_y", "mu_w",
         "R_tire", "drive_motor_torque_Nm", "drive_motor_rpm", "N", "rc_chassis_stiffness_ratio",
-        "anti_front_chassis_stiffness_N_per_m", "anti_rear_chassis_stiffness_N_per_m",
         "F_ref_ratio", "wl_aero_front_ratio", "cg_safety_factor", "brake_driver_force_N",
     )
     inputs = locals()
     parameters = {name: inputs[name] for name in parameter_names}
     parameters.update(g=g, L=L, wf=wf, wr=wr, steering_angle_deg=steering_angle_deg,
-                      active_heave_spring_N_per_m=active_heave)
+                      active_heave_spring_N_per_m=active_heave,
+                      anti_front_chassis_stiffness_N_per_m=settings["front"]["chassis_stiffness_N_per_m"],
+                      anti_rear_chassis_stiffness_N_per_m=settings["rear"]["chassis_stiffness_N_per_m"])
     snapshot = {
         "parameters": parameters, "cg": cg_result, "skidpad": skidpad_result, "aero": aero_result,
         "angle_stiffness": {

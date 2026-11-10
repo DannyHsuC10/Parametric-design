@@ -46,8 +46,9 @@ ENGLISH = {
     "N/m（單輪）": "N/m (per wheel)",
     "是否使用 Tender 彈簧": "Whether the tender spring is enabled",
     "N/m（本次採用的 Heave 剛性）": "N/m (active heave stiffness)",
-    "N/m（前軸車體垂向等效剛性，固定估值）": "N/m (estimated equivalent front chassis vertical stiffness)",
-    "N/m（後軸車體垂向等效剛性，固定估值）": "N/m (estimated equivalent rear chassis vertical stiffness)",
+    "g（沿用 ax）": "g (uses ax)",
+    "N/m（由共用剛性比計算的前軸車體等效剛性）": "N/m (equivalent front chassis stiffness from the shared ratio)",
+    "N/m（由共用剛性比計算的後軸車體等效剛性）": "N/m (equivalent rear chassis stiffness from the shared ratio)",
     "參數": "Parameter",
     "本次值": "Current value",
     "單位／定義": "Unit or definition",
@@ -94,17 +95,14 @@ ENGLISH = {
         "Tender-dependent results are unavailable.",
     "串聯剛性僅適用於 Tender 未併圈階段。": "The series spring rate applies before the tender spring reaches coil bind.",
     "9.3 前 Anti-dive 與 9.4 加速／煞車 Anti 設定": "9.3 Front anti-dive and 9.4 acceleration and braking anti settings",
-    "前後軸分別使用軸端垂向懸吊剛性 Kz 與車體等效剛性 Kc，單位均為 N/m。"
-    "Kc 為可獨立修改的固定輸入；初始值由改版前主 Heave 72829.63107381333 N/m、MR = 1 的 10 倍假設估算，非量測值。"
-    "目前前後使用相同 Heave 彈簧；Roll 的 kf／kr 不套用於此處。":
-        "Each axle uses vertical suspension stiffness Kz and equivalent chassis stiffness Kc, both in N/m. "
-        "Kc is an independent input. Its initial estimate is ten times the earlier main heave rate of "
-        "72829.63107381333 N/m at MR = 1. Both axles use the same heave spring. The roll weights kf and kr apply to the roll model.",
+    "Roll Center、前 Anti 與後 Anti 共用車體／懸吊剛性比 c。"
+    "Anti 使用各軸純 Heave 主簧換算軸端垂向剛性 Kz，再乘以 c 得到車體等效剛性 Kc，兩者單位均為 N/m。":
+        "Roll center and both anti settings share the chassis-to-suspension stiffness ratio c. "
+        "For anti, the main heave spring gives each axle's vertical suspension stiffness Kz. "
+        "Multiplying Kz by c gives the equivalent chassis stiffness Kc. Both stiffnesses are in N/m.",
     "純 Heave": "Main heave spring only",
     "前軸剛性基準（前 Anti-dive）": "Front axle stiffness basis for anti-dive",
     "後軸剛性基準（後 Anti-squat 來源）": "Rear axle stiffness basis for anti-squat",
-    r"K_{z,i}=K_{h,i}MR^2,\quad K_{c,i}=\text{固定輸入}":
-        r"K_{z,i}=K_{h,i}MR^2,\quad K_{c,i}=\text{fixed input}",
     "前 Anti-dive、後 Anti-squat 與前後 Anti-lift": "Front anti-dive, rear anti-squat, and front and rear anti-lift",
     "設定項目": "Setting",
     "比例": "Ratio",
@@ -194,8 +192,10 @@ ENGLISH = {
         "The case uses ax = a_acc, ay = 0, and zero downforce. The required force is distributed by axle load, "
         "with two wheels per axle and one motor per wheel.",
     "15. 無空力煞車力、前後比與回歸": "15. Brake forces, front-rear split, and fit without downforce",
-    "z 是正的煞車減速度 g 倍數，車身 ax = −z。指定需求與輪胎摩擦可達性分開列出。":
-        "z is positive braking deceleration in g and the vehicle acceleration is ax = −z. "
+    "z 取輸入的縱向加速度 ax 作為煞車減速度（g）。煞車時車身縱向加速度為 −z。"
+    "指定需求與輪胎摩擦可達性分開列出。":
+        "The longitudinal acceleration input ax supplies the braking deceleration z in g. "
+        "Vehicle acceleration during braking is −z. "
         "The requested deceleration and the tire friction limit are shown separately.",
     "指定工況": "Requested case",
     "可達設計上限": "Feasible design case",

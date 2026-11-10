@@ -161,14 +161,14 @@ def _render_basics(r, s):
         "L": "m", "tf": "m", "tr": "m", "t": "m", "sus_travel": "m", "min_turn_radius_m": "m",
         "steering_angle_deg": "deg（由半徑導出）", "MR": "無因次", "Kt": "N/m（單輪）",
         "A_air": "m²", "air_density_kg_per_m3": "kg/m³", "g": "m/s²",
-        "ax": "g", "ay": "g", "a_acc": "g", "brake_ax": "g", "target_lap_time_s": "s",
+        "ax": "g", "ay": "g", "a_acc": "g", "brake_ax": "g（沿用 ax）", "target_lap_time_s": "s",
         "drive_target_speed_kmh": "km/h", "R_tire": "m", "drive_motor_torque_Nm": "N·m",
         "drive_motor_rpm": "rpm", "brake_driver_force_N": "N", "sprung_roll_inertia_kg_m2": "kg·m²",
         "target_pitch_angle_deg": "deg", "target_roll_angle_deg": "deg", "kpi_deg": "deg",
         "use_tender": "是否使用 Tender 彈簧",
         "active_heave_spring_N_per_m": "N/m（本次採用的 Heave 剛性）",
-        "anti_front_chassis_stiffness_N_per_m": "N/m（前軸車體垂向等效剛性，固定估值）",
-        "anti_rear_chassis_stiffness_N_per_m": "N/m（後軸車體垂向等效剛性，固定估值）",
+        "anti_front_chassis_stiffness_N_per_m": "N/m（由共用剛性比計算的前軸車體等效剛性）",
+        "anti_rear_chassis_stiffness_N_per_m": "N/m（由共用剛性比計算的後軸車體等效剛性）",
     }
     r.table(["參數", "本次值", "單位／定義"], ((key, value, units.get(key, "比例／無因次")) for key, value in p.items()))
     r.eq(r"L=l_f+l_r", r"L=@f@+@b@=@L@\ \mathrm{m}", f=p["lf"], b=p["lr"], L=p["L"])
@@ -349,10 +349,10 @@ def _render_basics(r, s):
         r.text("串聯剛性僅適用於 Tender 未併圈階段。")
 
     r.heading("9.3 前 Anti-dive 與 9.4 加速／煞車 Anti 設定")
-    r.text("前後軸分別使用軸端垂向懸吊剛性 Kz 與車體等效剛性 Kc，單位均為 N/m。"
-           "Kc 為可獨立修改的固定輸入；初始值由改版前主 Heave 72829.63107381333 N/m、MR = 1 的 10 倍假設估算，非量測值。"
-           "目前前後使用相同 Heave 彈簧；Roll 的 kf／kr 不套用於此處。")
-    r.eq(r"K_{z,i}=K_{h,i}MR^2,\quad K_{\mathrm{eq},i}=(1-a_i)^2K_{z,i}+a_i^2K_{c,i}")
+    r.text("Roll Center、前 Anti 與後 Anti 共用車體／懸吊剛性比 c。"
+           "Anti 使用各軸純 Heave 主簧換算軸端垂向剛性 Kz，再乘以 c 得到車體等效剛性 Kc，兩者單位均為 N/m。")
+    r.eq(r"K_{z,i}=K_{h,i}MR^2,\quad K_{c,i}=cK_{z,i},\quad{}"
+         r"K_{\mathrm{eq},i}=(1-a_i)^2K_{z,i}+a_i^2K_{c,i}")
     r.eq(r"\frac{dK_{\mathrm{eq},i}}{da_i}=-2(1-a_i)K_{z,i}+2a_iK_{c,i}=0,\quad{}"
          r"a_i=\frac{K_{z,i}}{K_{z,i}+K_{c,i}},\quad \alpha_i=1-a_i")
     r.heading("純 Heave", 3)
@@ -362,9 +362,11 @@ def _render_basics(r, s):
                              ("rear", "後軸剛性基準（後 Anti-squat 來源）")):
         x = values[axle]
         r.heading(axle_label, 4)
-        r.eq(r"K_{z,i}=K_{h,i}MR^2,\quad K_{c,i}=\text{固定輸入}",
-             r"K_{z,i}=@spring@\cdot@mr@^2=@kz@\ \mathrm{N/m},\quad K_{c,i}=@kc@\ \mathrm{N/m}",
-             spring=spring, mr=p["MR"], kz=x["suspension_stiffness_N_per_m"], kc=x["chassis_stiffness_N_per_m"])
+        r.eq(r"K_{z,i}=K_{h,i}MR^2,\quad K_{c,i}=cK_{z,i}",
+             r"K_{z,i}=@spring@\cdot@mr@^2=@kz@\ \mathrm{N/m},\quad{}"
+             r"K_{c,i}=@c@\cdot@kz@=@kc@\ \mathrm{N/m}",
+             spring=spring, mr=p["MR"], c=p["rc_chassis_stiffness_ratio"],
+             kz=x["suspension_stiffness_N_per_m"], kc=x["chassis_stiffness_N_per_m"])
         r.eq(r"a_i=\frac{K_{z,i}}{K_{z,i}+K_{c,i}},\quad \alpha_i=1-a_i",
              r"a_i=\frac{@kz@}{@kz@+@kc@}=@a@=@percent@\%,\quad \alpha_i=1-@a@=@alpha@",
              kz=x["suspension_stiffness_N_per_m"], kc=x["chassis_stiffness_N_per_m"],
@@ -606,7 +608,8 @@ def _render_loads(r, s):
 
     r.heading("15. 無空力煞車力、前後比與回歸")
     brake = s["brake"]
-    r.text("z 是正的煞車減速度 g 倍數，車身 ax = −z。指定需求與輪胎摩擦可達性分開列出。")
+    r.text("z 取輸入的縱向加速度 ax 作為煞車減速度（g）。煞車時車身縱向加速度為 −z。"
+           "指定需求與輪胎摩擦可達性分開列出。")
     r.eq(r"T_b=\frac{Mgzh}{L},\quad N_f=Mgw_f+T_b,\quad N_r=Mgw_r-T_b,\quad B_f=zN_f,\quad B_r=zN_r")
     for label, data in (("指定工況", brake["requested_point"]), ("可達設計上限", brake["limit_point"])):
         r.heading(label, 3)

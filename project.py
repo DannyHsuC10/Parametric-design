@@ -5,6 +5,10 @@ import math
 from pathlib import Path
 
 PROJECT_FORMAT = "VehicleInitialSizingLab"
+LEGACY_DERIVED_FIELDS = (
+    "kr", "brake_ax", "cg_safety_factor",
+    "anti_front_chassis_stiffness_N_per_m", "anti_rear_chassis_stiffness_N_per_m",
+)
 
 # Numeric fields are positive by default. Bounds are inclusive unless positive is set.
 GROUPS = (
@@ -22,10 +26,8 @@ GROUPS = (
         ("ax", "縱向加速度 ax", "g"),
         ("ay", "側向加速度 ay", "g", {"positive": False, "nonzero": True}),
         ("a_acc", "傳動加速目標", "g"),
-        ("brake_ax", "煞車減速度", "g", {"hint": "留空時沿用 ax"}),
         ("target_lap_time_s", "Skidpad 目標圈時", "s", {"min": 4, "max": 6}),
         ("drive_target_speed_kmh", "目標極速", "km/h"),
-        ("cg_safety_factor", "重心檢查安全係數", "", {"min": 1}),
     )),
     ("懸吊與轉向", "懸吊", (
         ("use_tender", "使用 Tender 彈簧", ""),
@@ -34,14 +36,11 @@ GROUPS = (
         ("sus_travel", "懸吊壓縮行程", "m", {"max": 0.05}),
         ("target_pitch_angle_deg", "允許俯仰角", "°", {"min": 0.1, "max": 3}),
         ("target_roll_angle_deg", "允許側傾角", "°", {"min": 0.1, "max": 3}),
-        ("kf", "前軸剛性權重 kf", ""),
-        ("kr", "後軸剛性權重 kr", ""),
-        ("N", "Tender 頻率除數 N", "", {"hint": "僅在啟用 Tender 時使用"}),
+        ("kf", "前軸剛性權重 kf", "", {"hint": "輸入 0 與 1 之間的小數，後軸權重為 1 − kf"}),
+        ("N", "目標簧上簧下自然頻率倍率", "", {"hint": "僅在啟用 Tender 時使用"}),
         ("min_turn_radius_m", "最小轉彎半徑", "m"),
         ("kpi_deg", "主銷內傾角 KPI", "°", {"positive": False}),
-        ("rc_chassis_stiffness_ratio", "前 RC 車體／懸吊剛性比", ""),
-        ("anti_front_chassis_stiffness_N_per_m", "前 Anti 車體等效剛性", "N/m"),
-        ("anti_rear_chassis_stiffness_N_per_m", "後 Anti 車體等效剛性", "N/m"),
+        ("rc_chassis_stiffness_ratio", "車體／懸吊剛性比", "", {"hint": "供 Roll Center、前 Anti 與後 Anti 共用"}),
     )),
     ("輪胎與空力", "輪胎", (
         ("Kt", "單輪垂直剛性 Kt", "N/m"),
@@ -95,12 +94,12 @@ def validate_inputs(values):
             if type(value) is not bool:
                 raise FieldError(field, "須為開啟或關閉。")
             continue
-        if value is None and name == "brake_ax":
-            continue
         if type(value) not in (int, float) or not math.isfinite(value):
             raise FieldError(field, "須填入有限數值。")
         if field["positive"] and value <= 0:
             raise FieldError(field, "須大於 0。")
+        if name == "kf" and value >= 1:
+            raise FieldError(field, "須小於 1。")
         if field.get("nonzero") and value == 0:
             raise FieldError(field, "須為非零值。")
         minimum, maximum = field.get("min"), field.get("max")
@@ -123,6 +122,8 @@ def parse_project(text):
     values = project.get("parameters")
     if isinstance(values, dict):
         values.pop("caster_direction_check_deg", None)  # Legacy projects stored the direction check angle.
+        for name in LEGACY_DERIVED_FIELDS:
+            values.pop(name, None)
     if not isinstance(values, dict) or values.keys() not in (FIELDS.keys(), FIELDS.keys() - {"zeta"}):
         raise ValueError("專案的車輛參數欄位不完整或無法辨識。")
     if "zeta" not in values:
