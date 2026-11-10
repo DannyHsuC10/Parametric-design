@@ -1,10 +1,12 @@
 # Vehicle Initial Sizing Lab
 
-車輛初步設計工作台。左側設定參數，右側顯示當次求解產生的 Markdown 報告，包含表格、公式、數值代入與完整結果索引。
+車輛初步設計工作台。左側設定參數，右側顯示當次求解產生的中英文 Markdown 報告，包含表格、公式與數值代入。
 
 ## 網頁版
 
-網頁版使用 HTML/CSS 介面，並透過 Pyodide 在瀏覽器內執行與桌面版共用的 Python 求解器。首次開啟需連線至 jsDelivr 以載入 Pyodide。匯入的專案和輸入參數在瀏覽器內處理，下載專案可保存參數供下次載入。求解後可下載 Markdown、CSV 和供 SuspensionDynamicsLab 使用的 JSON。
+網頁版使用 HTML/CSS 介面，並透過 Pyodide 在瀏覽器內執行與桌面版共用的 Python 求解器。首次開啟需連線至 jsDelivr 以載入 Pyodide。匯入的專案和輸入參數在瀏覽器內處理，下載專案可保存參數供下次載入。
+
+在報告區選擇「繁體中文」或「English」，可在求解前設定語言，也可在求解後直接切換右側報告。下載的 Markdown 使用目前選擇的語言。完整結果可匯出為 CSV 或 Excel，也可匯出供 SuspensionDynamicsLab 使用的 JSON。
 
 ### 本機預覽
 
@@ -33,10 +35,12 @@ python -m http.server 8000 --bind 127.0.0.1
 1. 雙擊 `Start-VehicleInitialSizingLab.bat`，開啟獨立桌面視窗。
 2. 點左側上方的頁籤切換車輛、性能、懸吊、輪胎和馬達設定。拖曳中間的分隔線可調整輸入區寬度。煞車減速度留空時沿用 `ax`。
 3. 按上方「儲存」或 `Ctrl+S` 保存參數專案，預設位置為本工具的 `projects/` 資料夾。按「匯入」或 `Ctrl+O` 載入 JSON，按「另存」保存另一份。
-4. 按「求解」、`F5` 或 `Ctrl+Enter`。在右側「求解報告」頁籤查看 Markdown 表格及 LaTeX 公式。用「跳至章節」查看各項分析，或按右下角「儲存 Markdown」另存當次報告。專案 JSON 保存輸入參數，載入後可重新求解。
+4. 按「求解」、`F5` 或 `Ctrl+Enter`。在右側「求解報告」頁籤查看 Markdown 表格及 LaTeX 公式。報告區的選單可切換繁體中文與英文，也可跳至指定章節。按右下角「儲存 Markdown」可另存目前語言的報告。專案 JSON 保存輸入參數，載入後可重新求解。
 5. 關閉桌面視窗即可結束。
 
 「匯出 CSV」位於右下角，會輸出當次求解的輸入參數和完整結果。欄位為 `section`、`field`、`value`，無可用數值的項目留空。CSV 使用 UTF-8 BOM，可用 Excel 開啟。
+
+「下載 Excel」會將相同的輸入與結果存成 `.xlsx`，附上分類、單位及中文欄位說明。首列可用來篩選，布林值和負輪載保留原本的資料型別。
 
 ## 匯出至 SuspensionDynamicsLab
 

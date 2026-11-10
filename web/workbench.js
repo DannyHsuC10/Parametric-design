@@ -3,6 +3,7 @@
 const form = byId("parameters");
 const controls = byId("controls");
 const chapterSelect = byId("chapters");
+const reportLanguage = byId("report-language");
 const parameterFields = byId("parameter-fields");
 const reportContent = byId("report-content");
 const fileInput = byId("project-file");
@@ -10,8 +11,11 @@ const groupButtons = [];
 const groupPanels = [];
 const inputs = new Map();
 const downloads = [
-  ["download-markdown", "vehicle_initial_sizing_report.md", "text/markdown", (result) => result.report.markdown],
+  ["download-markdown", "vehicle_initial_sizing_report.md", "text/markdown",
+    (result) => result.reports[reportLanguage.value].markdown],
   ["download-csv", "vehicle_initial_sizing_results.csv", "text/csv", (result) => "\uFEFF" + result.csv],
+  ["download-excel", "vehicle_initial_sizing_results.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    (result) => Uint8Array.from(atob(result.excel), (character) => character.charCodeAt(0))],
   ["download-dynamics", "Vehicle_initial_settings.json", "application/json", (result) => result.dynamics],
 ];
 
@@ -19,8 +23,10 @@ let worker;
 let defaults;
 let projectFile;
 let lastResult;
+let staleResult = false;
 let busy = false;
 let dirty = false;
+const staleMessage = "參數已變更。右側顯示上次結果，請重新求解後再匯出。";
 
 function request(action, payload = null) {
   worker ??= new Worker("web/solver-worker.js", {type: "module"});
@@ -47,7 +53,8 @@ function setStatus(message, isError = false) {
 function updateControls() {
   controls.disabled = busy || !defaults;
   chapterSelect.disabled = busy || chapterSelect.options.length < 2;
-  for (const [id] of downloads) byId(id).disabled = busy || !lastResult;
+  reportLanguage.disabled = busy;
+  for (const [id] of downloads) byId(id).disabled = busy || !lastResult || staleResult;
 }
 
 async function runTask(message, task) {
@@ -137,13 +144,15 @@ function setProject(values, filename) {
   byId("project-name").textContent = filename ?? "預設參數";
   dirty = false;
   lastResult = null;
+  staleResult = false;
   chapterSelect.length = 1;
   clearResult();
   updateControls();
 }
 
 function download(name, type, content) {
-  const url = URL.createObjectURL(new Blob([content], {type: type + ";charset=utf-8"}));
+  const mimeType = typeof content === "string" ? type + ";charset=utf-8" : type;
+  const url = URL.createObjectURL(new Blob([content], {type: mimeType}));
   const link = element("a");
   link.href = url;
   link.download = name;
@@ -157,10 +166,8 @@ form.addEventListener("input", (event) => {
   if (event.target === fileInput) return;
   event.target.removeAttribute("aria-invalid");
   dirty = true;
-  lastResult = null;
-  setStatus(chapterSelect.options.length > 1
-    ? "參數已變更。右側顯示上次結果，請重新求解後再匯出。"
-    : "參數已變更，可以重新求解或下載專案。");
+  staleResult = Boolean(lastResult);
+  setStatus(staleResult ? staleMessage : "參數已變更，可以重新求解或下載專案。");
   updateControls();
 });
 
@@ -194,6 +201,26 @@ byId("reset-project").addEventListener("click", () => {
   setStatus("已恢復預設參數。");
 });
 
+async function renderSelectedReport() {
+  chapterSelect.length = 1;
+  try {
+    const {chapters, ok} = await renderResult(lastResult.reports[reportLanguage.value]);
+    chapters.forEach((chapter, index) => chapterSelect.add(new Option(chapter, index)));
+    setStatus(ok ? (staleResult ? staleMessage : "求解完成。") : "部分公式排版失敗，可下載 Markdown 查看原文。", !ok);
+  } catch (error) {
+    console.error(error);
+    setStatus("報告排版失敗，可下載 Markdown 查看原文。", true);
+  }
+  reportContent.scrollTop = 0;
+}
+
+reportLanguage.addEventListener("change", () => {
+  const english = reportLanguage.value === "en";
+  chapterSelect.lang = english ? "en" : "zh-Hant";
+  chapterSelect.options[0].textContent = english ? "Jump to section" : "跳至章節";
+  if (lastResult) runTask("正在切換報告語言…", renderSelectedReport);
+});
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   runTask("正在求解…", async () => {
@@ -201,17 +228,9 @@ form.addEventListener("submit", (event) => {
       parameters: parameters(),
       name: projectFile?.replace(/\.json$/i, "") ?? "車輛初步設計",
     });
+    staleResult = false;
     setStatus("正在排版報告…");
-    chapterSelect.length = 1;
-    try {
-      const {chapters, ok} = await renderResult(lastResult.report);
-      chapters.forEach((chapter, index) => chapterSelect.add(new Option(chapter, index)));
-      setStatus(ok ? "求解完成。" : "部分公式排版失敗，可下載 Markdown 查看原文。", !ok);
-    } catch (error) {
-      console.error(error);
-      setStatus("報告排版失敗，可下載 Markdown 查看原文。", true);
-    }
-    reportContent.scrollTop = 0;
+    await renderSelectedReport();
     if (getComputedStyle(reportContent).overflowY === "visible") byId("results").scrollIntoView();
   });
 });
@@ -222,7 +241,7 @@ chapterSelect.addEventListener("change", () => {
 
 for (const [id, name, type, content] of downloads) {
   byId(id).addEventListener("click", () => {
-    if (lastResult) download(name, type, content(lastResult));
+    if (lastResult && !staleResult) download(name, type, content(lastResult));
   });
 }
 

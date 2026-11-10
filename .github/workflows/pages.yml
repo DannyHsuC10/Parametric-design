@@ -33,7 +33,7 @@ jobs:
       - name: Prepare static files
         run: |
           mkdir -p dist/web
-          cp index.html browser_app.py project.py vehicle_initial_sizing.py vehicle_initial_sizing_report.py dynamics_export.py default_project.json dynamics_template.json dist/
+          cp index.html browser_app.py project.py vehicle_initial_sizing.py vehicle_initial_sizing_report.py report_english.py dynamics_export.py excel_results.py default_project.json dynamics_template.json dist/
           cp web/{lab.css,lab.js,workbench.css,workbench.js,solver-worker.js} dist/web/
           cp -r web/vendor dist/web/
       - uses: actions/upload-pages-artifact@v4

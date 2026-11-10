@@ -57,8 +57,14 @@
         </select>
       </div>
       <div class="action-row" aria-label="報告匯出">
+        <label class="sr-only" for="report-language">報告語言 / Report language</label>
+        <select id="report-language">
+          <option value="zh">繁體中文</option>
+          <option value="en" lang="en">English</option>
+        </select>
         <button type="button" id="download-markdown" disabled>下載 Markdown</button>
         <button type="button" id="download-csv" disabled>匯出 CSV</button>
+        <button type="button" id="download-excel" disabled>下載 Excel</button>
         <button type="button" id="download-dynamics" disabled>匯出 Dynamics JSON</button>
       </div>
       <dl id="summary" class="summary" aria-label="重點結果" hidden></dl>

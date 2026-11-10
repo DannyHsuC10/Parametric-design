@@ -45,7 +45,8 @@ function renderFlow(source) {
     (levels[node.level] ??= []).push('<span class="flow-node">' + branch + escapeHtml(node.label) + "</span>");
   }
   const rows = levels.map((level) => '<div class="flow-level">' + level.join("") + "</div>");
-  return '<details class="flow"><summary>展開計算流程</summary>' + rows.join("") + "</details>";
+  const label = report.lang === "en" ? "Expand calculation workflow" : "展開計算流程";
+  return '<details class="flow"><summary>' + label + '</summary>' + rows.join("") + "</details>";
 }
 
 marked.use({
@@ -72,6 +73,7 @@ async function renderResult(result) {
   const math = window.MathJax;
   await math.startup.promise;
   math.typesetClear([report]);
+  report.lang = overview.lang = result.language === "en" ? "en" : "zh-Hant";
 
   // The Markdown comes only from the local solver's report generator.
   report.innerHTML = marked.parse(result.markdown);

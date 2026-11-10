@@ -4,7 +4,9 @@ const sources = [
   "project.py",
   "vehicle_initial_sizing.py",
   "vehicle_initial_sizing_report.py",
+  "report_english.py",
   "dynamics_export.py",
+  "excel_results.py",
   "default_project.json",
   "dynamics_template.json",
 ];

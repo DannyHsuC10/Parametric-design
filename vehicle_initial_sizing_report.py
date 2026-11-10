@@ -7,25 +7,27 @@ import math
 import re
 
 from dynamics_export import damping_coefficients, frame_parameters
+from report_english import ENGLISH
 
 
-def build_report(snapshot):
+def build_report(snapshot, language="zh"):
     p = snapshot["parameters"]
-    return {
-        "markdown": render_markdown_report(snapshot),
-        "summary": [
-            {"label": "整車總質量", "value": f"{snapshot['frequency_mass']['m_total_vehicle_kg']:.2f}", "unit": "kg"},
-            {"label": "前軸靜態重量分配", "value": f"{p['wf'] * 100:.1f}", "unit": "%"},
-            {"label": "Skidpad 所需下壓力", "value": f"{snapshot['skidpad']['skidpad_required_aero_downforce_N']:.1f}", "unit": "N"},
-            {"label": "Roll gradient（含輪胎）",
-             "value": f"{snapshot['gradients']['roll_gradient_with_tires_deg_per_g']:.3f}", "unit": "°/g"},
-        ],
-    }
+    summary = [
+        {"label": "整車總質量", "value": f"{snapshot['frequency_mass']['m_total_vehicle_kg']:.2f}", "unit": "kg"},
+        {"label": "前軸靜態重量分配", "value": f"{p['wf'] * 100:.1f}", "unit": "%"},
+        {"label": "Skidpad 所需下壓力", "value": f"{snapshot['skidpad']['skidpad_required_aero_downforce_N']:.1f}", "unit": "N"},
+        {"label": "Roll gradient（含輪胎）",
+         "value": f"{snapshot['gradients']['roll_gradient_with_tires_deg_per_g']:.3f}", "unit": "°/g"},
+    ]
+    if language == "en":
+        for metric in summary:
+            metric["label"] = ENGLISH[metric["label"]]
+    return {"language": language, "markdown": render_markdown_report(snapshot, language), "summary": summary}
 
 
-def _number(value):
+def _number(value, unavailable="無可用解"):
     if value is None:
-        return r"\text{無可用解}"
+        return rf"\text{{{unavailable}}}"
     if math.isinf(value):
         return r"\infty" if value > 0 else r"-\infty"
     rendered = format(value, ".12g")
@@ -33,18 +35,6 @@ def _number(value):
         mantissa, exponent = rendered.split("e")
         return mantissa + r"\times10^{" + str(int(exponent)) + "}"
     return rendered
-
-
-def _cell(value):
-    if value is None:
-        return "—（無可用解）"
-    if isinstance(value, bool):
-        return "是" if value else "否"
-    if isinstance(value, (int, float)):
-        if math.isinf(value):
-            return "∞" if value > 0 else "−∞"
-        return format(value, ".12g")
-    return str(value).replace("|", r"\|").replace("\n", "<br>")
 
 
 def _flatten(value, prefix=""):
@@ -58,39 +48,66 @@ def _flatten(value, prefix=""):
         yield prefix, value
 
 
+def iter_result_rows(snapshot):
+    for section, values in snapshot.items():
+        if isinstance(values, (dict, list, tuple)):
+            yield from ((section, field, value) for field, value in _flatten(values))
+        else:
+            yield section, section, values
+
+
 def render_csv_results(snapshot):
     output = StringIO(newline="")
     writer = csv.writer(output, lineterminator="\r\n")
     writer.writerow(("section", "field", "value"))
-    for section, values in snapshot.items():
-        if isinstance(values, (dict, list, tuple)):
-            writer.writerows((section, field, value) for field, value in _flatten(values))
-        else:
-            writer.writerow((section, section, values))
+    writer.writerows(iter_result_rows(snapshot))
     return output.getvalue()
 
 
 class MarkdownReport:
-    def __init__(self):
+    def __init__(self, language):
         self.parts = []
+        self.messages = ENGLISH if language == "en" else {}
 
-    def text(self, value):
+    def translate(self, value):
+        return self.messages.get(value, value)
+
+    def text(self, value, **fields):
+        value = self.translate(value)
+        if fields:
+            value = value.format(**fields)
         self.parts.append(value.strip() + "\n\n")
 
-    def heading(self, value, level=2):
-        self.text("#" * level + " " + value)
+    def heading(self, value, level=2, **fields):
+        value = self.translate(value)
+        if fields:
+            value = value.format(**fields)
+        self.parts.append("#" * level + " " + value + "\n\n")
 
     def eq(self, formula, substitution=None, **numbers):
         # 跨行公式字串以 \quad{} 分隔，避免接合後變成 \quadc、\quadm 等無效指令。
-        self.text("$$\n" + formula + "\n$$")
+        self.text("$$\n" + self.translate(formula) + "\n$$")
         if substitution is not None:
+            unavailable = self.translate("無可用解")
             filled = re.sub(r"@([A-Za-z_][A-Za-z_0-9]*)@",
-                            lambda match: _number(numbers[match.group(1)]), substitution)
+                            lambda match: _number(numbers[match.group(1)], unavailable), substitution)
             self.text("$$\n" + filled + "\n$$")
 
+    def cell(self, value):
+        if value is None:
+            return self.translate("—（無可用解）")
+        if isinstance(value, bool):
+            return self.translate("是" if value else "否")
+        if isinstance(value, (int, float)):
+            if math.isinf(value):
+                return "∞" if value > 0 else "−∞"
+            return format(value, ".12g")
+        return self.translate(str(value)).replace("|", r"\|").replace("\n", "<br>")
+
     def table(self, headers, rows):
+        headers = [self.translate(header) for header in headers]
         lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
-        lines.extend("| " + " | ".join(_cell(value) for value in row) + " |" for row in rows)
+        lines.extend("| " + " | ".join(self.cell(value) for value in row) + " |" for row in rows)
         self.text("\n".join(lines))
 
 
@@ -115,29 +132,22 @@ graph TD
 ```"""
 
 
-def render_markdown_report(snapshot):
-    r = MarkdownReport()
+def render_markdown_report(snapshot, language="zh"):
+    r = MarkdownReport(language)
     stamp = datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds")
     r.heading("車輛初步設計估算報告", 1)
-    r.text(f"產生時間：{stamp}（Asia/Taipei）。本報告由 Vehicle Initial Sizing Lab 依本次求解結果產生。")
+    r.text("產生時間：{stamp}（Asia/Taipei）。本報告由 Vehicle Initial Sizing Lab 依本次求解結果產生。", stamp=stamp)
     r.text("在左側調整車重、幾何或其他參數後按「求解」，即可更新本次參數、數值代入與結果。"
            "公式內角度使用 rad，度數另行換算；"
            "計算保留原始精度，報告數字顯示最多 12 位有效數字。")
     r.heading("計算流程")
-    r.text(FLOW)
+    r.text(re.sub(r'"([^"]+)"', lambda match: '"' + r.translate(match[1]) + '"', FLOW))
     _render_basics(r, snapshot)
     _render_loads(r, snapshot)
     _render_modes(r, snapshot)
-    r.heading("20. 完整結果索引")
-    r.text("以下逐欄列出同次計算保存的完整結果。None 以「無可用解」顯示，布林狀態與負輪載均保留；"
-           "各欄位的單位沿用名稱後綴及前文定義。")
-    for group, values in snapshot.items():
-        if group == "parameters":
-            continue
-        r.heading(group, 3)
-        r.table(["結果欄位", "本次數值／狀態"], _flatten(values))
-    r.heading("21. 更新方式")
-    r.text("在 Vehicle Initial Sizing Lab 調整左側參數並按「求解」。按「儲存 Markdown」可保存當次完整報告。")
+    r.heading("更新方式")
+    r.text("在 Vehicle Initial Sizing Lab 調整左側參數並按「求解」。"
+           "完整結果可匯出為 CSV 或 Excel。Excel 另附欄位說明與單位。")
     return "".join(r.parts)
 
 
@@ -178,7 +188,7 @@ def _render_basics(r, s):
              t=cg["cg_min_track_m"], sf=p["cg_safety_factor"], a=math.radians(angle), limit=limit)
         r.eq(r"\mathrm{margin}=h_{\max}-h", r"\mathrm{margin}=@limit@-@h@=@margin@\ \mathrm{m}",
              limit=limit, h=p["h_cog"], margin=margin)
-        r.text(f"{angle}° 判定：**{cg[f'cg_status_{angle}']}**。")
+        r.text("{angle}° 判定：**{status}**。", angle=angle, status=r.translate(cg[f"cg_status_{angle}"]))
     r.text("這是左右對稱、無懸吊變形的幾何檢查。")
 
     q = s["skidpad"]
@@ -252,7 +262,7 @@ def _render_basics(r, s):
     for mode in ("pitch", "roll"):
         target = s["selected_stiffness"][mode]["stiffness_N_per_m"]
         rate = tire[f"Ks_{mode}_N_per_m"]
-        r.heading(mode.title() + "：使用兩條輪胎的等效剛性", 3)
+        r.heading("{mode}：使用兩條輪胎的等效剛性", 3, mode=mode.title())
         r.eq(r"K_{s,j}=\frac{K_j(2K_t)}{(2K_t-K_j)MR^2}",
              r"K_{s,j}=\frac{@K@\cdot(2\cdot@Kt@)}{(2\cdot@Kt@-@K@)\cdot@mr@^2}=@Ks@\ \mathrm{N/m}",
              K=target, Kt=p["Kt"], mr=p["MR"], Ks=rate)
@@ -315,7 +325,7 @@ def _render_basics(r, s):
             r.table(["調整後簧上頻率 Hz", "調整後簧下頻率 Hz"],
                     [(heave["adjusted_sprung_frequency_Hz"], heave["adjusted_unsprung_frequency_Hz"])])
         else:
-            r.text("**無可行正 Heave 解：**" + heave["reason"])
+            r.text("**無可行正 Heave 解：**{reason}", reason=r.translate(heave["reason"]))
 
     r.heading("9. 主 Heave 與 Tender 串聯")
     tender = s["tender"]
@@ -477,7 +487,8 @@ def _render_basics(r, s):
         if not tilt["contact_valid"]:
             r.text("**Caster 算式有實數解，接地模型失效。** 本節 Camber 與 Caster 僅為線性外推參考。")
     else:
-        r.text("**Caster 狀態：" + caster["solution_status"] + "。** " + caster["reason"])
+        r.text("**Caster 狀態：{status}。** {reason}",
+               status=caster["solution_status"], reason=r.translate(caster["reason"]))
 
 
 
@@ -563,7 +574,8 @@ def _render_loads(r, s):
         r.eq(r"F_{" + wheel + r"}=\sqrt{F_x^2+F_y^2+F_z^2}",
              r"F=\sqrt{(@x@)^2+(@y@)^2+(@z@)^2}=@F@\ \mathrm{N}",
              x=data["Fx_N"], y=data["Fy_N"], z=data["Fz_N"], F=data["force_magnitude_N"])
-    r.text("最大" + ("參考" if forces["reference_only"] else "") + "合力輪位：**" + forces["most_loaded_wheel"] + "**。")
+    r.text("最大參考合力輪位：**{wheel}**。" if forces["reference_only"] else "最大合力輪位：**{wheel}**。",
+           wheel=forces["most_loaded_wheel"])
 
     r.heading("14. 無空力加速與極速齒比")
     gear = s["gear"]
@@ -619,7 +631,7 @@ def _render_loads(r, s):
          r"z_{\mathrm{design}}=\min(@req@,@physical@)=@design@",
          lift=brake["rear_lift_limit_g"], mu=p["mu_w"], physical=brake["physical_deceleration_limit_g"],
          req=p["brake_ax"], design=brake["brake_design_deceleration_g"])
-    r.text("指定減速度可達：**" + _cell(brake["target_achievable"]) + "**。")
+    r.text("指定減速度可達：**{result}**。", result=r.cell(brake["target_achievable"]))
     r.heading("十點通過原點的最小平方擬合", 3)
     r.table(["減速度 g", "前煞車力 N", "後煞車力 N", "前比", "後比"],
             [(x["deceleration_g"], x["front_brake_force_N"], x["rear_brake_force_N"], x["front_ratio"], x["rear_ratio"])
@@ -656,7 +668,7 @@ def _render_modes(r, s):
     r.text("Ixx 為手動指定的簧上 CG 慣量；修改車體質量分布時需同步更新此輸入，質量改動不會自動推估新的慣量。")
     for axle, label, track in (("front", "前軸", p["tf"]), ("rear", "後軸", p["tr"])):
         x = d["roll"][axle]
-        r.heading(label + " Roll", 3)
+        r.heading(r.translate(label) + " Roll", 3)
         r.eq(r"K_{\phi i}=K_{s,i}(MRt_i)^2",
              r"K_{\phi i}=@Ks@(@mr@\cdot@t@)^2=@K@\ \mathrm{Nm/rad}",
              Ks=x["spring_stiffness_N_per_m"], mr=p["MR"], t=track, K=x["angular_stiffness_Nm_per_rad"])
@@ -732,7 +744,7 @@ def _render_modes(r, s):
     for axle, label, fraction in (("front", "前軸", p["wf"]), ("rear", "後軸", p["wr"])):
         for mode, case_label in cases:
             x = s["rate_cases"][axle][mode]
-            r.heading(label + "：" + case_label, 3)
+            r.heading("{axle}：{case}", 3, axle=r.translate(label), case=case_label)
             if x is None:
                 r.text("Tender 無可行解，這個 Ks 案例不計算。")
                 continue
@@ -815,7 +827,7 @@ def _render_modes(r, s):
         if mode == "heave_with_tender" and not p["use_tender"]:
             continue
         x = gr["pitch"][mode]
-        r.heading("Pitch：" + label, 3)
+        r.heading("Pitch：{mode}", 3, mode=r.translate(label))
         if x is None:
             r.text("Tender 無可行解，此階段不計算。")
             continue

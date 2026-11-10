@@ -12,21 +12,21 @@
 }
 
 .workbench-header {
-  padding: clamp(23px, 4vw, 42px) 0;
+  padding: 10px 0;
   border-bottom: 4px solid #58b2b9;
   background: linear-gradient(112deg, #122539, #203f56);
   color: white;
 }
 
-.workbench-header p { margin: 0; color: #d4e3ee; }
+.workbench-header p { margin: 0; color: #d4e3ee; font-size: 0.875rem; }
 .workbench-header .workbench-brand {
   color: #9cdee3;
-  font-size: 0.77rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-.workbench-header h1 { margin: 6px 0; font-size: clamp(1.8rem, 4vw, 2.7rem); }
+.workbench-header h1 { margin: 4px 0; font-size: clamp(1.55rem, 3vw, 1.75rem); }
 
 .workbench-layout {
   display: grid;
@@ -168,8 +168,6 @@
     height: 100dvh;
     overflow: hidden;
   }
-  .workbench-header { padding-block: 14px; }
-  .workbench-header h1 { font-size: 2rem; }
   .workbench-layout { align-items: stretch; padding-block: clamp(12px, 2vh, 24px); }
   .workbench-panel { display: flex; flex-direction: column; min-height: 0; }
   .settings-panel > :not(form),

@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from dynamics_export import build_dynamics_export
+from excel_results import render_excel_results
 from project import FIELDS, PROJECT_FORMAT, SCHEMA, FieldError, default_project, read_project, validate_inputs
 from vehicle_initial_sizing import solve
 from vehicle_initial_sizing_report import build_report, render_csv_results
@@ -21,10 +22,13 @@ PROJECTS = WEB.parent / "projects"
 
 
 def write_text(path, content, encoding="utf-8"):
+    write_bytes(path, content.encode(encoding))
+
+
+def write_bytes(path, content):
     staging = None
     try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding=encoding, newline="",
-                                         dir=path.parent, delete=False) as handle:
+        with tempfile.NamedTemporaryFile(mode="wb", dir=path.parent, delete=False) as handle:
             staging = Path(handle.name)
             handle.write(content)
         staging.replace(path)
@@ -83,9 +87,12 @@ class WorkbenchWindow(tk.Tk):
         self.save_button.pack(side="right")
         self.csv_button = ttk.Button(footer, text="匯出 CSV", command=self.save_csv, state="disabled")
         self.csv_button.pack(side="right", padx=(0, 6))
+        self.excel_button = ttk.Button(footer, text="下載 Excel", command=self.save_excel, state="disabled")
+        self.excel_button.pack(side="right", padx=(0, 6))
         self.dynamics_button = ttk.Button(
             footer, text="匯出json", command=self.save_dynamics, state="disabled")
         self.dynamics_button.pack(side="right", padx=(0, 6))
+        self.export_buttons = (self.save_button, self.csv_button, self.excel_button, self.dynamics_button)
         ttk.Label(footer, textvariable=self.status).pack(side="left", fill="x", expand=True)
 
         split = ttk.Panedwindow(self, orient="horizontal")
@@ -109,6 +116,10 @@ class WorkbenchWindow(tk.Tk):
         self.chapters = ttk.Combobox(result_tools, state="disabled")
         self.chapters.pack(side="left", fill="x", expand=True)
         self.chapters.bind("<<ComboboxSelected>>", self.jump_chapter)
+        self.report_language = ttk.Combobox(result_tools, values=("繁體中文", "English"), state="readonly", width=9)
+        self.report_language.current(0)
+        self.report_language.pack(side="right", padx=(6, 0))
+        self.report_language.bind("<<ComboboxSelected>>", self.change_report_language)
         tabs = ttk.Notebook(right)
         tabs.pack(fill="both", expand=True)
         self.report_frame = tk.Frame(tabs, background="white", highlightthickness=0)
@@ -220,10 +231,10 @@ class WorkbenchWindow(tk.Tk):
         self.ready = self.busy = False
         self.solve_button.state(["disabled"])
         self.chapters.configure(state="disabled")
+        self.report_language.configure(state="disabled")
         if self.markdown:
-            self.save_button.state(["!disabled"])
-            self.csv_button.state(["!disabled"])
-            self.dynamics_button.state(["!disabled"])
+            for button in self.export_buttons:
+                button.state(["!disabled"])
         self.status.set("無法載入 WebView2 報告檢視器。 " + detail)
 
     def send(self, message):
@@ -290,9 +301,8 @@ class WorkbenchWindow(tk.Tk):
         self.update_title()
         self.markdown = ""
         self.snapshot = None
-        self.save_button.state(["disabled"])
-        self.csv_button.state(["disabled"])
-        self.dynamics_button.state(["disabled"])
+        for button in self.export_buttons:
+            button.state(["disabled"])
         self.chapters.configure(values=(), state="disabled")
         self.chapters.set("")
         self.send({"event": "clear"})
@@ -380,7 +390,7 @@ class WorkbenchWindow(tk.Tk):
             return
         try:
             snapshot = solve(**self.values())
-            result = build_report(snapshot)
+            result = build_report(snapshot, self.selected_report_language())
         except (ValueError, ArithmeticError) as error:
             if isinstance(error, FieldError):
                 _, widget, page = self.inputs[error.field]
@@ -389,23 +399,33 @@ class WorkbenchWindow(tk.Tk):
             self.status.set(str(error))
             messagebox.showwarning("求解未完成", str(error), parent=self)
             return
+        self.snapshot = snapshot
+        self.present_report(result)
+
+    def selected_report_language(self):
+        return "en" if self.report_language.current() == 1 else "zh"
+
+    def change_report_language(self, _event):
+        if self.snapshot is not None and self.ready and not self.busy:
+            self.present_report(build_report(self.snapshot, self.selected_report_language()))
+
+    def present_report(self, result):
         self.busy = True
         self.solve_button.state(["disabled"])
-        self.save_button.state(["disabled"])
-        self.csv_button.state(["disabled"])
-        self.dynamics_button.state(["disabled"])
+        for button in self.export_buttons:
+            button.state(["disabled"])
         self.chapters.configure(state="disabled")
+        self.report_language.configure(state="disabled")
         self.markdown = result["markdown"]
-        self.snapshot = snapshot
         self.status.set("正在排版報告…")
         self.send({"event": "render", "report": result})
 
     def report_rendered(self, message):
         self.busy = False
         self.solve_button.state(["!disabled"])
-        self.save_button.state(["!disabled"])
-        self.csv_button.state(["!disabled"])
-        self.dynamics_button.state(["!disabled"])
+        self.report_language.configure(state="readonly")
+        for button in self.export_buttons:
+            button.state(["!disabled"])
         chapters = message["chapters"]
         self.chapters.configure(values=chapters, state="readonly" if chapters else "disabled")
         if chapters:
@@ -447,6 +467,23 @@ class WorkbenchWindow(tk.Tk):
             messagebox.showwarning("匯出失敗", str(error), parent=self)
         else:
             self.status.set(f"已匯出 CSV · {path.name}")
+
+    def save_excel(self):
+        if self.snapshot is None or self.busy:
+            return
+        filename = filedialog.asksaveasfilename(
+            parent=self, title="匯出車輛估算資料", initialfile="vehicle_initial_sizing_results.xlsx",
+            defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")],
+        )
+        if not filename:
+            return
+        path = Path(filename)
+        try:
+            write_bytes(path, render_excel_results(self.snapshot))
+        except OSError as error:
+            messagebox.showwarning("匯出失敗", str(error), parent=self)
+        else:
+            self.status.set(f"已匯出 Excel · {path.name}")
 
     def save_dynamics(self):
         if self.snapshot is None or self.busy:

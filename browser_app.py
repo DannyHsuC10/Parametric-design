@@ -1,8 +1,10 @@
 """Bridge the browser worker to the shared project and solver modules."""
 
+from base64 import b64encode
 import json
 
 from dynamics_export import build_dynamics_export
+from excel_results import render_excel_results
 from project import PROJECT_FORMAT, SCHEMA, default_project, parse_project, validate_inputs
 from vehicle_initial_sizing import solve
 from vehicle_initial_sizing_report import build_report, render_csv_results
@@ -23,8 +25,9 @@ def handle_request(action, payload_json):
             snapshot = solve(**payload["parameters"])
             dynamics = build_dynamics_export(snapshot, payload["name"])
             result = {
-                "report": build_report(snapshot),
+                "reports": {language: build_report(snapshot, language) for language in ("zh", "en")},
                 "csv": render_csv_results(snapshot),
+                "excel": b64encode(render_excel_results(snapshot)).decode("ascii"),
                 "dynamics": json.dumps(dynamics, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
             }
         else:
