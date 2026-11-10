@@ -61,11 +61,13 @@
         <button type="button" id="download-csv" disabled>匯出 CSV</button>
         <button type="button" id="download-dynamics" disabled>匯出 Dynamics JSON</button>
       </div>
-      <div id="placeholder" class="report-placeholder">
-        <p>設定參數後按「求解」，即可查看摘要、公式和數值代入。</p>
-      </div>
       <dl id="summary" class="summary" aria-label="重點結果" hidden></dl>
-      <article id="report" class="report"></article>
+      <div id="report-content" role="region" aria-label="報告內容" tabindex="0">
+        <div id="placeholder" class="report-placeholder">
+          <p>設定參數後按「求解」，即可查看摘要、公式和數值代入。</p>
+        </div>
+        <article id="report" class="report"></article>
+      </div>
     </section>
   </main>
 </body>

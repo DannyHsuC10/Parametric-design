@@ -3,6 +3,8 @@
 const form = byId("parameters");
 const controls = byId("controls");
 const chapterSelect = byId("chapters");
+const parameterFields = byId("parameter-fields");
+const reportContent = byId("report-content");
 const fileInput = byId("project-file");
 const groupButtons = [];
 const groupPanels = [];
@@ -75,6 +77,7 @@ function selectGroup(selected) {
     button.setAttribute("aria-pressed", index === selected);
     groupPanels[index].hidden = index !== selected;
   });
+  parameterFields.scrollTop = 0;
 }
 
 function buildForm(schema) {
@@ -88,7 +91,7 @@ function buildForm(schema) {
     groupButtons.push(button);
     groupPanels.push(panel);
     byId("parameter-groups").append(button);
-    byId("parameter-fields").append(panel);
+    parameterFields.append(panel);
     panel.append(element("h3", group.title));
 
     for (const field of group.fields) {
@@ -208,7 +211,8 @@ form.addEventListener("submit", (event) => {
       console.error(error);
       setStatus("報告排版失敗，可下載 Markdown 查看原文。", true);
     }
-    if (window.matchMedia("(max-width: 900px)").matches) byId("results").scrollIntoView();
+    reportContent.scrollTop = 0;
+    if (getComputedStyle(reportContent).overflowY === "visible") byId("results").scrollIntoView();
   });
 });
 
