@@ -2,7 +2,8 @@
   padding: 0;
   background: #edf2f7;
   --ink: #142638;
-  --accent: #176677;
+  --night: #111D31;
+  --accent: #076D64;
   --panel-padding: clamp(16px, 2vw, 26px);
 }
 
@@ -14,7 +15,7 @@
 .workbench-header {
   padding: 10px 0;
   border-bottom: 4px solid #58b2b9;
-  background: linear-gradient(112deg, #122539, #203f56);
+  background: var(--night);
   color: white;
 }
 
@@ -88,7 +89,7 @@
   font-weight: 700;
   font-size: 0.94rem;
 }
-.workbench .primary-button:not(:disabled):hover { background: #125565; }
+.workbench .primary-button:not(:disabled):hover { background: #065B54; }
 
 .workbench fieldset { margin: 0; padding: 0; min-inline-size: 0; border: 0; }
 .action-row { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -103,7 +104,12 @@
   background: #eff4f8;
 }
 #parameter-groups button { flex: 1; border-color: transparent; background: transparent; white-space: nowrap; }
-#parameter-groups button[aria-pressed="true"] { border-color: #b0d5d9; background: white; color: #125968; font-weight: 700; }
+#parameter-groups button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+}
 .parameter-group h3 { margin: 15px 0 4px; font-size: 0.85rem; color: var(--ink); }
 .parameter-field {
   display: grid;
