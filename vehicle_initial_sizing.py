@@ -179,7 +179,7 @@ Brake_ratio 使用無空力直線煞車，brake_ax 採用輸入 ax 作為正的�
 
 import math
 
-from project import DEFAULT_TENDER_TARGET_FREQUENCY_HZ, FIELDS, LEGACY_DERIVED_FIELDS, default_project, validate_inputs
+from project import FIELDS, LEGACY_DERIVED_FIELDS, LEGACY_TENDER_FALLBACK_HZ, default_project, validate_inputs
 
 
 g = 9.81                       # 重力加速度，m/s^2
@@ -333,8 +333,8 @@ def legacy_tender_target_frequency(p, divisor):
         )["frequency_unsprung_target_Hz"] / divisor
     except (ValueError, ArithmeticError):
         # Keep old drafts editable when their inputs cannot produce a baseline frequency.
-        return DEFAULT_TENDER_TARGET_FREQUENCY_HZ
-    return frequency if math.isfinite(frequency) and frequency > 0 else DEFAULT_TENDER_TARGET_FREQUENCY_HZ
+        return LEGACY_TENDER_FALLBACK_HZ
+    return frequency if math.isfinite(frequency) and frequency > 0 else LEGACY_TENDER_FALLBACK_HZ
 
 
 def calculate_heave_reduction(mass, unsprung_mass, motion_ratio, tire_stiffness,

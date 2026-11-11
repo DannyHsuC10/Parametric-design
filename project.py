@@ -5,7 +5,7 @@ import math
 from pathlib import Path
 
 PROJECT_FORMAT = "VehicleInitialSizingLab"
-DEFAULT_TENDER_TARGET_FREQUENCY_HZ = 3.1260823694383224
+LEGACY_TENDER_FALLBACK_HZ = 3.0
 TENDER_PITCH_HINT = (
     "請調低允許俯仰角。Tender 未併圈時與主簧串聯，會降低 Heave 等效剛性，煞車時的俯仰角可能增大。"
 )
