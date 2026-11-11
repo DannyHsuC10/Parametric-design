@@ -19,9 +19,9 @@
 
 | 網頁版操作 | 預設檔名 | 內容 |
 | --- | --- | --- |
-| Download Project | `vehicle_project.json` | 保存輸入參數，供 **Import Project** 重新載入。 |
+| Save Project | `vehicle_project.json` | 保存輸入參數，供 **Import Project** 重新載入。 |
 | Download Markdown | `vehicle_initial_sizing_report.md` | 保存右側目前語言的報告，包含公式、數值代入和重點結果。 |
-| Export CSV | `vehicle_initial_sizing_results.csv` | 完整輸入與結果，包含 `section`、`field`、`value` 三欄。採 UTF-8 BOM，無可用數值的項目留空。 |
+| Download CSV | `vehicle_initial_sizing_results.csv` | 完整輸入與結果，包含 `section`、`field`、`value` 三欄。採 UTF-8 BOM，無可用數值的項目留空。 |
 | Download Excel | `vehicle_initial_sizing_results.xlsx` | 完整輸入與結果，附分類、欄位、數值／狀態、單位和中文說明。首列凍結並可篩選，無可用數值顯示「無可用解」。布林狀態與負輪載可直接查閱。 |
 | Export Dynamics JSON | `Vehicle_initial_settings.json` | 供 SuspensionDynamicsLab 使用的懸吊動態、幾何與車輛參數。 |
 
