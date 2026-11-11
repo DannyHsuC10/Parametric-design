@@ -51,7 +51,7 @@
 - `corner` 與 `tire` 各匯出前軸（`f`）和後軸（`r`）兩組單輪參數，每組包含剛性 `k`、阻尼 `c` 和運動比 `mr`。SuspensionDynamicsLab 對同軸左右輪使用同一組設定。
 - 報告第 17 節列出 Heave、Roll 與輪胎阻尼的 LaTeX 公式與數值代入。阻尼係數使用本次求解的目標阻尼比。車架傳力虛擬質量為簧上質量的四分之一，傳力剛性為選定的線性 Roll 剛性（N/m）的十倍。
 - Tender 剛性保存在 `dynamics.tender_stiffness_N_per_m`，無有效結果時為 `null`。Heave 匯出採主簧設定。
-- 其餘全車欄位（例如 `Iyy`、Warp）沿用隨附的 `dynamics_template.json`。
+- Warp 通道沿用隨附的 `dynamics_template.json`。範本有提供 `Iyy` 時會一併匯出，否則可在匯入 SuspensionDynamicsLab 時補填簧上俯仰慣量。
 
 `geometry` 在同一層列出前後 RC 高度、FVSA、KPI、Caster 和掃描設定。前軸欄位以 `_f` 標記，後軸以 `_r` 標記。前後 FVSA 採前軸計算值，前後 KPI 採同一輸入，前 Caster 採求解結果（無解時為 `null`），後 Caster 為 0°。上壓與下垂掃描皆採壓縮行程換算成 mm，靜態避讓角及轉向掃描範圍皆採計算出的前輪轉角。重力加速度與輪胎自由半徑 `R_tire` 隨 `vehicle` 匯出。完整的 GeometryLab 專案還需合併其他車輛與懸吊幾何欄位。
 

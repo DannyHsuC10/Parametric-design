@@ -70,8 +70,10 @@ def build_dynamics_export(snapshot, name):
     steer = p["steering_angle_deg"]
     travel_mm = 1000 * p["sus_travel"]
     vehicle = {key: full.pop(key) for key in (
-        "m", "lf", "lr", "tf", "tr", "h_cg", "Ixx", "Iyy", "mu_f", "mu_r", "drive_front", "brake_front",
+        "m", "lf", "lr", "tf", "tr", "h_cg", "Ixx", "mu_f", "mu_r", "drive_front", "brake_front",
     )}
+    if "Iyy" in full:
+        vehicle["Iyy"] = full.pop("Iyy")
     vehicle.update(gravity=p["g"], free_radius=p["R_tire"])
     geometry = {
         "h_rc_f": full.pop("h_rc_f"), "h_rc_r": full.pop("h_rc_r"),
