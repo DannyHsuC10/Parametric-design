@@ -267,6 +267,7 @@ def _render_basics(r, s):
         r.eq(r"K_{s,j}=\frac{K_j(2K_t)}{(2K_t-K_j)MR^2}",
              r"K_{s,j}=\frac{@K@\cdot(2\cdot@Kt@)}{(2\cdot@Kt@-@K@)\cdot@mr@^2}=@Ks@\ \mathrm{N/m}",
              K=target, Kt=p["Kt"], mr=p["MR"], Ks=rate)
+    r.text("計入輪胎柔度後的 Pitch 簧率是前後 Heave 主簧的簧率，也是第 9 節反算 Tender 的主簧基準。")
     r.eq(r"K_{\mathrm{ride,target}}=\frac{K_p+K_{\mathrm{roll}}}{4}",
          r"K_{\mathrm{ride,target}}=\frac{@p@+@r@}{4}=@K@\ \mathrm{N/m}",
          p=s["selected_stiffness"]["pitch"]["stiffness_N_per_m"], r=s["selected_stiffness"]["roll"]["stiffness_N_per_m"],
@@ -702,11 +703,15 @@ def _render_modes(r, s):
                  K=x["body_stiffness_N_per_m"], m=x["sprung_mass_kg"],
                  cz=x["body_critical_damping_Ns_per_m"], mr=p["MR"], cd=x["damper_critical_damping_Ns_per_m"])
 
-    r.heading("Dynamics 匯出阻尼與車架傳力", 3)
-    r.text("純 Heave 通道使用兩輪位移總和，剛性與阻尼係數各除以 4。Roll 使用阻尼器端係數，四輪使用相同的胎剛性與單輪簧下質量。")
+    r.heading("Dynamics 匯出剛性、阻尼與車架傳力", 3)
+    r.text("heave_f_k 與 heave_r_k 儲存實體 Heave 主簧簧率，SuspensionDynamicsLab 直接使用這兩個剛性值。Heave 阻尼換算至雙輪位移總和座標後匯出。"
+           "Roll 使用阻尼器端係數，四輪使用相同的胎剛性與單輪簧下質量。")
     coefficients = damping_coefficients(s)
     for end, axle, label in (("f", "front", "前軸"), ("r", "rear", "後軸")):
         r.text(label)
+        r.eq(r"K_{\mathrm{heave,JSON}}=K_{\mathrm{main}}",
+             r"K_{\mathrm{heave,JSON}}=@k@\ \mathrm{N/m}",
+             k=d["pure_heave"][axle]["spring_stiffness_N_per_m"])
         r.eq(r"c_{\mathrm{heave,JSON}}=\frac{\zeta c_{\mathrm{heave,crit}}}{4},\quad{}"
              r"c_{\mathrm{roll,JSON}}=\zeta c_{\mathrm{roll,crit}}",
              r"c_{\mathrm{heave,JSON}}=\frac{@z@\cdot @h@}{4}=@hc@\ \mathrm{N\,s/m},\quad{}"

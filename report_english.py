@@ -71,6 +71,8 @@ ENGLISH = {
     "4. Compressed travel：行程限制": "4. Compression travel limit",
     "5. Frequency vs stiffness：較高需求剛性": "5. Natural frequency at the governing stiffness",
     "6. Tire stiffness：輪胎柔度與彈簧簧率": "6. Tire compliance and spring rates",
+    "計入輪胎柔度後的 Pitch 簧率是前後 Heave 主簧的簧率，也是第 9 節反算 Tender 的主簧基準。":
+        "The pitch spring rate corrected for tire compliance is the main heave spring rate at both axles. Section 9 uses it to size the tender spring.",
     "{mode}：使用兩條輪胎的等效剛性": "{mode}: Equivalent stiffness of two tires",
     "一般 Ks 沿用原模型：20,000～80,000 N/m 之間 2,000 個等距候選，選 ride rate 誤差最小者。":
         "The model tests 2,000 evenly spaced Ks values from 20,000 to 80,000 N/m and selects the one with the smallest ride-rate error.",
@@ -219,10 +221,10 @@ ENGLISH = {
         "Ixx is the supplied sprung-mass inertia about the CG. Update this input when the mass distribution changes. "
         "Changing the mass alone does not recalculate inertia.",
     "Tender 無可行解，此組阻尼不計算。": "Damping for this case is unavailable without a feasible tender spring.",
-    "Dynamics 匯出阻尼與車架傳力": "Dynamics export damping and chassis load transfer",
-    "純 Heave 通道使用兩輪位移總和，剛性與阻尼係數各除以 4。"
+    "Dynamics 匯出剛性、阻尼與車架傳力": "Dynamics export stiffness, damping, and chassis load transfer",
+    "heave_f_k 與 heave_r_k 儲存實體 Heave 主簧簧率，SuspensionDynamicsLab 直接使用這兩個剛性值。Heave 阻尼換算至雙輪位移總和座標後匯出。"
     "Roll 使用阻尼器端係數，四輪使用相同的胎剛性與單輪簧下質量。":
-        "The main heave channel uses the sum of the two wheel displacements, so stiffness and damping are divided by four. "
+        "heave_f_k and heave_r_k store the physical main heave spring rates, which SuspensionDynamicsLab uses directly. Exported heave damping uses the sum of the two wheel displacements as its coordinate. "
         "Roll uses the damper-side coefficient. All four wheels use the same tire stiffness and per-wheel unsprung mass.",
     "車架傳力採選定的線性 Roll 剛性（N/m）。": "The chassis load-transfer model uses the selected linear roll stiffness (N/m).",
     "18. 四種指定 Ks：前後 Ks → Kw → Kr、自然頻率、臨界阻尼與目標阻尼":

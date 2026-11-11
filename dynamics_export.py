@@ -23,7 +23,7 @@ def damping_coefficients(snapshot):
     damping = snapshot["damping"]
     coefficients = {}
     for end, axle in (("f", "front"), ("r", "rear")):
-        # The heave channel uses the sum of the two wheel displacements.
+        # Export damping in the dynamics model's two-wheel sum coordinate.
         coefficients[f"heave_{end}_c"] = zeta * damping["pure_heave"][axle]["damper_critical_damping_Ns_per_m"] / 4
         coefficients[f"roll_{end}_c"] = zeta * damping["roll"][axle]["damper_critical_damping_Ns_per_m"]
     coefficients["tire_c"] = 2 * zeta * math.sqrt(p["Kt"] * p["mu"])
@@ -54,7 +54,7 @@ def build_dynamics_export(snapshot, name):
     for end, axle in (("f", "front"), ("r", "rear")):
         heave = snapshot["damping"]["pure_heave"][axle]
         roll = snapshot["damping"]["roll"][axle]
-        channel(f"heave_{end}", heave["spring_stiffness_N_per_m"] / 4, damping[f"heave_{end}_c"], mr)
+        channel(f"heave_{end}", heave["spring_stiffness_N_per_m"], damping[f"heave_{end}_c"], mr)
         channel(f"roll_{end}", roll["spring_stiffness_N_per_m"], damping[f"roll_{end}_c"], mr)
         channel(f"corner_{end}", 0, 0, 1)
         channel(f"tire_{end}", p["Kt"], damping["tire_c"], 1)
@@ -82,7 +82,7 @@ def build_dynamics_export(snapshot, name):
     }
     return {
         "application": "VehicleInitialSizingLab-DynamicsExport",
-        "schema_version": 2,
+        "schema_version": 3,
         "name": name,
         "dynamics": full,
         "geometry": geometry,
