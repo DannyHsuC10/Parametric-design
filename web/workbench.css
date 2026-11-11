@@ -105,7 +105,21 @@
 
 .workbench fieldset { margin: 0; padding: 0; min-inline-size: 0; border: 0; }
 .action-row { display: flex; flex-wrap: wrap; gap: 7px; }
-.project-actions { align-self: start; justify-content: flex-end; }
+.project-actions { align-self: start; justify-content: flex-end; gap: 5.9px; }
+.workbench .project-actions button {
+  padding: 7px 8.7px;
+  border: 1px solid #506179;
+  border-radius: 6px;
+  background: #1D2B44;
+  color: #F0F6FC;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+.workbench .project-actions button:not(:disabled):hover {
+  background: #294157;
+  border-color: #79A4AF;
+}
 
 #parameter-groups {
   display: flex;
