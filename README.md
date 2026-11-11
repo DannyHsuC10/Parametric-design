@@ -6,7 +6,7 @@
 
 ## 網頁版使用方式
 
-1. 英文網頁開啟後會載入預設參數。頂部標題列右上角的 **Import Project** 可載入先前保存的專案 JSON，**Save Project** 可儲存目前的參數。
+1. 英文網頁開啟後會載入預設參數。頂部標題列的 **Import Project** 可載入先前保存的專案 JSON，**Save Project** 可儲存目前的參數。
 2. 在左側切換 **Vehicle**、**Performance**、**Suspension**、**Tires** 或 **Motors** 頁籤，調整設計參數。煞車減速度採用縱向加速度 `ax` 的輸入值。
 3. 按 **Solve** 後，右側預設顯示英文報告。報告語言選單可在求解前改選 **Traditional Chinese**，也可在求解後用同一組結果切換語言。
 4. 用 **Jump to section** 查看各項分析，並下載所需的報告或結果。修改參數後，重新求解即可匯出更新後的結果。
