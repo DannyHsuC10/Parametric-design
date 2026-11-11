@@ -4,6 +4,60 @@ import json
 import math
 from pathlib import Path
 
+from project import FIELDS, default_project, project_document, project_parameters, validate_inputs
+
+
+DYNAMICS_FORMAT = "VehicleInitialSizingLab-DynamicsExport"
+DYNAMICS_VERSION = 3
+LEGACY_DYNAMICS_ERROR = "舊版 Dynamics JSON 的車輛或懸吊參數不完整或無效。"
+
+
+def dynamics_project_parameters(document):
+    version = document.get("schema_version")
+    if type(version) is not int or version not in (2, DYNAMICS_VERSION):
+        raise ValueError("請選擇版本 2 或 3 的 Dynamics JSON。")
+    if "source_project" in document:
+        return project_parameters(document["source_project"]), False
+    return _legacy_dynamics_parameters(document), True
+
+
+def _legacy_dynamics_parameters(document):
+    vehicle = document.get("vehicle")
+    geometry = document.get("geometry")
+    dynamics = document.get("dynamics")
+    if not all(isinstance(section, dict) for section in (vehicle, geometry, dynamics)):
+        raise ValueError(LEGACY_DYNAMICS_ERROR)
+
+    mass, mu_front, mu_rear = (vehicle.get(key) for key in ("m", "mu_f", "mu_r"))
+    bump_mm, steer_deg, front_rc = (geometry.get(key) for key in ("bump_mm", "steer_deg", "h_rc_f"))
+    h_cog, lf, lr = (vehicle.get(key) for key in ("h_cg", "lf", "lr"))
+    if not all(type(value) in (int, float) and math.isfinite(value)
+               for value in (mass, mu_front, mu_rear, bump_mm, steer_deg, front_rc, h_cog, lf, lr)):
+        raise ValueError(LEGACY_DYNAMICS_ERROR)
+    if mu_front != mu_rear or not 0 < steer_deg < 90 or not 0 < front_rc < h_cog:
+        raise ValueError(LEGACY_DYNAMICS_ERROR)
+
+    recovered = {
+        "ms": mass - 4 * mu_front,
+        "mu": mu_front,
+        "h_cog": h_cog,
+        "lf": lf,
+        "lr": lr,
+        "tf": vehicle.get("tf"),
+        "tr": vehicle.get("tr"),
+        "sprung_roll_inertia_kg_m2": vehicle.get("Ixx"),
+        "R_tire": vehicle.get("free_radius"),
+        "sus_travel": bump_mm / 1000,
+        "min_turn_radius_m": (lf + lr) / math.tan(math.radians(steer_deg)),
+        "kpi_deg": geometry.get("kpi_f_deg"),
+        "rc_chassis_stiffness_ratio": h_cog / front_rc - 1,
+        "use_tender": dynamics.get("tender_enabled"),
+        "MR": dynamics.get("heave_f_mr"),
+        "zeta": dynamics.get("zeta"),
+        "Kt": dynamics.get("tire_f_k"),
+    }
+    return validate_inputs(default_project() | recovered)
+
 
 def load_template():
     path = Path(__file__).with_name("dynamics_template.json")
@@ -83,10 +137,11 @@ def build_dynamics_export(snapshot, name):
         "bump_mm": travel_mm, "droop_mm": travel_mm, "steer_deg": steer,
     }
     return {
-        "application": "VehicleInitialSizingLab-DynamicsExport",
-        "schema_version": 3,
+        "application": DYNAMICS_FORMAT,
+        "schema_version": DYNAMICS_VERSION,
         "name": name,
         "dynamics": full,
         "geometry": geometry,
         "vehicle": vehicle,
+        "source_project": project_document({key: p[key] for key in FIELDS}),
     }

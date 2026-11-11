@@ -3,11 +3,9 @@
 from base64 import b64encode
 import json
 
-from dynamics_export import build_dynamics_export
+from dynamics_export import DYNAMICS_FORMAT, build_dynamics_export, dynamics_project_parameters
 from excel_results import render_excel_results
-from project import (
-    FIELDS, PROJECT_FORMAT, SCHEMA, TENDER_PITCH_HINT_EN, FieldError, default_project, parse_project, validate_inputs,
-)
+from project import FIELDS, SCHEMA, TENDER_PITCH_HINT_EN, FieldError, default_project, project_document, project_parameters
 from vehicle_initial_sizing import solve
 from vehicle_initial_sizing_report import build_report, render_csv_results
 
@@ -76,6 +74,8 @@ VALIDATION_MESSAGES = {
 ERROR_MESSAGES = {
     "參數格式有誤。": "The parameter data is invalid.",
     "請選擇 VehicleInitialSizingLab 的版本 1 專案 JSON。": "Choose a version 1 Vehicle Initial Sizing Lab project JSON file.",
+    "請選擇版本 2 或 3 的 Dynamics JSON。": "Choose a version 2 or 3 Vehicle Initial Sizing Lab Dynamics JSON file.",
+    "舊版 Dynamics JSON 的車輛或懸吊參數不完整或無效。": "The legacy Dynamics JSON has missing or invalid vehicle or suspension data.",
     "專案的車輛參數欄位不完整或無法辨識。": "The project has missing or unrecognized vehicle parameters.",
     "舊版 Tender 頻率除數 N 必須為大於 0 的有限數值。": "The legacy tender frequency divisor N must be positive and finite.",
     "目標 ride rate 必須小於輪胎剛性，才能反算彈簧剛性":
@@ -126,17 +126,23 @@ def _english_error(action, error):
     }.get(action, "Unrecognized action."))
 
 
+def _import_project(text):
+    document = json.loads(text.removeprefix("\ufeff"))
+    if isinstance(document, dict) and document.get("application") == DYNAMICS_FORMAT:
+        parameters, used_defaults = dynamics_project_parameters(document)
+        return {"parameters": parameters, "is_dynamics": True, "used_defaults": used_defaults}
+    return {"parameters": project_parameters(document)}
+
+
 def handle_request(action, payload_json):
     payload = json.loads(payload_json)
     try:
         if action == "initialize":
             result = {"schema": _english_schema(), "parameters": default_project()}
         elif action == "import":
-            result = parse_project(payload)
+            result = _import_project(payload)
         elif action == "save":
-            project = {"application": PROJECT_FORMAT, "schema_version": 1,
-                       "parameters": validate_inputs(payload)}
-            result = json.dumps(project, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+            result = json.dumps(project_document(payload), ensure_ascii=False, indent=2, allow_nan=False) + "\n"
         elif action == "solve":
             snapshot = solve(**payload["parameters"])
             dynamics = build_dynamics_export(snapshot, payload["name"])

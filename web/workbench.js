@@ -168,7 +168,7 @@ function parameters() {
   return values;
 }
 
-function setProject(values, filename) {
+function setProject(values, filename, sourceName = filename) {
   for (const [name, {input, updateHint}] of inputs) {
     if (input.type === "checkbox") input.checked = values[name];
     else input.value = values[name] ?? "";
@@ -176,7 +176,7 @@ function setProject(values, filename) {
     input.removeAttribute("aria-invalid");
   }
   projectFile = filename;
-  byId("project-name").textContent = filename ?? "Default Parameters";
+  byId("project-name").textContent = sourceName ?? "Default Parameters";
   dirty = false;
   lastResult = null;
   staleResult = false;
@@ -211,13 +211,15 @@ fileInput.addEventListener("change", () => {
   fileInput.value = "";
   if (!file) return;
   runTask("Opening project…", async () => {
-    const values = await request("import", await file.text());
+    const imported = await request("import", await file.text());
     if (dirty && !window.confirm("Replace the current unsaved parameters with the imported project?")) {
       setStatus("Kept the current parameters.");
       return;
     }
-    setProject(values, file.name);
-    setStatus("Project imported. Ready to solve.");
+    setProject(imported.parameters, imported.is_dynamics ? undefined : file.name, file.name);
+    setStatus(imported.used_defaults
+      ? "Dynamics JSON imported. Missing inputs use defaults. Review the parameters before solving."
+      : "Project imported. Ready to solve.");
   });
 });
 

@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 
 PROJECT_FORMAT = "VehicleInitialSizingLab"
+PROJECT_VERSION = 1
 LEGACY_TENDER_FALLBACK_HZ = 3.0
 TENDER_PITCH_HINT = (
     "請調低允許俯仰角。Tender 未併圈時與主簧串聯，會降低 Heave 等效剛性，煞車時的俯仰角可能增大。"
@@ -119,17 +120,32 @@ def validate_inputs(values):
 
 
 def read_project(path):
-    return parse_project(path.read_text(encoding="utf-8-sig"))
+    return parse_project(path.read_text(encoding="utf-8"))
 
 
 def parse_project(text):
-    project = json.loads(text)
+    return project_parameters(json.loads(text.removeprefix("\ufeff")))
+
+
+def project_document(values):
+    values = validate_inputs(values)
+    if values.keys() != FIELDS.keys():
+        raise ValueError("專案的車輛參數欄位不完整或無法辨識。")
+    return {
+        "application": PROJECT_FORMAT,
+        "schema_version": PROJECT_VERSION,
+        "parameters": values,
+    }
+
+
+def project_parameters(project):
     if (not isinstance(project, dict) or project.get("application") != PROJECT_FORMAT
-            or type(project.get("schema_version")) is not int or project["schema_version"] != 1):
+            or type(project.get("schema_version")) is not int or project["schema_version"] != PROJECT_VERSION):
         raise ValueError("請選擇 VehicleInitialSizingLab 的版本 1 專案 JSON。")
     values = project.get("parameters")
     if not isinstance(values, dict):
         raise ValueError("專案的車輛參數欄位不完整或無法辨識。")
+    values = values.copy()
     values.pop("caster_direction_check_deg", None)  # Legacy projects stored the direction check angle.
     for name in LEGACY_DERIVED_FIELDS:
         values.pop(name, None)
