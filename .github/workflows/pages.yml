@@ -35,7 +35,7 @@ jobs:
           mkdir -p dist/web
           cp index.html browser_app.py project.py vehicle_initial_sizing.py vehicle_initial_sizing_report.py report_english.py dynamics_export.py excel_results.py default_project.json dynamics_template.json dist/
           sed -i "s|?v=local|?v=${GITHUB_SHA}|" dist/index.html
-          cp web/{lab.css,lab.js,workbench.css,workbench.js,solver-worker.js} dist/web/
+          cp web/{lab.css,lab.js,workbench.css,workbench.js,solver-worker.js,vehicle-sizing-icon.png} dist/web/
           cp -r web/vendor dist/web/
       - uses: actions/upload-pages-artifact@v4
         with:

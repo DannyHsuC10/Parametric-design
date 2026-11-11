@@ -6,9 +6,9 @@
   <meta name="description" content="Set vehicle, suspension, and performance targets, then run and export the analysis in your browser.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>Vehicle Initial Sizing Lab</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23122539'/%3E%3Cpath d='M8 21 12 11l4 10 4-10 4 10' stroke='%239cdee3' stroke-width='2' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" sizes="96x96" href="web/vehicle-sizing-icon.png?v=local">
   <link rel="stylesheet" href="web/lab.css">
-  <link rel="stylesheet" href="web/workbench.css">
+  <link rel="stylesheet" href="web/workbench.css?v=local">
   <script defer src="web/vendor/marked.js"></script>
   <script defer src="web/lab.js"></script>
   <script defer src="web/vendor/tex-svg.js"></script>
@@ -17,9 +17,12 @@
 <body class="workbench">
   <header class="workbench-header">
     <div class="workbench-width">
-      <p class="workbench-brand">Vehicle Initial Sizing Lab</p>
-      <h1>Vehicle Initial Sizing</h1>
-      <p>Set your design targets and review the vehicle and suspension analysis.</p>
+      <img class="workbench-icon" src="web/vehicle-sizing-icon.png?v=local" width="48" height="48" alt="">
+      <div>
+        <p class="workbench-brand">Vehicle Initial Sizing Lab</p>
+        <h1>Vehicle Initial Sizing</h1>
+        <p>Set your design targets and review the vehicle and suspension analysis.</p>
+      </div>
     </div>
   </header>
 
