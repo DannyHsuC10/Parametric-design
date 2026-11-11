@@ -1,0 +1,140 @@
+﻿raw_text,Frame Construction,Material,Overall L,Overall W,Overall H,Wheelbase,Track (Fr),Track (Rr),Weight with 68kg driver (Fr),Weight with 68kg driver (Rr),Suspension,Tyres (Fr / Rr),Wheels (Fr / Rr),Drive Type,Differential,Cooling,Brake System,Electronics,Number of Motors,Motor Location,Max Motor Power (per motor),Motor Type,Max Motor RPM (highest),Motor Controller,Max System Voltage,Electrode Materials,Combined Accumulator Capacity,Transmission Ratio (Primary),Transmission Ratio (Secondary),Processing unit(s),Floating Point Operations Per Second of all processing units that are working for the DV system,Power consumption of all processing units that are working for the DV system,Camera(s),Radar sensor(s),Lidar sensor(s),Other sensors,Highlights of the DV system
+"Car Specifications
+General
+Frame Construction
+CFRP / aluminium honeycomb sandwich structure monocoque
+Material
+T800 / M46J / M55J fibers with epoxy resin matrix, 5056 aluminium honeycomb
+Overall L
+284",CFRP / aluminium honeycomb sandwich structure monocoque,"T800 / M46J / M55J fibers with epoxy resin matrix, 5056 aluminium honeycomb",2845 mm,1500 mm,1182 mm,1530 mm,1220 mm,1220 mm,120 kg,121 kg,"Double A-Arm, mechanical heave-pitch on each axle, roll & warp hydraulically decoupled","16.0'x7.5'-10', Hoosier R20","8'x10', 48.75 mm offset, CFRP rim",Self-developed coupled planetary gearbox,n/a,Water Cooling for the Motors and Inverters. Air Cooling for the Accumulator. Two Radiators,"Floating rotors with 197mm diameter, SLM printed, topology otpimized brake calipers","Live Telemetry System, Torque Vectoring & Traction Control",4,Wheel hubs,43.5kW kW,PMSM in-runner,28000 rpm,Electrophorus Engineering GmbH,588V V,LiCoO2,6.838kWh kWh,17.99 : 1,n/a : 1,Speedgoat Unit open frame,786 GigaFLOPS,319.5W W,"1x Basler acA2500-20gc, with wide-angle 4.7mm Kowa LM4HC lens",n/a,Hesai OT128,n/a,"Lightweight and redundant sensor setup, birds eye fusion perception, graphSLAM with iSAM 2, nonlinear/linear dynamic bicycle/4-wheel model MPC, Minimum Curvature and Laptime Optimization for Path Planning"
+"Car Specifications
+General
+Frame Construction
+CFRP / aluminum honeycomb sandwich structure monocoque
+Material
+T800 / M46J fiber with epoxy resin matrix, 5056 auminum honeycomb
+Overall L
+2840 mm
+Overal",CFRP / aluminum honeycomb sandwich structure monocoque,"T800 / M46J fiber with epoxy resin matrix, 5056 auminum honeycomb",2840 mm,1500 mm,1180 mm,1530 mm,1220 mm,1220 mm,182 kg,247 kg,"Double A-arm, mechanical heave-pitch on each axle, roll & warp hydraulically decoupled",Hoosier R20,"8'x10', 54mm offset, CFRP rim",Self-developed coupled planetary gearbox,N/A,"Water Cooling for the Motors and Inverters. Air Cooling for the Accumulator. Two Radiators, located","Floating rotors with 195.5mm diameter, SLM printed, topology otpimized brake calipers","Live Telemetry System, Torque Vectoring & Traction Control",4,Wheel hub,43.5 kW,"FL,FR,RL,RR: PMSM in-runner","FL,FR,RR,RL: 28.000 rpm","Electrophorus Engineering GmbH, b",588V V,LiCoO2,6.838 kW kWh,18.31 : 1,n/a : 1,Speedgoat Unit open frame,786 & 2984 GigaFLOPS,279.5 W,"1x Basler acA2500-20gc, with wide-angle 4.7mm Kowa LM4HC lens",N/A,Hesai OT128,N/A,A non-linear model predictive controller with a dynamic model and sensor fusion combine camera and lidar data.
+"Car Specifications
+General
+Frame Construction
+Single-piece CFRP monocoque
+Material
+T800S/M46J fibers & 5056 honeycomb
+Overall L
+2840 mm
+Overall W
+1500 mm
+Overall H
+1180 mm
+Wheelbase
+1530 mm
+Track (Fr)",Single-piece CFRP monocoque,T800S/M46J fibers & 5056 honeycomb,2840 mm,1500 mm,1180 mm,1530 mm,1220 mm,1220 mm,123 kg,121 kg,"Double A-Arm, pushrod hydraulically actuated, roll and warp decoupled",Hoosier R20 16.0x7.5-10,"8.0x10, 54mm offset, CFRP Rim",Planetary gearset with staged planets,-,Water cooling with SLM printed radiators,"Floating rotors with 195.5mm diameter, SLM printed brake calipers","Live Telemetry System, Torque Vectoring & Traction Control",4,Wheel Hubs,4x 43.5kW kW,4x Self-developed AMZ M12,28000 rpm,2x Self-developed AMZ I5,554V V,LiCoO2,6.447kWh kWh,17.86 : 1,-,"Speedgoat Unit ECU, AMD Ryzen V1000, GeForce GTX1650",4814 GigaFLOPS,133 W,1x Basler acA2500-20gc,-,1x Ouster OS2-32,"2x IMU, Dual-antenna GNSS, Correvit SFII","Lightweight and redundant sensor setup, sequential fusion perception, iSAM2-based SLAM, 4-wheel model MPC controller, online grip estimation, bayesian optimization-based controller autotuner"
+"Car Specifications
+General
+Frame Construction
+Single piece carbon fibre reinforced polymer (CFRP) Monocoque
+Material
+CFRP&AFRP(Plain/Twill/UD), aluminium honeycomb core with variable thickness
+Overall",Single piece carbon fibre reinforced polymer (CFRP) Monocoque,"CFRP&AFRP(Plain/Twill/UD), aluminium honeycomb core with variable thickness",2850 mm,1500 mm,1180 mm,1530 mm,1220 mm,1200 mm,132 kg,123 kg,"Double A-Arm, pushrod hydraulically actuated, roll and warp decoupled",Hoosier 16.0'x7.5'-10'  LC0 / Hoosier 16.0'x7.5'-10'  LC0,Hoosier 16.0'x7.5'-10'  LC0 / Hoosier 16.0'x7.5'-10'  LC0,/,/,Rear mounted additively manufactured raidator with 8-inch (20.32cm) fans,"4-Disk system, self developed rotors with 245mm diameter, adjustable brake balance, RIT de","Multifunctional Steering Wheel,4WD Torque Vectoring Optimisation Algorithm,",4,"Front Right, Front Left,","40kW, 40W, 40kW, 40kW kW",AMZ M11(11th generation self-developed),28000 rpm,AMZ I4 (4th generation self-dev.),559V V,Lithium-ion-Pouch construction,6.495kWh kWh,17.26 : 1,/ : 1,AMD V1807B CPU + GTX 1060 GPU,4929 GigaFLOPS,200 W,Basler 5MP Camera with Kowa 4.7mm Lens providing 106° field-of-view,/,Hesai Pandar 64-beam LiDAR,/,Model Predictive Controller using a spatial (for autoX) and temporal (for trackdrive) discretized curvilinear abscissa formulation with a non-linear 4-wheel model
+"Car Specifications
+General
+Frame Construction
+Single piece carbon fibre reinforced polymer (CFRP) monocoque
+Material
+CFRP & AFRP (Twill/UD), aluminum honeycomb core with variable thickness
+Overall L
+2",Single piece carbon fibre reinforced polymer (CFRP) monocoque,"CFRP & AFRP (Twill/UD), aluminum honeycomb core with variable thickness",2858 mm,1500 mm,1208 mm,1530 mm,1220 mm,1220 mm,114 kg,120 kg,"double a-arm, push rod, hydraulically actuaded, roll and warp decoupled","16.0x7.5-10.0, Hoosier LC0","8 x 10, 63mm offset, self developed CFRP Rim with aluminum inserts",self developed planetary gearset with st,N/A,"rear motors & controllers water cooled, front motors aircooled, 2 radiators behind the rear a-arms","4-Disk system, self developed rotors, 196mm diameter, adjustabe brake balance, SLM caliper","Optical AMS,multifunctional steering wheel with flex PCB with 10 buttons 4 rotary switches",4,"FR, FL, RR, RL",39.25kW x 4 kW,AMZ M10,28000 rpm,self-developed AMZ I3 controller,558V V,LiPo,6.5kWh kWh,1:17.18 : 1,N/A : 1,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+CFRP single piece monocoque
+Material
+CFRP pre-preg (Twill, UD), aluminum honeycomb and Rohacell core
+Overall L
+2851 mm
+Overall W
+1538 mm
+Overall H
+1189 mm",CFRP single piece monocoque,"CFRP pre-preg (Twill, UD), aluminum honeycomb and Rohacell core",2851 mm,1538 mm,1189 mm,1530 mm,1210 mm,1210 mm,107 kg,119 kg,warp and roll decoupled hydraulic suspension,Hoosier 16.0x7.5-10 R25B,"8x10.42 mm offset, CFRP hub, aluminum star",self-developed planetary gearset,N/A,passive CFD optimized radiatorcooling,"4-Disk system, self developed SLM bracke calipers","optical AMS, live telemetry, Multifunctional Steering Wheel",4,"FR, FL, RR, RL",37 kW x4 kW,self-developed AMZ M9 PMSM in-runners,24000 rpm,self-developed AMZ I2 controller,546V V,LiCoO2,6.35 kWh kWh,1:15.98 : 1,N/A : 1,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+CFRP one-piece monocoque
+Material
+intermediate modulus CFRP prepreg (twill & UD) with aluminium honeycomb core
+Overall L
+2929 mm
+Overall W
+1463 mm
+Overall",CFRP one-piece monocoque,intermediate modulus CFRP prepreg (twill & UD) with aluminium honeycomb core,2929 mm,1463 mm,1188 mm,1530 mm,1220 mm,1220 mm,115 kg,125 kg,"double A-arm, hydraulically actuated pullrod,",205/470 R13; custom C18 Continental tyre (Fr & Rr),"7'', CFRP rim, 53 mm wheel offset (Fr & Rr)",planetary gear with staged planets,N/A,"single serial cooling circuit with two radiators actively cooled by two fans, mounted on the back","self developed, one piece, 3D printed callipers, 227 mm floating rotors","in-house optical AMS, live telemetry system, CAN communication, self developed CAN modules",4,"FL, FR, RL, RR",4x 41.9 kW kW,"AMZ M8, self developed, PMSM inrunner",24'000 RPM rpm,"AMZ I1, self developed inverters",470V V,LiPo,5.5 kWh kWh,17.75 : 1,N/A : 1,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+CFRP one-piece monocoque
+Material
+high modulus CFRP-prepreg (twill and UD) with aluminium honeycomb core
+Overall L
+2932 mm
+Overall W
+1422 mm
+Overall H
+115",CFRP one-piece monocoque,high modulus CFRP-prepreg (twill and UD) with aluminium honeycomb core,2932 mm,1422 mm,1156 mm,1530 mm,1220 mm,1220 mm,118 kg,120 kg,"double A-arms, hydraulic actuated, mode decoupled",205/470 R13 - Continental C17 (Fr and Rr),"7''x13'', 24.6 mm offset, CFRP rim (Fr and Rr)",planetary gear with staged planets,N/A,"Single serial cooling circuit with two radiators actively cooled by two fans, mounted on the back","Self developed callipers, CMC rotors, 190mm diameter floating rotors, adjustable brake","in-house optical BMS, live telemetry system, CAN communication, self developed can modules",4,wheelhub mounted,4x 38.44 kW kW,"AMZ M6, self-developed brush-less inrunner",24000 rpm,1 Lenze-Schmidhauser Dual DCU,462V V,LiPo,6.19kWh kWh,18.28 : 1,N/A : 1,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+CFRP one-piece monocoque
+Material
+Intermediate and high modular CFRP-prepreg (twill and UD) with aluminium honeycomb core
+Overall L
+2943 mm
+Overall W
+1425",CFRP one-piece monocoque,Intermediate and high modular CFRP-prepreg (twill and UD) with aluminium honeycomb core,2943 mm,1425 mm,1149 mm,1530 mm,1220 mm,1220 mm,120 kg,123 kg,Double A-Arm Pushrod actuated by spring with self developed air chamber and adaptive damper.,205/470 R13 - custom Continental tire,205/470 R13 - custom Continental tire,planetary gear with staged planets,none,"Single serial cooling circuit with two radiators actively cooled by two fans, mounted on the back","Self developed rotors, callipers & pads, 190mm diameter floating rotors, adjustable brake balance","in-house optical BMS, live telemetry system, CAN communication via self developed mini can modules",4,wheelhub mounted,4x39.4kW kW,"AMZ M6, self-developed brush-less inrunner",19.200 rpm,Lenze Schmidhauser Dual DCU,475V V,LiPo,6.35kWh kWh,1:14.37 : 1,-,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+CFRP single piece monocoque with integrated suspension brackets
+Material
+Intermediate and high modular CFRP-prepreg (twill and UD) with aluminium honeycom",CFRP single piece monocoque with integrated suspension brackets,Intermediate and high modular CFRP-prepreg (twill and UD) with aluminium honeycomb core,2870 mm,1438 mm,1139 mm,1530 mm,1200 mm,1188 mm,111 kg,125 kg,Double A-Arm Pushrod actuated by spring with self developed air chamber and adaptive damper.,465 x 191-254 Hoosier R25B (both),"10'' self developed single piece carbon rim, centerlocked (both)",planetary gear with staged planets,None,Single serial cooling circuit with two radiators mounted in the sidepods.,"Self developed floating rotors, 190mm diameter, adjustable brake balance","self programmed VCU and telemetry system, CAN communication via self developed mini can modules",4,wheelhub mounted,4x 37kW kW,"AMZ M5, self-developed brush-less inrunner",20.000 rpm,Lenze Schmidhauser Dual DCU,470 V,LiPo,6.46kWh kWh,14.5:1 : 1,-,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+Single- Piece CFRP Monocoque
+Material
+Prepreg Carbon (twill and unidirectional) and aluminium honeycomb with various thicknesses
+Overall L
+2904 mm
+Overall",Single- Piece CFRP Monocoque,Prepreg Carbon (twill and unidirectional) and aluminium honeycomb with various thicknesses,2904 mm,1411 mm,1161 mm,1535 mm,1190 mm,1150 mm,114 kg,124 kg,Double unequal Length Double A-Arm. Push rod actuated progressive spring and adaptive damper.,18.0x7.5-10 Hoosier R25B,7.5 inches single-piece CFRP Rim,1.5-stage planetary gear,None,"Single cooling circuit, two sidepod mounted radiators, one pump.","Steel, floating, hub mounted, 190mm dia, drilled, adjustable brake balance","Self programmed VCU and telemetry system, parameter",4,One at every wheel,4*37 kW,AMZ M4,19200 rpm,Lenze Schmidhauser Dual DCU,470 V,LiPo,6.46kWh kWh,1:13.57 : 1,,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+Single Piece CFRP Monocoque
+Material
+Prepreg carbon (twill and unidirectional) with various thickness aluminum honeycomb
+Overall L
+2942 mm
+Overall W
+1408 ",Single Piece CFRP Monocoque,Prepreg carbon (twill and unidirectional) with various thickness aluminum honeycomb,2942 mm,1408 mm,1169 mm,1550 mm,1200 mm,1160 mm,113 kg,134 kg,Double unequal length A-Arm. Push rod actuated spring / damper. Adj. Rollbar,Hoosier 18.0 x 6.0-10,"6.5 inch wide, 10inch Single Piece CFRP",1.5-stage planetary gear,none,"Two Sidepod mounted radiators, independent cooling cycles, one pump each","Front: AP-Racing CP 4227 (4pod), Rear: AP-Racing CP 4226 (2pod), Steel discs (190mm), hubmounted","Self-programed VCU and Telemetry, adjustments and readouts on steering wheel and dashboard",4,One at every wheel,4*37kW kW,AMZ M3,17000rpm rpm,Lenze Schmidhauser Dual DCU,470V V,LiPo,6.22kWh kWh,1:11.68 : 1,-,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+Single piece CFRP monocoque (prepreg)
+Material
+200 gsm prepreg carbon (twill and unidirectional) with various thickness aluminum honeycomb
+Overall L
+2890 ",Single piece CFRP monocoque (prepreg),200 gsm prepreg carbon (twill and unidirectional) with various thickness aluminum honeycomb,2890 mm,1408 mm,1236 mm,1550 mm,1200 mm,1160 mm,111 kg,127 kg,Double unequal length A-Arm.  Pull rod/ Push rod actuated spring / damper. Adj. Roll bar.,Hoosier 18.0 x 6.0-10,"6.5 inch wide, carbon shell, alu. center",Two stage gear box,no mechanical differential,"sidepod mounted, water fed radiator with air duct","Floating, Steel, hub mounted, 190mm, 4 piston front / 180mm, 2 piston rear, Tilton 77  cylinder,","Self-programed VCU and Telemetry, adjustments and readouts on steering wheel and dashboard",2,"Rear Right, Rear Left","40kW, 40kW kW",AMZ M2,6800 rpm,Semikron SKAI 50 A2 MM20-W,160V V,LiPo,"5,33kWh kWh","1:2,143 : 1","1:2,266 : 1",,,,,,,,
+"Car Specifications
+General
+Frame Construction
+Single-piece CFRP prepreg monocoque
+Material
+200 gsm prepreg carbon (twill and unidirectional) with various thickness aluminum honeycomb
+Overall L
+2610 mm",Single-piece CFRP prepreg monocoque,200 gsm prepreg carbon (twill and unidirectional) with various thickness aluminum honeycomb,2610 mm,1430 mm,1030 mm,1550 mm,1200 mm,1160 mm,119 kg,139 kg,Double wishbone unequal length carbon A-arms. Pull rod actuated coilover spring and damper.,Hoosier R25B 20.5x7.0-13,7.5x13 CFRP prepreg 22 mm offset,Dual two-stage gear transmission,"Individual rear wheel drive, aluminium tripod housings, carbon driveshafts with integrated tripods","Side-mounted aluminum radiator, serial cooling circuit for controller and motors",4-Disk system,"multi-input / multi-output steering wheel, self developped VCU software",2,"Rear Right, Rear Left","36 kW, 36 kW kW","RL, RR: AMZ M1","RL, RR: 6.500 rpm",Semikron SKAI 35 A2 MM20-W,152 V,Li - graphite,7 kWh kWh,1:5.12 : 1,n/a : 1,,,,,,,,
+"Car Specifications
+General
+Frame Construction
+Full carbon fiber monocoque in prepreg technique, front and rear part with steel roll bars
+Material
+Sandwich with 4 to 7 layers 200gsm carbon fiber prepre","Full carbon fiber monocoque in prepreg technique, front and rear part with steel roll bars",Sandwich with 4 to 7 layers 200gsm carbon fiber prepreg face sheets and up to 15mm nomex core,2720 mm,1420 mm,1050 mm,1625 mm,1200 mm,1150 mm,134 kg,146 kg,"CFRP double unequal length A-Arm, pullrod actuated, four-way adjustable Öhlins spring/damper unit","Front: 20,5 x 7,0 R13, Hoosier 25B. Rear: 20,0 x 7,5 R13, Hoosier 25B.","7,5 x 13 CFRP 3-spoke Rim, -1'' offset","2x 415 chain, split aluminum sprocket","No mechanical differential, electronically controlled torque vectoring","Air-cooled motors, water-cooled controllers with radiator in right side pod","4-Disk system, full floating, cast iron, hub-mounted, vented rotors","Self-programmed VCU, self-developed mini CAN modules, BMS and multifunctional steering wheel.",2,Inside rear monocoque,2x 30 kW kW,Agni 95R,6.000 rpm,2x Kelly KDH12101E,126V V,LiPo,"8,7 kWh",1:1 : 1,"1:5,3 : 1",,,,,,,,

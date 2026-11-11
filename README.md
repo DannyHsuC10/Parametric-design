@@ -15,6 +15,18 @@
 
 首次開啟需連線至 jsDelivr 以載入 Pyodide。專案匯入、求解與檔案匯出都在瀏覽器內處理。
 
+## Formula Student 資料
+
+點首頁標題列的 **Formula Student Data**，在新分頁開啟 **Vehicle Data**、**FSE Results** 和 **Parameter Distributions**。可篩選圖表、下載完整 CSV、匯出篩選結果，或匯入自己的 CSV。
+
+資料頁與瀏覽器計算位於 [web/formula-student/](web/formula-student/)，預設 CSV 隨站點一起發布。移走 `spider/` 後，仍可直接使用資料頁。要更新網站的預設資料，請在 [web/formula-student/data/](web/formula-student/data/) 內替換相應的 CSV，保留檔名和欄位。
+
+| 頁面 | 資料檔 |
+| --- | --- |
+| Vehicle Data | `FSG_EV_vehicle_database.csv` |
+| FSE Results | `fse_historical_results.csv` |
+| Parameter Distributions | `fsg_results_vehicle_year_intersection.csv`（按車隊和年份配對的規格與成績） |
+
 ## 下載與匯出
 
 | 網頁版操作 | 預設檔名 | 內容 |
@@ -82,8 +94,8 @@ python -m http.server 8000 --bind 127.0.0.1
 ### 發布到 GitHub Pages
 
 1. 在儲存庫的 **Settings → Pages** 將 **Source** 設為 **GitHub Actions**。
-2. 將網頁、Python 模組、根目錄 JSON 或部署流程的變更推送到 `main`。也可到 **Actions → Deploy Vehicle Initial Sizing Lab**，選擇 `main` 並按 **Run workflow** 手動發布。
-3. 部署完成後，從工作流程的 `github-pages` 環境連結開啟網站。工作流程會將網頁版入口、求解模組和範本打包到站點根目錄。 [部署工作流程](.github/workflows/pages.yml)
+2. 將網頁、Python 模組、根目錄 JSON、Formula Student 視覺化或 CSV、部署流程的變更推送到 `main`。也可到 **Actions → Deploy Vehicle Initial Sizing Lab**，選擇 `main` 並按 **Run workflow** 手動發布。
+3. 部署完成後，從工作流程的 `github-pages` 環境連結開啟網站。工作流程會打包原有網頁版及 Formula Student 視覺化頁面和其使用的三份 CSV。 [部署工作流程](.github/workflows/pages.yml)
 
 ## 主要程式
 

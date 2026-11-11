@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Vehicle Parameter Distributions</title>
+    <link rel="icon" type="image/svg+xml" href="../vehicle-sizing-icon.svg">
+    <link rel="stylesheet" href="../lab.css">
+    <link rel="stylesheet" href="../workbench.css?v=local">
+    <link rel="stylesheet" href="styles.css?v=local">
+  </head>
+  <body class="workbench data-workbench">
+    <header class="workbench-header">
+      <div class="workbench-width">
+        <img class="workbench-icon" src="../vehicle-sizing-icon.svg" width="48" height="48" alt="">
+        <div>
+          <p class="workbench-brand">Vehicle Initial Sizing Lab</p>
+          <h1>Vehicle Parameter Distributions</h1>
+          <p>Compare weighted and unweighted means and ±1σ ranges. Each team contributes one sample per year.</p>
+        </div>
+        <nav class="action-row workbench-header-actions" aria-label="Site navigation">
+          <a class="workbench-link" href="../../index.html">← Vehicle Initial Sizing</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="workbench-width shell">
+      <div class="topbar">
+        <nav class="page-links" aria-label="Formula Student data tools">
+          <a href="index.html">Vehicle Data</a>
+          <a href="fse_results.html">FSE Results</a>
+          <a href="vehicle_distribution.html" aria-current="page">Parameter Distributions</a>
+        </nav>
+        <div class="action-row">
+          <a class="file-picker" href="data/fsg_results_vehicle_year_intersection.csv" download>Download Full CSV</a>
+          <label class="file-picker">
+            <input class="sr-only" id="csvFile" type="file" accept=".csv,text/csv">
+            Import Matched CSV
+          </label>
+        </div>
+      </div>
+
+      <section class="controls distribution-controls" aria-label="Distribution chart controls">
+        <label>
+          <span>Vehicle parameter</span>
+          <select id="parameterSelect"></select>
+        </label>
+        <label>
+          <span>Event</span>
+          <select id="eventSelect"></select>
+        </label>
+        <label>
+          <span>Start year</span>
+          <input id="yearFrom" type="number" inputmode="numeric" placeholder="Any">
+        </label>
+        <label>
+          <span>End year</span>
+          <input id="yearTo" type="number" inputmode="numeric" placeholder="Any">
+        </label>
+        <label>
+          <span>Rank weighting</span>
+          <select id="weightMode">
+            <option value="inverse_rank" selected>1 / rank</option>
+            <option value="inverse_sqrt_rank">1 / sqrt(rank)</option>
+            <option value="equal">Equal weights</option>
+          </select>
+        </label>
+        <label>
+          <span>Year weighting</span>
+          <select id="yearWeightMode">
+            <option value="recency_inverse_age" selected>Favor recent years</option>
+            <option value="recency_exp_5">5-year half-life</option>
+            <option value="equal">Equal weights</option>
+          </select>
+        </label>
+        <label class="distribution-filter-toggle">
+          <input id="filterTenInchElectric" type="checkbox">
+          <span>Only EVs with 10-inch tires</span>
+        </label>
+      </section>
+
+      <section class="chart-area distribution-area">
+        <div class="stats" id="stats"></div>
+        <section class="counted-teams-panel" aria-labelledby="counted-teams-title">
+          <h2 id="counted-teams-title">Included Teams</h2>
+          <div id="countedTeams" class="counted-teams"></div>
+        </section>
+        <div class="canvas-wrap distribution-canvas-wrap">
+          <canvas id="chart" width="1200" height="620" aria-label="Vehicle parameter histogram and normal distribution curves"></canvas>
+        </div>
+      </section>
+
+      <section class="table-panel">
+        <div class="panel-head">
+          <h2>Statistics by Parameter</h2>
+          <button id="downloadStats" type="button">Download Statistics CSV</button>
+        </div>
+        <div class="table-wrap stats-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Unit</th>
+                <th>Samples</th>
+                <th>Unweighted mean ± σ</th>
+                <th>Weighted mean ± σ</th>
+                <th>Mean difference</th>
+                <th>Unweighted 1σ range</th>
+                <th>Weighted 1σ range</th>
+                <th>Recommended range</th>
+                <th>Observed range</th>
+              </tr>
+            </thead>
+            <tbody id="statsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="vehicle_distribution.js?v=local"></script>
+  </body>
+</html>

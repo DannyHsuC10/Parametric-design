@@ -23,10 +23,15 @@
         <h1>Vehicle Initial Sizing</h1>
         <p>Set your design targets and review the vehicle and suspension analysis.</p>
       </div>
-      <div class="action-row project-actions" role="group" aria-label="Project actions">
-        <button type="button" id="open-project" disabled>Import Project</button>
-        <button type="button" id="save-project" disabled>Save Project</button>
-        <input type="file" id="project-file" accept=".json,application/json" hidden disabled>
+      <div class="action-row workbench-header-actions">
+        <nav aria-label="Site navigation">
+          <a class="workbench-link" href="web/formula-student/index.html" target="_blank" rel="noopener">Formula Student Data <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
+        </nav>
+        <div class="action-row project-actions" role="group" aria-label="Project actions">
+          <button type="button" id="open-project" disabled>Import Project</button>
+          <button type="button" id="save-project" disabled>Save Project</button>
+          <input type="file" id="project-file" accept=".json,application/json" hidden disabled>
+        </div>
       </div>
     </div>
   </header>

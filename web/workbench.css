@@ -105,8 +105,10 @@
 
 .workbench fieldset { margin: 0; padding: 0; min-inline-size: 0; border: 0; }
 .action-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.workbench-header-actions { align-items: center; justify-content: flex-end; }
 .project-actions { justify-content: flex-end; gap: 5.9px; }
-.workbench .project-actions button {
+.workbench .project-actions button,
+.workbench .workbench-link {
   padding: 7px 8.7px;
   border: 1px solid #506179;
   border-radius: 6px;
@@ -116,10 +118,19 @@
   font-size: 14px;
   font-weight: 600;
 }
-.workbench .project-actions button:not(:disabled):hover {
+.workbench .workbench-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  text-decoration: none;
+}
+.workbench .project-actions button:not(:disabled):hover,
+.workbench .workbench-link:hover {
   background: #294157;
   border-color: #79A4AF;
 }
+.workbench .workbench-link:focus-visible { outline-color: #9cdee3; }
 
 #parameter-groups {
   display: flex;
@@ -197,7 +208,7 @@
 
 @media (max-width: 600px) {
   .workbench-header .workbench-width { grid-template-columns: auto minmax(0, 1fr); }
-  .project-actions { grid-column: 1 / -1; }
+  .workbench-header-actions { grid-column: 1 / -1; }
 }
 
 @media (width > 900px) and (min-height: 500px) {

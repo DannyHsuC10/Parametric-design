@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Formula Student Vehicle Data</title>
+    <link rel="icon" type="image/svg+xml" href="../../web/vehicle-sizing-icon.svg">
+    <link rel="stylesheet" href="../../web/lab.css">
+    <link rel="stylesheet" href="../../web/workbench.css?v=local">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="workbench data-workbench">
+    <header class="workbench-header">
+      <div class="workbench-width">
+        <img class="workbench-icon" src="../../web/vehicle-sizing-icon.svg" width="48" height="48" alt="">
+        <div>
+          <p class="workbench-brand">Vehicle Initial Sizing Lab</p>
+          <h1>Formula Student Vehicle Data</h1>
+          <p>Compare vehicle specifications by team and year. Filter by vehicle type and tires.</p>
+        </div>
+        <nav class="action-row workbench-header-actions" aria-label="Site navigation">
+          <a class="workbench-link" href="../../index.html">← Vehicle Initial Sizing</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="workbench-width shell">
+      <div class="topbar">
+        <nav class="page-links" aria-label="Formula Student data tools">
+          <a href="index.html" aria-current="page">Vehicle Data</a>
+          <a href="fse_results.html">FSE Results</a>
+          <a href="vehicle_distribution.html">Parameter Distributions</a>
+        </nav>
+        <div class="action-row">
+          <a class="file-picker" href="../FSG_data_statistics/raw_data/FSG_EV_vehicle_database.csv" download>Download Full CSV</a>
+          <label class="file-picker">
+            <input class="sr-only" id="csvFile" type="file" accept=".csv,text/csv">
+            Import CSV
+          </label>
+        </div>
+      </div>
+
+      <section class="controls" aria-label="Vehicle chart controls">
+        <label>
+          <span>Metric</span>
+          <select id="metricSelect"></select>
+        </label>
+        <label>
+          <span>Team search</span>
+          <input id="teamSearch" type="search" placeholder="Enter a team name">
+        </label>
+        <label>
+          <span>Team limit</span>
+          <select id="teamLimit">
+            <option value="all">All teams</option>
+            <option value="5">Top 5 teams</option>
+            <option value="10" selected>Top 10 teams</option>
+            <option value="15">Top 15 teams</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="dashboard">
+        <aside class="panel">
+          <div class="panel-head">
+            <h2>Teams</h2>
+            <button id="selectAll" type="button">Select All</button>
+            <button id="clearAll" type="button">Clear</button>
+          </div>
+          <fieldset class="vehicle-filters">
+            <legend>Vehicle filters</legend>
+            <label>
+              <input id="filterElectric" type="checkbox">
+              <span>Electric vehicles</span>
+            </label>
+            <label>
+              <input id="filterHoosier" type="checkbox">
+              <span>Hoosier tires</span>
+            </label>
+            <label>
+              <input id="filterTenInch" type="checkbox">
+              <span>10-inch wheels or tires</span>
+            </label>
+          </fieldset>
+          <div id="teamList" class="team-list"></div>
+        </aside>
+
+        <section class="chart-area">
+          <div class="stats" id="stats"></div>
+          <div class="canvas-wrap">
+            <canvas id="chart" width="1100" height="560" aria-label="Vehicle data line chart"></canvas>
+            <div id="tooltip" class="tooltip" hidden></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="table-panel">
+        <div class="panel-head">
+          <h2>Chart Data</h2>
+          <button id="downloadFiltered" type="button">Download Filtered CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Year</th>
+                <th id="valueHeader">Value</th>
+                <th>Raw value</th>
+              </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js?v=local"></script>
+  </body>
+</html>

@@ -34,9 +34,10 @@ jobs:
         run: |
           mkdir -p dist/web
           cp index.html browser_app.py project.py vehicle_initial_sizing.py vehicle_initial_sizing_report.py report_english.py dynamics_export.py excel_results.py default_project.json dynamics_template.json dist/
-          sed -i "s|?v=local|?v=${GITHUB_SHA}|" dist/index.html
           cp web/{lab.css,lab.js,workbench.css,workbench.js,solver-worker.js,vehicle-sizing-icon.svg} dist/web/
           cp -r web/vendor dist/web/
+          cp -r web/formula-student dist/web/
+          sed -i "s|?v=local|?v=${GITHUB_SHA}|g" dist/index.html dist/web/formula-student/*.html
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
