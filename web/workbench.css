@@ -149,6 +149,8 @@
 }
 .field-unit { margin-inline-start: 5px; color: var(--muted); white-space: nowrap; font-size: 0.74rem; }
 .field-hint { display: block; color: var(--muted); font-size: 0.73rem; }
+.parameter-field > .field-hint { grid-column: 1 / -1; }
+.field-hint[hidden] { display: none; }
 .parameter-field input[type="number"] {
   width: 100%;
   min-height: 32px;

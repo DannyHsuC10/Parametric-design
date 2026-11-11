@@ -132,15 +132,27 @@ function buildForm(schema) {
       if (input.type === "number") input.step = "any";
       label.htmlFor = input.id;
       if (field.unit) label.append(element("span", field.unit, "field-unit"));
+      row.append(label, input);
+      let updateHint;
       if (field.hint) {
         const hint = element("small", field.hint, "field-hint");
         hint.id = input.id + "-hint";
-        input.setAttribute("aria-describedby", hint.id);
-        label.append(hint);
+        if (field.hint_when_checked) {
+          row.append(hint);
+          updateHint = () => {
+            hint.hidden = !input.checked;
+            if (input.checked) input.setAttribute("aria-describedby", hint.id);
+            else input.removeAttribute("aria-describedby");
+          };
+          input.addEventListener("change", updateHint);
+          updateHint();
+        } else {
+          input.setAttribute("aria-describedby", hint.id);
+          label.append(hint);
+        }
       }
-      row.append(label, input);
       panel.append(row);
-      inputs.set(field.name, {input, group: index});
+      inputs.set(field.name, {input, group: index, updateHint});
     }
   }
   selectGroup(0);
@@ -157,9 +169,10 @@ function parameters() {
 }
 
 function setProject(values, filename) {
-  for (const [name, {input}] of inputs) {
+  for (const [name, {input, updateHint}] of inputs) {
     if (input.type === "checkbox") input.checked = values[name];
     else input.value = values[name] ?? "";
+    updateHint?.();
     input.removeAttribute("aria-invalid");
   }
   projectFile = filename;

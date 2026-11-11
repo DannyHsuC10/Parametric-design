@@ -1,6 +1,10 @@
 """English text for the shared sizing report, keyed by its Traditional Chinese source."""
 
+from project import TENDER_PITCH_HINT, TENDER_PITCH_HINT_EN
+
+
 ENGLISH = {
+    TENDER_PITCH_HINT: TENDER_PITCH_HINT_EN,
     "整車總質量": "Total vehicle mass",
     "前軸靜態重量分配": "Front static weight distribution",
     "Skidpad 所需下壓力": "Required skidpad downforce",
@@ -78,6 +82,8 @@ ENGLISH = {
         "The model tests 2,000 evenly spaced Ks values from 20,000 to 80,000 N/m and selects the one with the smallest ride-rate error.",
     "7. Frequency vs mass：簧上與簧下頻率": "7. Sprung and unsprung natural frequencies",
     "8. 固定 Roll，反算 Heave": "8. Calculate target heave stiffness with fixed roll stiffness",
+    "使用指定的 Tender 目標簧上自然頻率，固定 Roll 剛性反算 Heave 串聯剛性。":
+        "Use the specified tender target sprung natural frequency and hold roll stiffness fixed to calculate the required heave series rate.",
     "**Tender 已關閉（use_tender = False）。** 跳過 Heave 反算與 Tender 可行性計算，直接使用原 Heave 主簧剛性。":
         "**The tender spring is disabled (use_tender = False).** The calculation uses the original main heave spring rate.",
     "以新 Heave 和固定 Roll 代回第 7 節的同一公式，回算頻率如下。":

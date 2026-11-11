@@ -7,6 +7,7 @@ import math
 import re
 
 from dynamics_export import damping_coefficients, frame_parameters
+from project import TENDER_PITCH_HINT
 from report_english import ENGLISH
 from vehicle_initial_sizing import calculate_roll_axle_stiffness
 
@@ -165,6 +166,7 @@ def _render_basics(r, s):
         "drive_target_speed_kmh": "km/h", "R_tire": "m", "drive_motor_torque_Nm": "N·m",
         "drive_motor_rpm": "rpm", "brake_driver_force_N": "N", "sprung_roll_inertia_kg_m2": "kg·m²",
         "target_pitch_angle_deg": "deg", "target_roll_angle_deg": "deg", "kpi_deg": "deg",
+        "target_sprung_frequency_Hz": "Hz",
         "use_tender": "是否使用 Tender 彈簧",
         "active_heave_spring_N_per_m": "N/m（本次採用的 Heave 剛性）",
         "anti_front_chassis_stiffness_N_per_m": "N/m（由共用剛性比計算的前軸車體等效剛性）",
@@ -218,6 +220,8 @@ def _render_basics(r, s):
     r.text("係數以下壓力為正；C 採指定公式，Cl 對照原 Aero_Cl_Cd 定義。完整需求不乘下壓力施加比例。")
 
     r.heading("3. 指定 Pitch／Roll 角度所需剛性")
+    if p["use_tender"]:
+        r.text(TENDER_PITCH_HINT)
     r.eq(r"s=\frac{\ell}{2}\theta,\quad \mathcal{M}=M_s|a_g|gh,\quad K=\frac{\mathcal{M}}{\ell s}")
     for mode, span, accel, angle in (
         ("pitch", p["L"], abs(p["ax"]), p["target_pitch_angle_deg"]),
@@ -303,11 +307,11 @@ def _render_basics(r, s):
              r"K_{h,\mathrm{active}}=K_{\mathrm{main}}=@K@\ \mathrm{N/m}", K=tire["Ks_pitch_N_per_m"])
     else:
         target = heave["target_natural_frequency_Hz"]
-        required_ride = (2 * math.pi * target)**2 * p["ms"] / 4
-        r.eq(r"f_{\mathrm{target}}=\frac{f_{u,0}}{N}",
-             r"f_{\mathrm{target}}=\frac{@fu@}{@N@}=@f@\ \mathrm{Hz}",
-             fu=heave["current_unsprung_frequency_Hz"], N=p["N"], f=target)
+        omega = math.tau * target
+        required_ride = omega * omega * (p["ms"] / 4)
+        r.text("使用指定的 Tender 目標簧上自然頻率，固定 Roll 剛性反算 Heave 串聯剛性。")
         r.eq(r"K_{r,\mathrm{target}}=(2\pi f_{\mathrm{target}})^2\frac{M_s}{4}",
+             r"f_{\mathrm{target}}=@f@\ \mathrm{Hz},\quad{}"
              r"K_{r,\mathrm{target}}=(2\pi\cdot@f@)^2\frac{@ms@}{4}=@Kr@\ \mathrm{N/m}",
              f=target, ms=p["ms"], Kr=required_ride)
         r.eq(r"K_{h,\mathrm{target}}=\frac{4K_{r,\mathrm{target}}K_t}{(K_t-K_{r,\mathrm{target}})MR^2}-K_{s,\mathrm{roll}}")

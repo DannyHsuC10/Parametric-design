@@ -165,8 +165,16 @@ class WorkbenchWindow(tk.Tk):
             self.inputs[field["name"]] = (variable, widget, page)
             row += 1
             if field.get("hint"):
-                ttk.Label(content, text=field["hint"], foreground="#475569", wraplength=300).grid(
-                    row=row, columnspan=2, sticky="w", pady=(0, 3))
+                hint = ttk.Label(content, text=field["hint"], foreground="#475569", wraplength=300)
+                hint.grid(row=row, columnspan=2, sticky="w", pady=(0, 3))
+                if field.get("hint_when_checked"):
+                    def update_hint(*_, hint=hint, variable=variable):
+                        if variable.get():
+                            hint.grid()
+                        else:
+                            hint.grid_remove()
+                    variable.trace_add("write", update_hint)
+                    update_hint()
                 row += 1
 
         def wheel(event):

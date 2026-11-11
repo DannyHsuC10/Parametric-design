@@ -5,7 +5,9 @@ import json
 
 from dynamics_export import build_dynamics_export
 from excel_results import render_excel_results
-from project import FIELDS, PROJECT_FORMAT, SCHEMA, FieldError, default_project, parse_project, validate_inputs
+from project import (
+    FIELDS, PROJECT_FORMAT, SCHEMA, TENDER_PITCH_HINT_EN, FieldError, default_project, parse_project, validate_inputs,
+)
 from vehicle_initial_sizing import solve
 from vehicle_initial_sizing_report import build_report, render_csv_results
 
@@ -39,7 +41,7 @@ FIELD_LABELS = {
     "target_pitch_angle_deg": "Allowable Pitch Angle",
     "target_roll_angle_deg": "Allowable Roll Angle",
     "kf": "Front Roll Stiffness Weight (kf)",
-    "N": "Target Unsprung-to-Sprung Natural Frequency Ratio",
+    "target_sprung_frequency_Hz": "Tender Target Sprung Natural Frequency",
     "min_turn_radius_m": "Minimum Turning Radius",
     "kpi_deg": "Kingpin Inclination (KPI)",
     "rc_chassis_stiffness_ratio": "Chassis-to-Suspension Stiffness Ratio",
@@ -57,8 +59,9 @@ FIELD_LABELS = {
 }
 
 FIELD_HINTS = {
+    "use_tender": TENDER_PITCH_HINT_EN,
     "kf": "Enter a value between 0 and 1. The rear weight is 1 − kf.",
-    "N": "Used only when the tender spring is enabled.",
+    "target_sprung_frequency_Hz": "Used only when the tender spring is enabled.",
     "rc_chassis_stiffness_ratio": "Shared by the roll center and the front and rear anti calculations.",
 }
 
@@ -74,6 +77,7 @@ ERROR_MESSAGES = {
     "參數格式有誤。": "The parameter data is invalid.",
     "請選擇 VehicleInitialSizingLab 的版本 1 專案 JSON。": "Choose a version 1 Vehicle Initial Sizing Lab project JSON file.",
     "專案的車輛參數欄位不完整或無法辨識。": "The project has missing or unrecognized vehicle parameters.",
+    "舊版 Tender 頻率除數 N 必須為大於 0 的有限數值。": "The legacy tender frequency divisor N must be positive and finite.",
     "目標 ride rate 必須小於輪胎剛性，才能反算彈簧剛性":
         "The target ride rate must be lower than the tire stiffness to calculate the spring rate.",
     "指定 FVSA 公式在這組公尺制參數下無法得到有限正長度":

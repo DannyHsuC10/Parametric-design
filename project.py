@@ -5,6 +5,14 @@ import math
 from pathlib import Path
 
 PROJECT_FORMAT = "VehicleInitialSizingLab"
+DEFAULT_TENDER_TARGET_FREQUENCY_HZ = 3.1260823694383224
+TENDER_PITCH_HINT = (
+    "請調低允許俯仰角。Tender 未併圈時與主簧串聯，會降低 Heave 等效剛性，煞車時的俯仰角可能增大。"
+)
+TENDER_PITCH_HINT_EN = (
+    "Lower the Allowable Pitch Angle when using a tender spring. Before coil bind, the tender and main spring "
+    "act in series, reducing heave stiffness and allowing more pitch under braking."
+)
 LEGACY_DERIVED_FIELDS = (
     "kr", "brake_ax", "cg_safety_factor",
     "anti_front_chassis_stiffness_N_per_m", "anti_rear_chassis_stiffness_N_per_m",
@@ -30,14 +38,14 @@ GROUPS = (
         ("drive_target_speed_kmh", "目標極速", "km/h"),
     )),
     ("懸吊與轉向", "懸吊", (
-        ("use_tender", "使用 Tender 彈簧", ""),
+        ("use_tender", "使用 Tender 彈簧", "", {"hint": TENDER_PITCH_HINT, "hint_when_checked": True}),
         ("MR", "運動比 MR", ""),
         ("zeta", "目標阻尼比 ζ", "", {"positive": False, "min": 0}),
         ("sus_travel", "懸吊壓縮行程", "m", {"max": 0.05}),
         ("target_pitch_angle_deg", "允許俯仰角", "°", {"min": 0.1, "max": 3}),
         ("target_roll_angle_deg", "允許側傾角", "°", {"min": 0.1, "max": 3}),
         ("kf", "前軸剛性權重 kf", "", {"hint": "輸入 0 與 1 之間的小數，後軸權重為 1 − kf"}),
-        ("N", "目標簧上簧下自然頻率倍率", "", {"hint": "僅在啟用 Tender 時使用"}),
+        ("target_sprung_frequency_Hz", "Tender 目標簧上自然頻率", "Hz", {"hint": "僅在啟用 Tender 時使用"}),
         ("min_turn_radius_m", "最小轉彎半徑", "m"),
         ("kpi_deg", "主銷內傾角 KPI", "°", {"positive": False}),
         ("rc_chassis_stiffness_ratio", "車體／懸吊剛性比", "", {"hint": "供 Roll Center、前 Anti 與後 Anti 共用"}),
@@ -120,17 +128,26 @@ def parse_project(text):
             or type(project.get("schema_version")) is not int or project["schema_version"] != 1):
         raise ValueError("請選擇 VehicleInitialSizingLab 的版本 1 專案 JSON。")
     values = project.get("parameters")
-    if isinstance(values, dict):
-        values.pop("caster_direction_check_deg", None)  # Legacy projects stored the direction check angle.
-        for name in LEGACY_DERIVED_FIELDS:
-            values.pop(name, None)
-    if not isinstance(values, dict) or values.keys() not in (FIELDS.keys(), FIELDS.keys() - {"zeta"}):
+    if not isinstance(values, dict):
+        raise ValueError("專案的車輛參數欄位不完整或無法辨識。")
+    values.pop("caster_direction_check_deg", None)  # Legacy projects stored the direction check angle.
+    for name in LEGACY_DERIVED_FIELDS:
+        values.pop(name, None)
+    expected = FIELDS.keys()
+    if "N" in values:
+        expected = (expected - {"target_sprung_frequency_Hz"}) | {"N"}
+    if values.keys() not in (expected, expected - {"zeta"}):
         raise ValueError("專案的車輛參數欄位不完整或無法辨識。")
     if "zeta" not in values:
         # Version 1 projects originally stored the target ratio on the Dynamics tab.
         settings = project.get("dynamics_export", {})
         legacy_zeta = settings.get("zeta", 0.7) if isinstance(settings, dict) else 0.7
         values = {**values, "zeta": legacy_zeta}
+    if "N" in values:
+        from vehicle_initial_sizing import legacy_tender_target_frequency
+
+        divisor = values.pop("N")
+        values["target_sprung_frequency_Hz"] = legacy_tender_target_frequency(validate_inputs(values), divisor)
     return validate_inputs(values)
 
 

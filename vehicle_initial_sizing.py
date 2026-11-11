@@ -29,8 +29,7 @@ Frequency vs mass 沿用 analysis/Frequency_mass.py 的未阻尼模態估算：
 此項分析的 ms 為全車簧上質量，mu 為單輪簧下質量，均使用 kg。
 use_tender = False 時跳過 Heave 反算與 Tender 設計，後續直接採用原 Heave 主簧剛性。
 use_tender = True 時，Heave 剛性反算固定 Ks_roll，將 Ks_pitch 視為 heave 剛性：
-與 analysis/Frequency_mass.py 相同，以調整前的簧下頻率除以 N 作為目標：
-    f_target = f_unsprung_current / N
+以輸入的目標簧上自然頻率（Hz）作為 f_target：
     Kr_target = (2 * pi * f_target)**2 * (ms / 4)
     Ks_heave_target = 4 * Kr_target * Kt / (Kt - Kr_target) / MR**2 - Ks_roll
 再用新 heave 剛性重算簧上與簧下自然頻率。
@@ -180,7 +179,7 @@ Brake_ratio 使用無空力直線煞車，brake_ax 採用輸入 ax 作為正的�
 
 import math
 
-from project import FIELDS, LEGACY_DERIVED_FIELDS, default_project, validate_inputs
+from project import DEFAULT_TENDER_TARGET_FREQUENCY_HZ, FIELDS, LEGACY_DERIVED_FIELDS, default_project, validate_inputs
 
 
 g = 9.81                       # 重力加速度，m/s^2
@@ -229,6 +228,13 @@ def calculate_compressed_travel(mass, acceleration_g, height, span, travel):
     stiffness = load_transfer / travel
     angle_deg = math.degrees(math.atan(2 * travel / span))
     return stiffness, angle_deg
+
+
+def _mode_stiffness_requirements(mass, acceleration_g, height, span, angle_deg, travel):
+    acceleration_g = abs(acceleration_g)
+    angle_result = calculate_stiffness(mass, acceleration_g, height, span, angle_deg)
+    travel_result = calculate_compressed_travel(mass, acceleration_g, height, span, travel)
+    return angle_result, travel_result, max(angle_result[0], travel_result[0])
 
 
 def calculate_natural_frequency(mass, stiffness):
@@ -310,15 +316,35 @@ def calculate_frequency_vs_mass(mass, unsprung_mass, motion_ratio, tire_stiffnes
     }
 
 
+def legacy_tender_target_frequency(p, divisor):
+    """Convert the old frequency divisor for the saved vehicle parameters."""
+    if type(divisor) not in (int, float) or not math.isfinite(divisor) or divisor <= 0:
+        raise ValueError("舊版 Tender 頻率除數 N 必須為大於 0 的有限數值。")
+    try:
+        _, _, pitch = _mode_stiffness_requirements(
+            p["ms"], p["ax"], p["h_cog"], p["lf"] + p["lr"], p["target_pitch_angle_deg"], p["sus_travel"],
+        )
+        _, _, roll = _mode_stiffness_requirements(
+            p["ms"], p["ay"], p["h_cog"], p["tf"], p["target_roll_angle_deg"], p["sus_travel"],
+        )
+        rates = calculate_tire_stiffness(p["MR"], p["Kt"], pitch, roll)
+        frequency = calculate_frequency_vs_mass(
+            p["ms"], p["mu"], p["MR"], p["Kt"], rates["Ks_pitch_N_per_m"], rates["Ks_roll_N_per_m"],
+        )["frequency_unsprung_target_Hz"] / divisor
+    except (ValueError, ArithmeticError):
+        # Keep old drafts editable when their inputs cannot produce a baseline frequency.
+        return DEFAULT_TENDER_TARGET_FREQUENCY_HZ
+    return frequency if math.isfinite(frequency) and frequency > 0 else DEFAULT_TENDER_TARGET_FREQUENCY_HZ
+
+
 def calculate_heave_reduction(mass, unsprung_mass, motion_ratio, tire_stiffness,
-                              pitch_spring, roll_spring, frequency_divisor):
-    """沿用 Frequency vs mass，以目前簧下頻率 / N 為目標反算 heave 剛性。"""
-    if not math.isfinite(frequency_divisor) or frequency_divisor <= 0:
-        raise ValueError("frequency_divisor（N）必須為大於 0 的有限數值")
+                              pitch_spring, roll_spring, target_frequency):
+    """固定 Roll 剛性，以指定的簧上自然頻率反算 Heave 等效剛性。"""
+    if not math.isfinite(target_frequency) or target_frequency <= 0:
+        raise ValueError("目標簧上自然頻率必須為大於 0 的有限數值（Hz）")
     current = calculate_frequency_vs_mass(
         mass, unsprung_mass, motion_ratio, tire_stiffness, pitch_spring, roll_spring
     )
-    target_frequency = current['frequency_unsprung_target_Hz'] / frequency_divisor
     result = {
         "target_natural_frequency_Hz": target_frequency,
         "current_sprung_frequency_Hz": current['frequency_sprung_target_Hz'],
@@ -331,15 +357,19 @@ def calculate_heave_reduction(mass, unsprung_mass, motion_ratio, tire_stiffness,
         "adjusted_sprung_frequency_Hz": None,
         "adjusted_unsprung_frequency_Hz": None,
     }
-    required_ride_rate = (2 * math.pi * target_frequency)**2 * (mass / 4)
+    omega = math.tau * target_frequency
+    required_ride_rate = omega * omega * (mass / 4)
     if required_ride_rate >= tire_stiffness:
         result['reason'] = "目標頻率所需的 ride rate 不小於輪胎剛性 Kt，無有限正剛性解。"
         return result
 
-    required_equivalent_spring = calculate_spring_rate(
-        motion_ratio, required_ride_rate, tire_stiffness
-    )
-    required_heave = 4 * required_equivalent_spring - roll_spring
+    if target_frequency == current["frequency_sprung_target_Hz"]:
+        required_heave = pitch_spring
+    elif required_ride_rate == 0:
+        required_heave = 0
+    else:
+        required_equivalent_spring = calculate_spring_rate(motion_ratio, required_ride_rate, tire_stiffness)
+        required_heave = 4 * required_equivalent_spring - roll_spring
     if required_heave <= 0:
         result['reason'] = "目標頻率過低；固定目前 Roll 剛性時，沒有正的 heave 剛性可達成。"
         return result
@@ -1177,8 +1207,13 @@ def solve(*, emit=lambda message: None, **overrides):
     """Solve using project defaults for inputs omitted by the caller."""
     for name in LEGACY_DERIVED_FIELDS:
         overrides.pop(name, None)
+    use_legacy_divisor = "N" in overrides and "target_sprung_frequency_Hz" not in overrides
+    if use_legacy_divisor:
+        divisor = overrides.pop("N")
     validate_inputs(overrides)
     values = overrides if overrides.keys() == FIELDS.keys() else default_project() | overrides
+    if use_legacy_divisor:
+        values["target_sprung_frequency_Hz"] = legacy_tender_target_frequency(values, divisor)
     return _solve(**values, emit=emit)
 
 
@@ -1189,7 +1224,7 @@ def _solve(
     kf, target_pitch_angle_deg, target_roll_angle_deg,
     kpi_deg, min_turn_radius_m,
     MR, zeta, sprung_roll_inertia_kg_m2, Kt, wl_mu_y, mu_w,
-    R_tire, drive_motor_torque_Nm, drive_motor_rpm, N,
+    R_tire, drive_motor_torque_Nm, drive_motor_rpm, target_sprung_frequency_Hz,
     rc_chassis_stiffness_ratio,
     F_ref_ratio, wl_aero_front_ratio,
     brake_driver_force_N, emit=lambda message: None,
@@ -1248,10 +1283,12 @@ def _solve(
     heave_result = None
     tender_result = None
     compression_result = None
-    pitch_k, pitch_s = calculate_stiffness(ms, abs(ax), h_cog, L, target_pitch_angle_deg)
-    roll_k, roll_s = calculate_stiffness(ms, abs(ay), h_cog, t, target_roll_angle_deg)
-    travel_pitch_k, travel_pitch_angle = calculate_compressed_travel(ms, abs(ax), h_cog, L, sus_travel)
-    travel_roll_k, travel_roll_angle = calculate_compressed_travel(ms, abs(ay), h_cog, t, sus_travel)
+    (pitch_k, pitch_s), (travel_pitch_k, travel_pitch_angle), selected_pitch_k = _mode_stiffness_requirements(
+        ms, ax, h_cog, L, target_pitch_angle_deg, sus_travel,
+    )
+    (roll_k, roll_s), (travel_roll_k, travel_roll_angle), selected_roll_k = _mode_stiffness_requirements(
+        ms, ay, h_cog, t, target_roll_angle_deg, sus_travel,
+    )
 
     emit("\n目標角度結果：")
     emit(f"Pitch @ {target_pitch_angle_deg:g} deg: {pitch_k:,.2f} N/m "
@@ -1265,8 +1302,6 @@ def _solve(
     emit(f"Roll : {travel_roll_k:,.2f} N/m = {travel_roll_k / 1000:.3f} N/mm, "
           f"角度 = {travel_roll_angle:.3f} deg")
 
-    selected_pitch_k = max(pitch_k, travel_pitch_k)
-    selected_roll_k = max(roll_k, travel_roll_k)
     pitch_frequency = calculate_natural_frequency(ms, selected_pitch_k)
     roll_frequency = calculate_natural_frequency(ms, selected_roll_k)
 
@@ -1311,12 +1346,10 @@ def _solve(
     else:
         heave_result = calculate_heave_reduction(
             ms, mu, MR, Kt, tire_result['Ks_pitch_N_per_m'], tire_result['Ks_roll_N_per_m'],
-            N
+            target_sprung_frequency_Hz
         )
         emit("\nHeave 剛性反算（與 Frequency vs mass 相同的計算模式）：")
-        emit(f"目標簧上自然頻率 = 目前簧下頻率 / N "
-              f"= {heave_result['current_unsprung_frequency_Hz']:.3f} / {N:g} "
-              f"= {heave_result['target_natural_frequency_Hz']:.3f} Hz")
+        emit(f"指定的目標簧上自然頻率 = {target_sprung_frequency_Hz:.3f} Hz")
         emit(f"固定 Roll Ks = {tire_result['Ks_roll_N_per_m']:,.2f} N/m")
         emit(f"目前簧上自然頻率 = {heave_result['current_sprung_frequency_Hz']:.3f} Hz")
         if not heave_result['can_reach_target']:
@@ -1711,7 +1744,7 @@ def _solve(
         "drive_target_speed_kmh", "sus_travel", "tf", "tr", "t", "A_air", "air_density_kg_per_m3",
         "kf", "kr", "target_pitch_angle_deg", "target_roll_angle_deg", "kpi_deg", "min_turn_radius_m",
         "MR", "zeta", "sprung_roll_inertia_kg_m2", "Kt", "wl_mu_y", "mu_w",
-        "R_tire", "drive_motor_torque_Nm", "drive_motor_rpm", "N", "rc_chassis_stiffness_ratio",
+        "R_tire", "drive_motor_torque_Nm", "drive_motor_rpm", "target_sprung_frequency_Hz", "rc_chassis_stiffness_ratio",
         "F_ref_ratio", "wl_aero_front_ratio", "cg_safety_factor", "brake_driver_force_N",
     )
     inputs = locals()

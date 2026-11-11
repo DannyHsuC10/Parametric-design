@@ -21,4 +21,4 @@ exit /b
 echo Build-WebView2Host.ps1 requires the Microsoft WebView2 SDK.
 echo See README.md for build instructions.
 pause
-exit /b 1
+exit /b 
