@@ -4,8 +4,12 @@ const form = byId("parameters");
 const controls = byId("controls");
 const chapterSelect = byId("chapters");
 const reportLanguage = byId("report-language");
+const reportDownload = byId("report-download");
+const dynamicsDownload = byId("download-dynamics");
 const parameterFields = byId("parameter-fields");
 const reportContent = byId("report-content");
+const openProjectButton = byId("open-project");
+const saveProjectButton = byId("save-project");
 const fileInput = byId("project-file");
 const workbenchURL = new URL(document.currentScript.src);
 const workerURL = new URL("solver-worker.js", workbenchURL);
@@ -13,14 +17,13 @@ workerURL.search = workbenchURL.search;
 const groupButtons = [];
 const groupPanels = [];
 const inputs = new Map();
-const downloads = [
-  ["download-markdown", "vehicle_initial_sizing_report.md", "text/markdown",
+const reportDownloads = {
+  markdown: ["vehicle_initial_sizing_report.md", "text/markdown",
     (result) => result.reports[reportLanguage.value].markdown],
-  ["download-csv", "vehicle_initial_sizing_results.csv", "text/csv", (result) => "\uFEFF" + result.csv],
-  ["download-excel", "vehicle_initial_sizing_results.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  csv: ["vehicle_initial_sizing_results.csv", "text/csv", (result) => "\uFEFF" + result.csv],
+  excel: ["vehicle_initial_sizing_results.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     (result) => Uint8Array.from(atob(result.excel), (character) => character.charCodeAt(0))],
-  ["download-dynamics", "Vehicle_initial_settings.json", "application/json", (result) => result.dynamics],
-];
+};
 
 let worker;
 let initialized = false;
@@ -64,10 +67,16 @@ function setStatus(message, isError = false) {
 }
 
 function updateControls() {
-  controls.disabled = busy || !initialized;
+  const editingDisabled = busy || !initialized;
+  controls.disabled = editingDisabled;
+  openProjectButton.disabled = editingDisabled;
+  saveProjectButton.disabled = editingDisabled;
+  fileInput.disabled = editingDisabled;
   chapterSelect.disabled = busy || chapterSelect.options.length < 2;
   reportLanguage.disabled = busy;
-  for (const [id] of downloads) byId(id).disabled = busy || !lastResult || staleResult;
+  const exportDisabled = busy || !lastResult || staleResult;
+  reportDownload.disabled = exportDisabled;
+  dynamicsDownload.disabled = exportDisabled;
 }
 
 async function runTask(message, task) {
@@ -176,15 +185,14 @@ function download(name, type, content) {
 }
 
 form.addEventListener("input", (event) => {
-  if (event.target === fileInput) return;
   event.target.removeAttribute("aria-invalid");
   dirty = true;
   staleResult = Boolean(lastResult);
-  setStatus(staleResult ? staleMessage : "Parameters changed. You can solve or download the project.");
+  setStatus(staleResult ? staleMessage : "Parameters changed. You can solve or save the project.");
   updateControls();
 });
 
-byId("open-project").addEventListener("click", () => fileInput.click());
+openProjectButton.addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
   const [file] = fileInput.files;
   fileInput.value = "";
@@ -200,7 +208,7 @@ fileInput.addEventListener("change", () => {
   });
 });
 
-byId("save-project").addEventListener("click", () => runTask("Preparing project download…", async () => {
+saveProjectButton.addEventListener("click", () => runTask("Preparing project download…", async () => {
   const content = await request("save", parameters());
   const name = projectFile ?? "vehicle_project.json";
   download(/\.json$/i.test(name) ? name : name + ".json", "application/json", content);
@@ -247,11 +255,18 @@ chapterSelect.addEventListener("change", () => {
   byId("chapter-" + chapterSelect.value)?.scrollIntoView({block: "start"});
 });
 
-for (const [id, name, type, content] of downloads) {
-  byId(id).addEventListener("click", () => {
-    if (lastResult && !staleResult) download(name, type, content(lastResult));
-  });
-}
+reportDownload.addEventListener("change", () => {
+  const format = reportDownload.value;
+  reportDownload.value = "";
+  if (!format || reportDownload.disabled) return;
+  const [name, type, content] = reportDownloads[format];
+  download(name, type, content(lastResult));
+});
+
+dynamicsDownload.addEventListener("click", () => {
+  if (dynamicsDownload.disabled) return;
+  download("Vehicle_initial_settings.json", "application/json", lastResult.dynamics);
+});
 
 async function start() {
   byId("retry").hidden = true;

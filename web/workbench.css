@@ -20,13 +20,13 @@
 }
 
 .workbench-header .workbench-width {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: clamp(10px, 2vw, 16px);
 }
 
 .workbench-icon {
-  flex: none;
   width: clamp(34px, 5vw, 48px);
   height: auto;
 }
@@ -105,6 +105,7 @@
 
 .workbench fieldset { margin: 0; padding: 0; min-inline-size: 0; border: 0; }
 .action-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.project-actions { align-self: start; justify-content: flex-end; }
 
 #parameter-groups {
   display: flex;
@@ -176,6 +177,11 @@
 @media (max-width: 900px) {
   .workbench-layout { grid-template-columns: minmax(0, 1fr); }
   .parameter-field { grid-template-columns: minmax(0, 1fr) minmax(86px, 36%); }
+}
+
+@media (max-width: 600px) {
+  .workbench-header .workbench-width { grid-template-columns: auto minmax(0, 1fr); }
+  .project-actions { grid-column: 1 / -1; }
 }
 
 @media (width > 900px) and (min-height: 500px) {

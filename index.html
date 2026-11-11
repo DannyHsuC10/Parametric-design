@@ -23,6 +23,11 @@
         <h1>Vehicle Initial Sizing</h1>
         <p>Set your design targets and review the vehicle and suspension analysis.</p>
       </div>
+      <div class="action-row project-actions" role="group" aria-label="Project actions">
+        <button type="button" id="open-project" disabled>Import Project</button>
+        <button type="button" id="save-project" disabled>Save Project</button>
+        <input type="file" id="project-file" accept=".json,application/json" hidden disabled>
+      </div>
     </div>
   </header>
 
@@ -35,11 +40,6 @@
       <form id="parameters" novalidate>
         <fieldset id="controls" disabled>
           <legend class="sr-only">Vehicle parameters</legend>
-          <div class="action-row">
-            <button type="button" id="open-project">Import Project</button>
-            <button type="button" id="save-project">Save Project</button>
-            <input type="file" id="project-file" accept=".json,application/json" hidden>
-          </div>
           <nav id="parameter-groups" aria-label="Parameter groups"></nav>
           <div id="parameter-fields"></div>
           <button class="primary-button" type="submit">Solve</button>
@@ -64,9 +64,13 @@
           <option value="zh">Traditional Chinese</option>
           <option value="en" selected>English</option>
         </select>
-        <button type="button" id="download-markdown" disabled>Download Markdown</button>
-        <button type="button" id="download-csv" disabled>Download CSV</button>
-        <button type="button" id="download-excel" disabled>Download Excel</button>
+        <label class="sr-only" for="report-download">Download report</label>
+        <select id="report-download" disabled>
+          <option value="" disabled selected>Download Report</option>
+          <option value="markdown">Markdown (.md)</option>
+          <option value="csv">CSV (.csv)</option>
+          <option value="excel">Excel (.xlsx)</option>
+        </select>
         <button type="button" id="download-dynamics" disabled>Export Dynamics JSON</button>
       </div>
       <dl id="summary" class="summary" aria-label="Key results" hidden></dl>

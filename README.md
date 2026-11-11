@@ -6,7 +6,7 @@
 
 ## 網頁版使用方式
 
-1. 英文網頁開啟後會載入預設參數。也可按 **Import Project** 載入先前保存的專案 JSON。
+1. 英文網頁開啟後會載入預設參數。頂部標題列右上角的 **Import Project** 可載入先前保存的專案 JSON，**Save Project** 可儲存目前的參數。
 2. 在左側切換 **Vehicle**、**Performance**、**Suspension**、**Tires** 或 **Motors** 頁籤，調整設計參數。煞車減速度採用縱向加速度 `ax` 的輸入值。
 3. 按 **Solve** 後，右側預設顯示英文報告。報告語言選單可在求解前改選 **Traditional Chinese**，也可在求解後用同一組結果切換語言。
 4. 用 **Jump to section** 查看各項分析，並下載所需的報告或結果。修改參數後，重新求解即可匯出更新後的結果。
@@ -20,9 +20,9 @@
 | 網頁版操作 | 預設檔名 | 內容 |
 | --- | --- | --- |
 | Save Project | `vehicle_project.json` | 保存輸入參數，供 **Import Project** 重新載入。 |
-| Download Markdown | `vehicle_initial_sizing_report.md` | 保存右側目前語言的報告，包含公式、數值代入和重點結果。 |
-| Download CSV | `vehicle_initial_sizing_results.csv` | 完整輸入與結果，包含 `section`、`field`、`value` 三欄。採 UTF-8 BOM，無可用數值的項目留空。 |
-| Download Excel | `vehicle_initial_sizing_results.xlsx` | 完整輸入與結果，附分類、欄位、數值／狀態、單位和中文說明。首列凍結並可篩選，無可用數值顯示「無可用解」。布林狀態與負輪載可直接查閱。 |
+| Download Report → Markdown | `vehicle_initial_sizing_report.md` | 保存右側目前語言的報告，包含公式、數值代入和重點結果。 |
+| Download Report → CSV | `vehicle_initial_sizing_results.csv` | 完整輸入與結果，包含 `section`、`field`、`value` 三欄。採 UTF-8 BOM，無可用數值的項目留空。 |
+| Download Report → Excel | `vehicle_initial_sizing_results.xlsx` | 完整輸入與結果，附分類、欄位、數值／狀態、單位和中文說明。首列凍結並可篩選，無可用數值顯示「無可用解」。布林狀態與負輪載可直接查閱。 |
 | Export Dynamics JSON | `Vehicle_initial_settings.json` | 供 SuspensionDynamicsLab 使用的懸吊動態、幾何與車輛參數。 |
 
 ## 桌面版使用方式
