@@ -29,7 +29,6 @@
   flex: none;
   width: clamp(34px, 5vw, 48px);
   height: auto;
-  border-radius: 9px;
 }
 
 .workbench-header p { margin: 0; color: #d4e3ee; font-size: 0.875rem; }
