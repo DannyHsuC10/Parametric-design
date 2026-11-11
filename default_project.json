@@ -19,7 +19,7 @@
     "A_air": 1.0,
     "air_density_kg_per_m3": 1.225,
     "kf": 0.55,
-    "target_pitch_angle_deg": 1.5,
+    "target_pitch_angle_deg": 1,
     "target_roll_angle_deg": 2.0,
     "kpi_deg": 8.0,
     "min_turn_radius_m": 2.65,
