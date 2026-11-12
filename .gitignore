@@ -7,3 +7,5 @@ dist/
 *.spec
 .test-output/
 .test-tmp/
+web/formula-student/data/.refresh.lock
+web/formula-student/data/.refresh-*/

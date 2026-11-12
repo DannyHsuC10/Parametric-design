@@ -1,8 +1,18 @@
 # Formula Student 資料爬取與視覺化
 
-本專案包含 Formula Student 車輛資料、FSE 歷史成績的爬蟲，以及三個可在瀏覽器使用的視覺化工具。主要資料位於 `FSG_data_statistics/`。
+本目錄包含 Formula Student 車輛資料與 FSE 歷史成績的爬蟲、離線資料處理程式，以及三個視覺化頁面。這裡的爬蟲與資料處理程式可獨立於網站執行，輸出寫入 `FSG_data_statistics/`。
 
-在 Vehicle Initial Sizing Lab 的首頁可點 **Formula Student Data** 開啟資料區。下列命令的相對路徑以本 `spider/` 資料夾為起點，視覺化伺服器則從外層網站根目錄啟動。
+## 更新主站資料
+
+Vehicle Initial Sizing Lab 首頁的 **Formula Student Data** 預設讀取網站專案根目錄下 [web/formula-student/data/](../web/formula-student/data/) 的三份 CSV。即使把 `spider/` 移出專案，主站資料頁和更新工具仍可使用。
+
+要一次爬取並更新主站的三份 CSV，請在網站專案根目錄執行下列指令。
+
+```powershell
+python refresh_formula_student_data.py
+```
+
+更新成功後，三份 CSV 和記錄爬取時間的 `crawl_metadata.json` 會寫入 `web/formula-student/data/`。要讓 GitHub Pages 顯示新版，請將這四個更新後的檔案一併提交並推送到 `main`。
 
 ## 視覺化工具
 
@@ -14,9 +24,9 @@
 
 分布頁的樣本整理、平均數、標準差、權重與常態曲線公式詳見 [`visualization/車輛參數統計計算說明.md`](visualization/車輛參數統計計算說明.md)。
 
-## 視覺化使用的 CSV
+## 本目錄的視覺化資料
 
-網站啟動後會自動讀取以下檔案，不需手動匯入：
+`spider/visualization/` 的三個頁面會自動讀取本目錄內的以下 CSV。
 
 | CSV | 使用頁面 | 資料內容與來源 |
 | --- | --- | --- |
@@ -33,7 +43,7 @@
 
 ## Python 爬蟲與資料處理
 
-以下命令請在 `spider/` 資料夾執行。爬蟲會連線到 Formula Student 網站；若要更新資料，先執行對應爬蟲。
+以下命令請在 `spider/` 資料夾執行，用於更新本目錄的資料。爬蟲會連線到 Formula Student 網站。
 
 ### 更新車輛規格
 
@@ -71,7 +81,7 @@ python FSG_data_statistics/scripts/weighted_vehicle_parameter_ranges.py
 
 ### 更新順序
 
-若要從網站重新爬取資料並更新參數分布頁，依序執行：
+若要從 Formula Student 網站重新爬取資料並更新本目錄的參數分布頁，依序執行下列指令。
 
 ```powershell
 python FSG_data_statistics/scripts/spider_all_FSGteam.py

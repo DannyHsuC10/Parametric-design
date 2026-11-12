@@ -17,15 +17,29 @@
 
 ## Formula Student 資料
 
-點首頁標題列的 **Formula Student Data**，在新分頁開啟 **Vehicle Data**、**FSE Results** 和 **Parameter Distributions**。可篩選圖表、下載完整 CSV、匯出篩選結果，或匯入自己的 CSV。
+點首頁標題列的 **Formula Student Data**，可在目前分頁前往資料區，使用 **Vehicle Data**、**FSE Results** 和 **Parameter Distributions**。可篩選圖表、下載完整 CSV、匯出篩選結果，或匯入自己的 CSV。
 
-資料頁與瀏覽器計算位於 [web/formula-student/](web/formula-student/)，預設 CSV 隨站點一起發布。移走 `spider/` 後，仍可直接使用資料頁。要更新網站的預設資料，請在 [web/formula-student/data/](web/formula-student/data/) 內替換相應的 CSV，保留檔名和欄位。
+資料頁與瀏覽器計算位於 [web/formula-student/](web/formula-student/)，預設 CSV 隨站點一起發布。
 
 | 頁面 | 資料檔 |
 | --- | --- |
 | Vehicle Data | `FSG_EV_vehicle_database.csv` |
 | FSE Results | `fse_historical_results.csv` |
-| Parameter Distributions | `fsg_results_vehicle_year_intersection.csv`（按車隊和年份配對的規格與成績） |
+| Parameter Distributions | `fsg_results_vehicle_year_intersection.csv`（按車隊 ID 和年份配對的規格與成績） |
+
+### 在本機更新網站資料
+
+在專案根目錄執行下列指令。工具使用 Python 3.10 以上的標準函式庫，可獨立於 `spider/` 使用。
+
+```powershell
+python refresh_formula_student_data.py
+```
+
+工具逐一讀取 FSG 官網 FSE 名單上的車隊頁，收集歷代車輛規格與成績，再按車隊 ID 和年份配對。官網名單外的既有歷史資料會保留。執行期間會顯示進度，所需時間取決於官網的回應速度。
+
+成功後，三份 CSV 和 `crawl_metadata.json` 會一起更新到 [web/formula-student/data/](web/formula-student/data/)。資料頁的 **Bundled data last crawled** 以台北時間顯示最近一次成功爬取的時間。第一次成功執行前會顯示 **Not recorded**。如果爬取或檢查失敗，可繼續使用上一版資料。
+
+要更新線上版本，將更新後的三份 CSV 和 `crawl_metadata.json` 一起提交並推送到 `main`。如要先把結果輸出到其他資料夾，可加上 `--output-dir <資料夾>`。
 
 ## 下載與匯出
 
