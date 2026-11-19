@@ -1,0 +1,24 @@
+import numpy as np
+
+
+
+def road_acc(state):
+
+    state.zr = np.zeros(4)
+
+    if 0.5< state.t:
+        state.Fy = (-1000.0,-1000.0,-1000.0,-1000.0)
+        state.Fx = (-1000.0,-1000.0,-1000.0,-1000.0)
+        total_mass = getattr(state, "total_vehicle_mass_kg", 321.0)
+        state.F_cg = np.array([sum(state.Fx),sum(state.Fy),-total_mass*9.81])
+
+def road_FL_bump(state):
+    
+    state.zr = np.zeros(4)
+
+
+    # FL bump
+    if 0.5 < state.t < 1:
+
+        state.zr[0] = 0.05   # FL 上升 5 cm
+

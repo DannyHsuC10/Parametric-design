@@ -9,3 +9,11 @@ dist/
 .test-tmp/
 web/formula-student/data/.refresh.lock
 web/formula-student/data/.refresh-*/
+
+# Keep only source files and MATLAB apps/live scripts in sketch.
+/sketch/**
+!/sketch/**/
+!/sketch/**/*.py
+!/sketch/**/*.m
+!/sketch/**/*.mlapp
+!/sketch/**/*.mlx
